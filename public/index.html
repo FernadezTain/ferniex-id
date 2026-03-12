@@ -1245,11 +1245,19 @@ $('logoutBtn').onclick = async () => {
   $('auth-page').classList.add('active');
   $('loginMsg').textContent = ''; $('loginPassword').value = '';
 };
-(function autoLogin() {
+(async function autoLogin() {
   try {
     const saved = JSON.parse(localStorage.getItem('fernieid_session'));
-    if (saved?.username) openDashboard(saved);
-  } catch {}
+    if (!saved?.username) return;
+    const rows = await sbFetch(`users?username=eq.${encodeURIComponent(saved.username)}&select=*`);
+    const user = rows[0] ? { ...rows[0], regDate: rows[0].created_at } : saved;
+    openDashboard(user);
+  } catch {
+    try {
+      const saved = JSON.parse(localStorage.getItem('fernieid_session'));
+      if (saved?.username) openDashboard(saved);
+    } catch {}
+  }
 })();
 </script>
 </body>
