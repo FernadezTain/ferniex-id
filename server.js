@@ -335,18 +335,25 @@ app.post("/api/telegram/generate-token", async (req, res) => {
   if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
     const token = Math.random().toString(36).slice(2, 10).toUpperCase();
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+    
+    const patchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
       method: "PATCH",
-      headers: sbHeaders,
+      headers: { ...sbHeaders, Prefer: "return=minimal" },  // ← добавь Prefer
       body: JSON.stringify({ link_token: token })
     });
+
+    if (!patchRes.ok) {
+      const err = await patchRes.text();
+      console.error("generate-token PATCH error:", err);
+      return res.json({ success: false, error: "Ошибка сохранения токена" });
+    }
+
     res.json({ success: true, token });
   } catch (e) {
-    console.error(e);
+    console.error("generate-token error:", e.message);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
-
 // ====== Привязка telegram_id по токену (вызывается из бота) ======
 app.post("/api/telegram/link", async (req, res) => {
   const { token, telegram_id } = req.body;
