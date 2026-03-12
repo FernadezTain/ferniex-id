@@ -13,7 +13,7 @@ app.use(express.static("public"));
 // ===== Настройка CORS =====
 // В production лучше указывать конкретный домен фронтенда вместо '*'
 app.use(cors({
-  origin: 'https://ferniex-minigame.vercel.app/',
+  origin: 'https://ferniex-minigame.vercel.app',
   credentials: true
 }));
 // ====== Регистрация ======
