@@ -245,7 +245,7 @@ app.post("/api/telegram/unlink", async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
-    // Получаем telegram_id ДО отвязки
+    // Получаем telegram_id и username (Telegram) ДО отвязки
     const userRes = await fetch(
       `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`,
       { headers: sbHeaders }
@@ -266,7 +266,7 @@ app.post("/api/telegram/unlink", async (req, res) => {
     if (telegram_id) {
       await sendTgMessage(telegram_id,
         `🛡 <b>Система Безопасности</b>\n\n` +
-        `<blockquote>Пользователь: <b>${username}</b> | ID: <b>${userId}</b>\nВаш Telegram аккаунт был <b>успешно отвязан</b> от FernieID. 🔓</blockquote>\n\n` +
+        `<blockquote>Telegram: <b>@${username}</b> | ID: <b>${telegram_id}</b>\nВаш Telegram аккаунт был <b>успешно отвязан</b> от FernieID. 🔓</blockquote>\n\n` +
         `Что это значит? 🤔\n` +
         `<blockquote>1️⃣ <b>Вы больше не будете получать награды</b> за участие в Мини-Играх, пока не привяжете этот Telegram аккаунт к FernieID. 🎮💎</blockquote>\n\n` +
         `Если отвязку сделали вы, просто <b>проигнорируйте</b> это сообщение. ✅\n` +
