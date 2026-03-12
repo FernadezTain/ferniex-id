@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FernieID</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #08020f;
+  --text: #f0f0ff;
+  --muted: rgba(255,255,255,0.35);
+  --p1: #b48dff;
+  --p2: #7eb8ff;
+  --p3: #ff9ed2;
+  --radius: 20px;
+  --red: #ff6b6b;
+  --teal: #4ecdc4;
+  --orange: #ffb87a;
+  --sidebar: 220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── ORBS ── */
+.orbs{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:0.18;animation:drift 18s ease-in-out infinite alternate;}
+.orb1{width:550px;height:550px;background:var(--p1);top:-180px;left:-120px;animation-delay:0s;}
+.orb2{width:450px;height:450px;background:var(--p2);top:28%;right:-130px;animation-delay:-6s;}
+.orb3{width:400px;height:400px;background:var(--p3);bottom:-120px;left:28%;animation-delay:-12s;}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1);}33%{transform:translate(30px,-40px) scale(1.06);}
+  66%{transform:translate(-20px,30px) scale(0.94);}100%{transform:translate(12px,-20px) scale(1.02);}
+}
+body::after{content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity:0.03;pointer-events:none;z-index:1;}
+
+/* ════ PAGES ════ */
+.page{position:relative;z-index:2;display:none;min-height:100vh;}
+.page.active{display:flex;}
+@keyframes pageIn{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.page.active{animation:pageIn .45s cubic-bezier(.22,.68,0,1.2) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes formIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ════ AUTH ════ */
+#auth-page{justify-content:center;align-items:center;flex-direction:column;padding:2rem;}
+
+.auth-logo{
+  font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;
+  letter-spacing:-.5px;color:var(--p1);
+  text-shadow:0 0 30px rgba(180,141,255,0.6);
+  margin-bottom:2.5rem;display:flex;align-items:center;gap:10px;
+  animation:fadeUp .5s ease both;
+}
+.auth-logo-dot{
+  width:10px;height:10px;border-radius:50%;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  box-shadow:0 0 16px var(--p1);animation:pulse 2.5s ease infinite;
+}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 8px var(--p1);transform:scale(1);}
+  50%{box-shadow:0 0 24px var(--p1);transform:scale(1.3);}
+}
+.auth-card{
+  width:100%;max-width:400px;
+  background:rgba(20,15,32,0.7);
+  backdrop-filter:blur(32px) saturate(1.7);-webkit-backdrop-filter:blur(32px) saturate(1.7);
+  border:1px solid rgba(180,141,255,0.15);border-radius:28px;
+  padding:2.5rem;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.08);
+  position:relative;overflow:hidden;animation:fadeUp .6s ease both;
+}
+.auth-card::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(180,141,255,0.5) 35%,rgba(255,255,255,0.8) 50%,rgba(180,141,255,0.5) 65%,transparent);pointer-events:none;}
+.auth-card::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(180,141,255,0.04) 0%,transparent 50%,rgba(126,184,255,0.03) 100%);pointer-events:none;}
+
+.auth-tabs{display:flex;margin-bottom:2rem;background:rgba(255,255,255,0.05);border-radius:12px;padding:4px;position:relative;z-index:2;}
+.auth-tab{flex:1;padding:9px;border:none;background:none;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;border-radius:9px;transition:all .3s;letter-spacing:.3px;}
+.auth-tab.active{background:rgba(180,141,255,0.15);color:rgba(255,255,255,.9);box-shadow:0 2px 12px rgba(180,141,255,0.2),inset 0 1px 0 rgba(255,255,255,0.15);}
+
+.form-wrap{position:relative;z-index:2;}
+.form-section{display:none;}
+.form-section.active{display:flex;flex-direction:column;gap:1rem;animation:formIn .3s ease both;}
+
+.input-group{position:relative;}
+.input-label{font-size:.72rem;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+.gl-input{
+  width:100%;padding:13px 16px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;outline:none;font-family:'Inter',sans-serif;font-size:.9rem;color:var(--text);
+  transition:all .25s;backdrop-filter:blur(8px);
+}
+.gl-input::placeholder{color:rgba(255,255,255,0.25);}
+.gl-input:focus{border-color:rgba(180,141,255,0.5);background:rgba(180,141,255,0.08);box-shadow:0 0 0 3px rgba(180,141,255,0.12),0 4px 16px rgba(0,0,0,0.3);transform:translateY(-1px);}
+.input-with-eye{position:relative;}
+.input-with-eye .gl-input{padding-right:44px;}
+.eye-btn{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;transition:color .2s;display:flex;align-items:center;}
+.eye-btn:hover{color:var(--text);}
+
+.strength-bar-wrap{margin-top:8px;}
+.strength-label{font-size:.68rem;color:var(--muted);margin-bottom:5px;letter-spacing:.5px;}
+.strength-bar{height:3px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden;}
+.strength-fill{height:100%;border-radius:100px;width:0%;transition:width .4s ease,background .4s ease;}
+
+.msg{font-size:.8rem;min-height:18px;padding:0 2px;transition:all .3s;letter-spacing:.2px;}
+.gl-btn{width:100%;padding:13px;border:none;border-radius:12px;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:600;cursor:pointer;letter-spacing:.3px;position:relative;overflow:hidden;transition:all .3s;}
+.gl-btn-primary{
+  background:linear-gradient(135deg,rgba(180,141,255,0.35),rgba(126,184,255,0.25));
+  border:1px solid rgba(180,141,255,0.45);color:rgba(255,255,255,.95);
+  box-shadow:0 8px 28px rgba(180,141,255,0.2),inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.gl-btn-primary::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.7) 50%,transparent);pointer-events:none;}
+.gl-btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(180,141,255,0.32),inset 0 1px 0 rgba(255,255,255,0.28);}
+
+/* ════ DASHBOARD LAYOUT ════ */
+#dash-page{flex-direction:column;padding:0;}
+
+/* Header */
+.dash-header{
+  position:sticky;top:0;z-index:100;height:66px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 2rem;
+  background:rgba(8,2,15,0.65);
+  backdrop-filter:blur(32px) saturate(1.7);-webkit-backdrop-filter:blur(32px) saturate(1.7);
+  border-bottom:1px solid rgba(180,141,255,0.14);
+  box-shadow:0 2px 24px rgba(0,0,0,0.5),inset 0 -1px 0 rgba(255,255,255,0.04);
+  overflow:hidden;
+}
+.dash-header::before{content:'';position:absolute;top:0;left:4%;right:4%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(220,200,255,0.45) 35%,rgba(255,255,255,0.75) 50%,rgba(220,200,255,0.45) 65%,transparent);
+  pointer-events:none;z-index:10;}
+.dash-logo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:-.5px;display:flex;align-items:center;gap:8px;z-index:2;}
+.dash-logo-dot{width:7px;height:7px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 0 12px var(--p1);animation:pulse 2.5s ease infinite;}
+.header-right{display:flex;align-items:center;gap:12px;z-index:2;}
+.header-avatar{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:.8rem;
+  box-shadow:0 0 14px rgba(180,141,255,0.4);
+}
+.header-name{font-size:.82rem;font-weight:500;}
+.logout-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'Inter',sans-serif;font-size:.76rem;font-weight:500;
+  color:var(--muted);padding:6px 14px;border-radius:100px;cursor:pointer;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  box-shadow:0 3px 12px rgba(0,0,0,0.28),inset 0 1px 0 rgba(255,255,255,0.08);
+  transition:all .25s;position:relative;overflow:hidden;
+}
+.logout-btn::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4) 50%,transparent);pointer-events:none;}
+.logout-btn:hover{color:var(--red);border-color:rgba(255,107,107,0.3);box-shadow:0 4px 16px rgba(255,107,107,0.1);}
+
+/* Body = sidebar + main */
+.dash-body{display:flex;flex:1;min-height:0;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  padding:1.5rem 1rem;
+  display:flex;flex-direction:column;gap:.35rem;
+  border-right:1px solid rgba(255,255,255,0.07);
+  position:sticky;top:66px;height:calc(100vh - 66px);overflow-y:auto;
+  background:rgba(8,2,15,0.3);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.sidebar-section-label{
+  font-size:.6rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  color:rgba(255,255,255,0.2);padding:0 10px;margin:12px 0 4px;
+}
+.sidebar-section-label:first-child{margin-top:0;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:12px;cursor:pointer;
+  font-size:.82rem;font-weight:500;color:var(--muted);
+  transition:all .2s;position:relative;overflow:hidden;border:1px solid transparent;
+}
+.nav-item::before{content:'';position:absolute;inset:0;border-radius:12px;opacity:0;transition:opacity .2s;
+  background:rgba(180,141,255,0.08);}
+.nav-item:hover{color:rgba(255,255,255,.8);}
+.nav-item:hover::before{opacity:1;}
+.nav-item.active{
+  color:rgba(255,255,255,.92);
+  background:rgba(180,141,255,0.12);
+  border-color:rgba(180,141,255,0.2);
+  box-shadow:0 2px 12px rgba(180,141,255,0.1),inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.nav-item.active::after{
+  content:'';position:absolute;left:0;top:20%;bottom:20%;width:2px;
+  background:linear-gradient(to bottom,var(--p1),var(--p2));
+  border-radius:0 2px 2px 0;
+}
+.nav-icon{font-size:1rem;flex-shrink:0;width:20px;text-align:center;}
+.nav-label{flex:1;}
+.nav-badge{
+  font-size:.58rem;font-weight:700;padding:2px 7px;border-radius:100px;
+  background:rgba(180,141,255,0.2);color:var(--p1);border:1px solid rgba(180,141,255,0.25);
+}
+
+/* ── MAIN CONTENT ── */
+.main-content{flex:1;overflow-y:auto;padding:2.5rem 2rem 4rem;min-width:0;}
+
+/* sections inside main */
+.dash-section{display:none;}
+.dash-section.active{display:block;animation:fadeUp .4s ease both;}
+
+/* ════ SECTION: OVERVIEW ════ */
+.greeting{margin-bottom:2.5rem;}
+.greeting-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.7rem;font-weight:500;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);padding:5px 14px;border-radius:100px;margin-bottom:.9rem;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);
+  position:relative;overflow:hidden;
+}
+.greeting-tag::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4) 50%,transparent);}
+.greeting-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);}
+.greeting h1{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-1px;line-height:1.1;}
+.greeting h1 .plain{color:rgba(255,255,255,.9);}
+.greeting h1 .grad{background:linear-gradient(135deg,var(--p1) 0%,var(--p2) 50%,var(--p3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.greeting p{color:var(--muted);font-size:.88rem;margin-top:.6rem;line-height:1.7;}
+
+/* stats row */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
+.stat-card{
+  border-radius:18px;padding:1.4rem;
+  background:rgba(20,15,32,0.55);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+  position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s,border-color .3s;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3) 50%,transparent);pointer-events:none;}
+.stat-card:hover{transform:translateY(-3px);}
+.stat-card[data-col="purple"]:hover{border-color:rgba(180,141,255,0.22);box-shadow:0 18px 48px rgba(180,141,255,0.12),inset 0 1px 0 rgba(180,141,255,0.1);}
+.stat-card[data-col="blue"]:hover{border-color:rgba(126,184,255,0.22);box-shadow:0 18px 48px rgba(126,184,255,0.12),inset 0 1px 0 rgba(126,184,255,0.1);}
+.stat-card[data-col="teal"]:hover{border-color:rgba(78,205,196,0.22);box-shadow:0 18px 48px rgba(78,205,196,0.12),inset 0 1px 0 rgba(78,205,196,0.1);}
+.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:.9rem;position:relative;z-index:2;backdrop-filter:blur(8px);}
+.stat-icon[data-col="purple"]{background:rgba(180,141,255,0.18);border:1px solid rgba(180,141,255,0.25);}
+.stat-icon[data-col="blue"]{background:rgba(126,184,255,0.18);border:1px solid rgba(126,184,255,0.25);}
+.stat-icon[data-col="teal"]{background:rgba(78,205,196,0.18);border:1px solid rgba(78,205,196,0.25);}
+.stat-label{font-size:.66rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;position:relative;z-index:2;}
+.stat-value{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;position:relative;z-index:2;letter-spacing:-.5px;}
+.stat-value[data-col="purple"]{color:var(--p1);}
+.stat-value[data-col="blue"]{color:var(--p2);}
+.stat-value[data-col="teal"]{color:var(--teal);}
+.stat-sub{font-size:.7rem;color:var(--muted);margin-top:.2rem;position:relative;z-index:2;}
+
+/* overview grid */
+.overview-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:1.25rem;}
+
+/* glass card base */
+.gl-card{
+  border-radius:var(--radius);padding:1.75rem;
+  background:rgba(20,15,32,0.55);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+  position:relative;overflow:hidden;
+}
+.gl-card::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.28) 35%,rgba(255,255,255,0.55) 50%,rgba(255,255,255,0.28) 65%,transparent);pointer-events:none;}
+.gl-card::after{content:'';position:absolute;inset:0;background:linear-gradient(160deg,rgba(180,141,255,0.03) 0%,transparent 50%);pointer-events:none;}
+
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;position:relative;z-index:2;}
+.section-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:-.2px;}
+.section-badge{
+  font-size:.6rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 10px;border-radius:100px;
+  background:rgba(180,141,255,0.12);border:1px solid rgba(180,141,255,0.22);color:#c8acff;
+  position:relative;overflow:hidden;
+}
+.section-badge::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5) 50%,transparent);}
+
+/* profile avatar row */
+.profile-avatar-row{display:flex;align-items:center;gap:1.2rem;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;z-index:2;}
+.big-avatar{
+  width:56px;height:56px;border-radius:16px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;
+  box-shadow:0 0 24px rgba(180,141,255,0.4),0 6px 18px rgba(0,0,0,0.3);
+  position:relative;overflow:hidden;
+}
+.big-avatar::after{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(to bottom,rgba(255,255,255,0.2),transparent);border-radius:16px 16px 0 0;}
+.avatar-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.3px;}
+.avatar-id{font-size:.7rem;color:var(--muted);letter-spacing:.5px;}
+
+/* field rows */
+.field-row{display:flex;flex-direction:column;gap:.4rem;margin-bottom:1.1rem;position:relative;z-index:2;}
+.field-row:last-child{margin-bottom:0;}
+.field-label{font-size:.66rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.field-val-wrap{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px 13px;transition:border-color .25s,background .25s;}
+.field-val-wrap:hover{border-color:rgba(180,141,255,0.22);background:rgba(180,141,255,0.05);}
+.field-val-icon{font-size:.82rem;flex-shrink:0;}
+.field-val-text{flex:1;font-size:.85rem;color:rgba(255,255,255,.85);word-break:break-all;}
+.field-eye{background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;transition:color .2s;display:flex;align-items:center;flex-shrink:0;}
+.field-eye:hover{color:var(--text);}
+.field-eye svg{width:15px;height:15px;}
+
+/* status pill */
+.status-pill{display:inline-flex;align-items:center;gap:6px;font-size:.73rem;font-weight:600;padding:4px 11px;border-radius:100px;position:relative;overflow:hidden;}
+.status-pill::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45) 50%,transparent);}
+.status-pill.online{background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.28);color:var(--teal);}
+.status-dot{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;animation:blink 2s ease infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+/* activity list */
+.activity-list{display:flex;flex-direction:column;gap:.55rem;position:relative;z-index:2;}
+.activity-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);transition:background .2s;}
+.activity-item:hover{background:rgba(255,255,255,0.07);}
+.act-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.78rem;flex-shrink:0;}
+.act-text{flex:1;}
+.act-title{font-size:.78rem;color:rgba(255,255,255,.8);margin-bottom:.1rem;}
+.act-time{font-size:.66rem;color:var(--muted);}
+.act-chip{font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:100px;background:rgba(78,205,196,0.12);border:1px solid rgba(78,205,196,0.2);color:var(--teal);}
+
+/* security */
+.sec-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.06);position:relative;z-index:2;}
+.sec-item:last-child{border-bottom:none;padding-bottom:0;}
+.sec-item:first-child{padding-top:0;}
+.sec-left{display:flex;align-items:center;gap:9px;}
+.sec-ico{font-size:.88rem;}
+.sec-name{font-size:.8rem;color:rgba(255,255,255,.75);}
+.sec-status{font-size:.66rem;font-weight:600;padding:3px 9px;border-radius:100px;}
+.sec-on{background:rgba(78,205,196,0.12);border:1px solid rgba(78,205,196,0.2);color:var(--teal);}
+.sec-off{background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.18);color:var(--red);}
+
+/* ════ SECTION: GAME STATS ════ */
+.stats-page-header{margin-bottom:2rem;}
+.stats-page-header h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.5px;margin-bottom:.4rem;}
+.stats-page-header p{color:var(--muted);font-size:.85rem;}
+
+/* game stat cards grid */
+.game-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:2rem;}
+
+.game-stat-card{
+  border-radius:18px;overflow:hidden;position:relative;
+  background:rgba(20,15,32,0.6);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+  transition:transform .35s cubic-bezier(.22,.68,0,1.4),box-shadow .35s,border-color .35s;
+}
+.game-stat-card::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25) 35%,rgba(255,255,255,0.5) 50%,rgba(255,255,255,0.25) 65%,transparent);pointer-events:none;z-index:5;}
+.game-stat-card:hover{transform:translateY(-5px);}
+.game-stat-card[data-color="purple"]:hover{border-color:rgba(180,141,255,0.28);box-shadow:0 20px 52px rgba(180,141,255,0.15),0 0 0 1px rgba(180,141,255,0.14);}
+.game-stat-card[data-color="blue"]:hover{border-color:rgba(126,184,255,0.28);box-shadow:0 20px 52px rgba(126,184,255,0.15),0 0 0 1px rgba(126,184,255,0.14);}
+.game-stat-card[data-color="mint"]:hover{border-color:rgba(100,220,180,0.28);box-shadow:0 20px 52px rgba(100,220,180,0.15),0 0 0 1px rgba(100,220,180,0.14);}
+.game-stat-card[data-color="pink"]:hover{border-color:rgba(255,158,210,0.28);box-shadow:0 20px 52px rgba(255,158,210,0.15),0 0 0 1px rgba(255,158,210,0.14);}
+.game-stat-card[data-color="orange"]:hover{border-color:rgba(255,160,100,0.28);box-shadow:0 20px 52px rgba(255,160,100,0.15),0 0 0 1px rgba(255,160,100,0.14);}
+
+.gsc-header{padding:1.25rem 1.4rem .85rem;display:flex;align-items:center;gap:12px;position:relative;z-index:2;}
+.gsc-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;backdrop-filter:blur(8px);}
+.game-stat-card[data-color="purple"] .gsc-icon{background:rgba(180,141,255,0.18);border:1px solid rgba(180,141,255,0.28);}
+.game-stat-card[data-color="blue"]   .gsc-icon{background:rgba(126,184,255,0.18);border:1px solid rgba(126,184,255,0.28);}
+.game-stat-card[data-color="mint"]   .gsc-icon{background:rgba(100,220,180,0.18);border:1px solid rgba(100,220,180,0.28);}
+.game-stat-card[data-color="pink"]   .gsc-icon{background:rgba(255,158,210,0.18);border:1px solid rgba(255,158,210,0.28);}
+.game-stat-card[data-color="orange"] .gsc-icon{background:rgba(255,160,100,0.18);border:1px solid rgba(255,160,100,0.28);}
+.gsc-title-wrap{}
+.gsc-game-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:.2rem;}
+.gsc-genre{font-size:.66rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+
+.gsc-divider{height:1px;background:rgba(255,255,255,0.07);margin:0 1.4rem;}
+
+.gsc-metrics{display:grid;grid-template-columns:repeat(3,1fr);padding:.9rem 1.4rem 1.25rem;gap:.5rem;position:relative;z-index:2;}
+.gsc-metric{text-align:center;}
+.gsc-metric-val{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.2rem;}
+.game-stat-card[data-color="purple"] .gsc-metric-val{color:var(--p1);}
+.game-stat-card[data-color="blue"]   .gsc-metric-val{color:var(--p2);}
+.game-stat-card[data-color="mint"]   .gsc-metric-val{color:#7de8c0;}
+.game-stat-card[data-color="pink"]   .gsc-metric-val{color:#ffc0e0;}
+.game-stat-card[data-color="orange"] .gsc-metric-val{color:var(--orange);}
+.gsc-metric-label{font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+
+/* progress bar inside card */
+.gsc-progress-wrap{padding:0 1.4rem 1.25rem;position:relative;z-index:2;}
+.gsc-progress-label{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-bottom:.4rem;}
+.gsc-bar{height:4px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden;}
+.gsc-bar-fill{height:100%;border-radius:100px;transition:width .8s cubic-bezier(.22,.68,0,1.2);}
+.game-stat-card[data-color="purple"] .gsc-bar-fill{background:linear-gradient(90deg,var(--p1),var(--p2));}
+.game-stat-card[data-color="blue"]   .gsc-bar-fill{background:linear-gradient(90deg,var(--p2),#a0d4ff);}
+.game-stat-card[data-color="mint"]   .gsc-bar-fill{background:linear-gradient(90deg,#64dcb4,#7de8c0);}
+.game-stat-card[data-color="pink"]   .gsc-bar-fill{background:linear-gradient(90deg,var(--p3),#ffc0e0);}
+.game-stat-card[data-color="orange"] .gsc-bar-fill{background:linear-gradient(90deg,var(--orange),#ffcc99);}
+
+/* sessions table */
+.sessions-wrap{margin-top:.5rem;}
+.sessions-wrap .section-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:1.1rem;position:relative;z-index:2;}
+
+.sessions-table-wrap{
+  border-radius:16px;overflow:hidden;
+  background:rgba(20,15,32,0.55);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);
+  position:relative;overflow:hidden;
+}
+.sessions-table-wrap::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.28) 35%,rgba(255,255,255,0.52) 50%,rgba(255,255,255,0.28) 65%,transparent);pointer-events:none;z-index:5;}
+
+table{width:100%;border-collapse:collapse;position:relative;z-index:2;}
+thead tr{border-bottom:1px solid rgba(255,255,255,0.08);}
+thead th{
+  padding:.85rem 1.2rem;text-align:left;
+  font-size:.65rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
+}
+tbody tr{border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(180,141,255,0.05);}
+tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);vertical-align:middle;}
+
+.td-game{display:flex;align-items:center;gap:9px;}
+.td-game-ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0;}
+.td-score{font-family:'Syne',sans-serif;font-weight:700;color:var(--p1);}
+.td-dur{color:var(--muted);}
+.td-date{color:var(--muted);font-size:.75rem;}
+.td-rank{
+  display:inline-flex;align-items:center;
+  font-size:.65rem;font-weight:600;padding:3px 9px;border-radius:100px;
+}
+.rank-gold{background:rgba(255,200,60,0.14);border:1px solid rgba(255,200,60,0.25);color:#ffd84d;}
+.rank-silver{background:rgba(180,200,220,0.12);border:1px solid rgba(180,200,220,0.22);color:#b8d0e0;}
+.rank-bronze{background:rgba(200,140,80,0.12);border:1px solid rgba(200,140,80,0.22);color:#d4926a;}
+.rank-normal{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--muted);}
+
+/* loading / empty states */
+.state-loading,.state-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:3rem;gap:1rem;color:var(--muted);font-size:.85rem;
+}
+.spinner{width:32px;height:32px;border-radius:50%;border:2px solid rgba(180,141,255,0.15);border-top-color:var(--p1);animation:spin .9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* sort controls */
+.table-controls{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap;}
+.sort-btn{
+  font-size:.72rem;font-weight:500;padding:6px 13px;border-radius:100px;cursor:pointer;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  color:var(--muted);transition:all .2s;
+}
+.sort-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.18);}
+.sort-btn.active{background:rgba(180,141,255,0.14);border-color:rgba(180,141,255,0.28);color:var(--p1);}
+.table-search{
+  margin-left:auto;padding:6px 13px;border-radius:100px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  font-family:'Inter',sans-serif;font-size:.75rem;color:var(--text);outline:none;
+  transition:border-color .2s;width:160px;
+}
+.table-search::placeholder{color:rgba(255,255,255,0.25);}
+.table-search:focus{border-color:rgba(180,141,255,0.35);}
+
+/* ── FOOTER ── */
+.dash-footer{
+  position:relative;z-index:5;padding:1.5rem 2rem;margin:0 2rem 2rem;
+  display:flex;justify-content:space-between;align-items:center;
+  border-radius:var(--radius);
+  background:rgba(255,255,255,0.04);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow:hidden;
+}
+.dash-footer::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(220,200,255,0.3) 35%,rgba(255,255,255,0.55) 50%,rgba(220,200,255,0.3) 65%,transparent);pointer-events:none;}
+.footer-logo{font-family:'Syne',sans-serif;font-size:.9rem;font-weight:800;display:flex;align-items:center;gap:7px;z-index:2;}
+.footer-dot{width:6px;height:6px;border-radius:50%;background:linear-gradient(135deg,var(--p1),var(--p2));}
+.footer-copy,.footer-by{font-size:.73rem;color:var(--muted);z-index:2;}
+.footer-by strong{color:rgba(255,255,255,.55);font-weight:500;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  :root{--sidebar:190px;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .stats-row .stat-card:last-child{grid-column:span 2;}
+  .overview-grid{grid-template-columns:1fr;}
+}
+@media(max-width:700px){
+  .sidebar{display:none;}
+  .main-content{padding:1.5rem 1rem 3rem;}
+  .stats-row{grid-template-columns:1fr;}
+  .stats-row .stat-card:last-child{grid-column:span 1;}
+  .game-stats-grid{grid-template-columns:1fr;}
+  .dash-footer{margin:0 1rem 1.5rem;flex-wrap:wrap;gap:.6rem;}
+}
+</style>
+</head>
+<body>
+<div class="orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+
+<!-- ════ AUTH PAGE ════ -->
+<div id="auth-page" class="page active">
+  <div class="auth-logo"><div class="auth-logo-dot"></div>FernieID</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login-btn">Войти</button>
+      <button class="auth-tab" id="tab-reg-btn">Регистрация</button>
+    </div>
+    <div class="form-wrap">
+      <div class="form-section active" id="section-login">
+        <div class="input-group">
+          <label class="input-label">Логин</label>
+          <input class="gl-input" type="text" id="loginUsername" placeholder="Введите логин">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Пароль</label>
+          <div class="input-with-eye">
+            <input class="gl-input" type="password" id="loginPassword" placeholder="Введите пароль">
+            <button class="eye-btn" onclick="toggleVis('loginPassword',this)" tabindex="-1">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="msg" id="loginMsg" style="color:var(--red)"></div>
+        <button class="gl-btn gl-btn-primary" id="loginSubmit">Войти →</button>
+      </div>
+      <div class="form-section" id="section-reg">
+        <div class="input-group">
+          <label class="input-label">Логин</label>
+          <input class="gl-input" type="text" id="regUsername" placeholder="Придумайте логин">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Пароль</label>
+          <div class="input-with-eye">
+            <input class="gl-input" type="password" id="regPassword" placeholder="Придумайте пароль">
+            <button class="eye-btn" onclick="toggleVis('regPassword',this)" tabindex="-1">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="strength-bar-wrap">
+            <div class="strength-label" id="strengthLabel">Надёжность пароля</div>
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Повторите пароль</label>
+          <div class="input-with-eye">
+            <input class="gl-input" type="password" id="regPassword2" placeholder="Повторите пароль">
+            <button class="eye-btn" onclick="toggleVis('regPassword2',this)" tabindex="-1">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="msg" id="regMsg" style="color:var(--red)"></div>
+        <button class="gl-btn gl-btn-primary" id="regSubmit">Создать аккаунт →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ DASHBOARD PAGE ════ -->
+<div id="dash-page" class="page">
+  <header class="dash-header">
+    <div class="dash-logo"><div class="dash-logo-dot"></div>FernieID</div>
+    <div class="header-right">
+      <div class="header-avatar" id="headerAvatar">F</div>
+      <span class="header-name" id="headerName">fernie</span>
+      <button class="logout-btn" id="logoutBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Выйти
+      </button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-section-label">Меню</div>
+      <div class="nav-item active" data-section="overview">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Обзор</span>
+      </div>
+      <div class="nav-item" data-section="gamestats">
+        <span class="nav-icon">🎮</span>
+        <span class="nav-label">Игровая статистика</span>
+        <span class="nav-badge">5</span>
+      </div>
+      <div class="sidebar-section-label" style="margin-top:auto;">Аккаунт</div>
+      <div class="nav-item" data-section="security">
+        <span class="nav-icon">🛡️</span>
+        <span class="nav-label">Безопасность</span>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main-content">
+
+      <!-- ── SECTION: OVERVIEW ── -->
+      <div class="dash-section active" id="section-overview">
+        <div class="greeting">
+          <div class="greeting-tag"><div class="greeting-dot"></div>Личный кабинет</div>
+          <h1>
+            <span class="plain">Привет, </span><span class="grad" id="greetName">Fernie</span><span class="plain"> 👋</span>
+          </h1>
+          <p>Добро пожаловать в твой аккаунт FernieID. Всё под контролем.</p>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card" data-col="purple">
+            <div class="stat-icon" data-col="purple">🎮</div>
+            <div class="stat-label">Игр сыграно</div>
+            <div class="stat-value" data-col="purple" id="statGames">—</div>
+            <div class="stat-sub">за всё время</div>
+          </div>
+          <div class="stat-card" data-col="blue">
+            <div class="stat-icon" data-col="blue">⭐</div>
+            <div class="stat-label">Лучший счёт</div>
+            <div class="stat-value" data-col="blue" id="statBest">—</div>
+            <div class="stat-sub">во всех играх</div>
+          </div>
+          <div class="stat-card" data-col="teal">
+            <div class="stat-icon" data-col="teal">📅</div>
+            <div class="stat-label">Дней с нами</div>
+            <div class="stat-value" data-col="teal" id="statDays">1</div>
+            <div class="stat-sub" id="statRegDate">с сегодня</div>
+          </div>
+        </div>
+
+        <div class="overview-grid">
+          <div class="gl-card">
+            <div class="section-head">
+              <div class="section-title">Профиль</div>
+              <div class="section-badge">FernieID</div>
+            </div>
+            <div class="profile-avatar-row">
+              <div class="big-avatar" id="bigAvatar">F</div>
+              <div>
+                <div class="avatar-name" id="avatarName">fernie</div>
+                <div class="avatar-id" id="avatarId">#fernieid-0001</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Логин</div>
+              <div class="field-val-wrap"><span class="field-val-icon">👤</span><span class="field-val-text" id="fieldUsername">fernie</span></div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Пароль</div>
+              <div class="field-val-wrap">
+                <span class="field-val-icon">🔒</span>
+                <span class="field-val-text" id="fieldPassword">••••••••</span>
+                <button class="field-eye" id="dashEyeBtn" onclick="toggleDashPass()">
+                  <svg id="dashEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Статус</div>
+              <div class="field-val-wrap" style="padding:7px 13px;">
+                <span class="field-val-icon">🟢</span>
+                <div class="status-pill online"><div class="status-dot"></div>Онлайн</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field-label">Дата регистрации</div>
+              <div class="field-val-wrap"><span class="field-val-icon">📆</span><span class="field-val-text" id="fieldRegDate">—</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:1.1rem;">
+            <div class="gl-card">
+              <div class="section-head"><div class="section-title">Активность</div></div>
+              <div class="activity-list">
+                <div class="activity-item">
+                  <div class="act-icon" style="background:rgba(126,184,255,0.15);border:1px solid rgba(126,184,255,0.22);">🔐</div>
+                  <div class="act-text"><div class="act-title">Успешный вход</div><div class="act-time" id="loginTime">только что</div></div>
+                  <div class="act-chip" style="background:rgba(180,141,255,0.12);border-color:rgba(180,141,255,0.22);color:var(--p1);">✓</div>
+                </div>
+                <div class="activity-item">
+                  <div class="act-icon" style="background:rgba(78,205,196,0.15);border:1px solid rgba(78,205,196,0.22);">🎉</div>
+                  <div class="act-text"><div class="act-title">Аккаунт создан</div><div class="act-time" id="createdTime">—</div></div>
+                  <div class="act-chip">new</div>
+                </div>
+                <div class="activity-item" id="lastGameActivity" style="display:none;">
+                  <div class="act-icon" style="background:rgba(180,141,255,0.15);border:1px solid rgba(180,141,255,0.22);">🎮</div>
+                  <div class="act-text"><div class="act-title" id="lastGameTitle">—</div><div class="act-time" id="lastGameTime">—</div></div>
+                  <div class="act-chip" id="lastGameScore" style="background:rgba(180,141,255,0.12);border-color:rgba(180,141,255,0.22);color:var(--p1);">—</div>
+                </div>
+              </div>
+            </div>
+            <div class="gl-card">
+              <div class="section-head"><div class="section-title">Безопасность</div></div>
+              <div class="sec-item"><div class="sec-left"><span class="sec-ico">🛡️</span><span class="sec-name">Аккаунт защищён</span></div><div class="sec-status sec-on">Активно</div></div>
+              <div class="sec-item"><div class="sec-left"><span class="sec-ico">🔑</span><span class="sec-name">Пароль задан</span></div><div class="sec-status sec-on">Да</div></div>
+              <div class="sec-item"><div class="sec-left"><span class="sec-ico">📱</span><span class="sec-name">2FA</span></div><div class="sec-status sec-off">Скоро</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION: GAME STATS ── -->
+      <div class="dash-section" id="section-gamestats">
+        <div class="stats-page-header">
+          <h2>🎮 Игровая статистика</h2>
+          <p>Твои результаты по всем играм платформы FernieID</p>
+        </div>
+
+        <div class="game-stats-grid" id="gameStatsGrid">
+          <div class="state-loading"><div class="spinner"></div><span>Загрузка статистики...</span></div>
+        </div>
+
+        <div class="sessions-wrap gl-card" id="sessionsCard" style="display:none;">
+          <div class="section-head" style="position:relative;z-index:2;">
+            <div class="section-title">История сессий</div>
+            <div class="section-badge" id="sessionCount">0 партий</div>
+          </div>
+          <div class="table-controls" style="position:relative;z-index:2;">
+            <button class="sort-btn active" data-sort="date">По дате</button>
+            <button class="sort-btn" data-sort="score">По счёту</button>
+            <button class="sort-btn" data-sort="game">По игре</button>
+            <input class="table-search" id="tableSearch" placeholder="🔍 Поиск по игре...">
+          </div>
+          <div class="sessions-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Игра</th>
+                  <th>Счёт</th>
+                  <th>Время</th>
+                  <th>Дата</th>
+                  <th>Ранг</th>
+                </tr>
+              </thead>
+              <tbody id="sessionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION: SECURITY ── -->
+      <div class="dash-section" id="section-security">
+        <div class="stats-page-header">
+          <h2>🛡️ Безопасность</h2>
+          <p>Управление защитой твоего аккаунта</p>
+        </div>
+        <div class="gl-card" style="max-width:520px;">
+          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🛡️</span><span class="sec-name">Аккаунт защищён паролем</span></div><div class="sec-status sec-on">Активно</div></div>
+          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🔑</span><span class="sec-name">Пароль задан</span></div><div class="sec-status sec-on">Да</div></div>
+          <div class="sec-item"><div class="sec-left"><span class="sec-ico">📱</span><span class="sec-name">2FA аутентификация</span></div><div class="sec-status sec-off">Скоро</div></div>
+          <div class="sec-item"><div class="sec-left"><span class="sec-ico">📧</span><span class="sec-name">Email подтверждение</span></div><div class="sec-status sec-off">Скоро</div></div>
+          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🌍</span><span class="sec-name">Последний вход</span></div><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer class="dash-footer">
+    <div class="footer-logo"><div class="footer-dot"></div>FernieID</div>
+    <div class="footer-copy">© 2026 FernieID</div>
+    <div class="footer-by">Сделано с ♥ <strong>Fernie</strong></div>
+  </footer>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  CONFIG — Supabase
+// ══════════════════════════════════════════
+const SUPABASE_URL = 'https://wkuxcniydsvejcbgpfml.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZPY2IBGHuKpdKSBLwwtpDw_DGxDce03';
+
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(opts.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  return res.json();
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function toggleVis(inputId, btn) {
+  const inp = $(inputId);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.querySelector('svg').innerHTML = show
+    ? '<line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.5 6.5A9 9 0 0 1 12 6c7 0 11 6 11 6s-1.3 2.3-3.5 4M9 9A3 3 0 0 0 15 15M1 12s4-8 11-8"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+function hashCode(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = Math.imul(31, h) + str.charCodeAt(i) | 0;
+  return Math.abs(h);
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function fmtDateShort(iso) {
+  return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+}
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+}
+function fmtDur(s) {
+  if (!s) return '—';
+  if (s < 60) return s + 'с';
+  return Math.floor(s / 60) + 'м ' + (s % 60) + 'с';
+}
+
+function animateStat(id, target) {
+  let cur = 0;
+  const el = $(id);
+  const step = Math.max(1, Math.ceil(target / 35));
+  const iv = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = cur;
+    if (cur >= target) clearInterval(iv);
+  }, 28);
+}
+
+// ══════════════════════════════════════════
+//  PASSWORD STRENGTH
+// ══════════════════════════════════════════
+$('regPassword').addEventListener('input', function () {
+  const pw = this.value;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const labels = ['', 'Слабый', 'Слабый', 'Нормальный', 'Хороший', 'Отличный!'];
+  const colors = ['', '#ff6b6b', '#ff9ed2', '#ffb87a', '#7eb8ff', '#4ecdc4'];
+  const widths = ['0%', '20%', '40%', '60%', '80%', '100%'];
+  $('strengthFill').style.width = widths[score] || '0%';
+  $('strengthFill').style.background = colors[score] || 'transparent';
+  $('strengthLabel').textContent = score > 0 ? 'Надёжность: ' + labels[score] : 'Надёжность пароля';
+});
+
+// ══════════════════════════════════════════
+//  AUTH TABS
+// ══════════════════════════════════════════
+$('tab-login-btn').onclick = () => {
+  $('tab-login-btn').classList.add('active'); $('tab-reg-btn').classList.remove('active');
+  $('section-login').classList.add('active'); $('section-reg').classList.remove('active');
+};
+$('tab-reg-btn').onclick = () => {
+  $('tab-reg-btn').classList.add('active'); $('tab-login-btn').classList.remove('active');
+  $('section-reg').classList.add('active'); $('section-login').classList.remove('active');
+};
+
+// ══════════════════════════════════════════
+//  LOCAL DB (fallback if Supabase not set up)
+// ══════════════════════════════════════════
+function getUsers() { try { return JSON.parse(localStorage.getItem('fernie_users') || '{}'); } catch { return {}; } }
+function saveUsers(u) { localStorage.setItem('fernie_users', JSON.stringify(u)); }
+
+// ══════════════════════════════════════════
+//  REGISTER
+// ══════════════════════════════════════════
+$('regSubmit').onclick = async () => {
+  const u = $('regUsername').value.trim();
+  const p = $('regPassword').value;
+  const p2 = $('regPassword2').value;
+  const msg = $('regMsg');
+  if (!u || !p) { msg.textContent = 'Заполни все поля'; return; }
+  if (p !== p2) { msg.textContent = 'Пароли не совпадают!'; return; }
+  if (p.length < 4) { msg.textContent = 'Пароль слишком короткий'; return; }
+
+  try {
+    // Try Supabase first
+    const existing = await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=id`);
+    if (existing.length > 0) { msg.style.color = 'var(--red)'; msg.textContent = 'Логин уже занят!'; return; }
+    await sbFetch('users', { method: 'POST', body: JSON.stringify({ username: u, password: p, balance: 0, status: 'offline' }) });
+  } catch {
+    // Fallback to localStorage
+    const users = getUsers();
+    if (users[u.toLowerCase()]) { msg.style.color = 'var(--red)'; msg.textContent = 'Логин уже занят!'; return; }
+    users[u.toLowerCase()] = { username: u, password: p, regDate: new Date().toISOString(), games: 0, balance: 0 };
+    saveUsers(users);
+  }
+
+  msg.style.color = 'var(--teal)';
+  msg.textContent = '✓ Аккаунт создан! Войди 👇';
+  setTimeout(() => { $('tab-login-btn').click(); msg.textContent = ''; $('loginUsername').value = u; }, 1200);
+};
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+$('loginSubmit').onclick = async () => {
+  const u = $('loginUsername').value.trim();
+  const p = $('loginPassword').value;
+  const msg = $('loginMsg');
+  if (!u || !p) { msg.textContent = 'Введи логин и пароль'; return; }
+
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Проверяем...';
+
+  let user = null;
+  try {
+    const rows = await sbFetch(`users?username=eq.${encodeURIComponent(u)}&password=eq.${encodeURIComponent(p)}&select=*`);
+    if (rows.length > 0) {
+      user = { ...rows[0], regDate: rows[0].created_at };
+      // set online
+      await sbFetch(`users?id=eq.${rows[0].id}`, { method: 'PATCH', body: JSON.stringify({ status: 'online', last_seen_at: new Date().toISOString() }) });
+    }
+  } catch {
+    // Fallback localStorage
+    const users = getUsers();
+    const u2 = users[u.toLowerCase()];
+    if (u2 && u2.password === p) user = u2;
+  }
+
+  if (!user) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '✗ Неверный логин или пароль';
+    return;
+  }
+
+  msg.style.color = 'var(--teal)';
+  msg.textContent = '✓ Входим...';
+  setTimeout(() => openDashboard(user), 500);
+};
+
+['loginUsername','loginPassword'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('loginSubmit').click(); }));
+['regUsername','regPassword','regPassword2'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('regSubmit').click(); }));
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    $('section-' + item.dataset.section).classList.add('active');
+    if (item.dataset.section === 'gamestats') loadGameStats();
+  });
+});
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+let currentUser = null;
+let passVisible = false;
+let allSessions = [];
+let sortMode = 'date';
+
+function openDashboard(user) {
+  currentUser = user;
+  passVisible = false;
+
+  const initial = (user.username || 'U')[0].toUpperCase();
+  $('headerAvatar').textContent = initial;
+  $('headerName').textContent = user.username;
+  $('greetName').textContent = user.username;
+  $('bigAvatar').textContent = initial;
+  $('avatarName').textContent = user.username;
+  $('avatarId').textContent = '#fernieid-' + String(hashCode(user.username)).slice(0, 4).padStart(4, '0');
+  $('fieldUsername').textContent = user.username;
+  $('fieldPassword').textContent = '••••••••';
+  $('dashEyeIcon').innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+
+  const rd = new Date(user.regDate || user.created_at || Date.now());
+  const rdStr = fmtDate(rd);
+  $('fieldRegDate').textContent = rdStr;
+  $('createdTime').textContent = rdStr;
+  $('loginTime').textContent = fmtTime(new Date());
+  $('secLastLogin').textContent = fmtTime(new Date());
+
+  const diffDays = Math.max(1, Math.floor((Date.now() - rd) / 86400000));
+  $('statDays').textContent = diffDays;
+  $('statRegDate').textContent = 'с ' + fmtDateShort(rd);
+
+  $('auth-page').classList.remove('active');
+  $('dash-page').classList.add('active');
+
+  // Reset nav to overview
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+  document.querySelector('[data-section="overview"]').classList.add('active');
+  $('section-overview').classList.add('active');
+
+  loadOverviewStats();
+}
+
+async function loadOverviewStats() {
+  if (!currentUser?.id) { $('statGames').textContent = 0; $('statBest').textContent = 0; return; }
+  try {
+    const sessions = await sbFetch(`game_sessions?user_id=eq.${currentUser.id}&select=score,game_id,started_at,games(title)&order=started_at.desc`);
+    const total = sessions.length;
+    const best = sessions.reduce((m, s) => Math.max(m, s.score || 0), 0);
+    animateStat('statGames', total);
+    animateStat('statBest', best);
+    animateStat('statDays', Math.max(1, Math.floor((Date.now() - new Date(currentUser.regDate || currentUser.created_at || Date.now())) / 86400000)));
+
+    if (sessions.length > 0) {
+      const last = sessions[0];
+      $('lastGameActivity').style.display = 'flex';
+      $('lastGameTitle').textContent = 'Играл в ' + (last.games?.title || 'игру');
+      $('lastGameTime').textContent = fmtDate(last.started_at);
+      $('lastGameScore').textContent = '+' + last.score;
+    }
+    allSessions = sessions;
+  } catch {
+    $('statGames').textContent = 0;
+    $('statBest').textContent = 0;
+    animateStat('statDays', Math.max(1, Math.floor((Date.now() - new Date(currentUser.regDate || Date.now())) / 86400000)));
+  }
+}
+
+// ══════════════════════════════════════════
+//  GAME STATS SECTION
+// ══════════════════════════════════════════
+const GAME_META = {
+  pixel_snake:   { name: 'Pixel Snake',      icon: '🐍', color: 'purple', genre: 'Аркада' },
+  pixel_racer:   { name: 'Pixel Racer',       icon: '🏎️', color: 'blue',   genre: 'Гонки' },
+  ferniex_blocks:{ name: "FernieX-Block's",   icon: '🟩', color: 'mint',   genre: 'Стратегия' },
+  code_quests:   { name: 'CodeQuests',         icon: '💻', color: 'pink',   genre: 'Головоломка' },
+  battle_tanks:  { name: 'Battle Tanks',       icon: '🪖', color: 'orange', genre: 'Экшн' },
+};
+
+let statsLoaded = false;
+
+async function loadGameStats() {
+  if (statsLoaded) return;
+  statsLoaded = false; // allow reload each time
+
+  const grid = $('gameStatsGrid');
+  grid.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка из Supabase...</span></div>';
+  $('sessionsCard').style.display = 'none';
+
+  let sessions = [];
+  let games = [];
+
+  try {
+    games = await sbFetch('games?select=id,slug,title,genre');
+    if (currentUser?.id) {
+      sessions = await sbFetch(
+        `game_sessions?user_id=eq.${currentUser.id}&select=id,score,duration_s,started_at,ended_at,game_id,games(slug,title)&order=started_at.desc`
+      );
+    }
+  } catch (e) {
+    // Use mock data if Supabase fails or tables not set up
+    games = Object.entries(GAME_META).map(([slug, m], i) => ({ id: i + 1, slug, title: m.name, genre: m.genre }));
+    sessions = generateMockSessions(games);
+  }
+
+  allSessions = sessions;
+  renderGameCards(games, sessions);
+  renderSessionsTable(sessions);
+  statsLoaded = true;
+}
+
+function generateMockSessions(games) {
+  const results = [];
+  games.forEach(g => {
+    const count = Math.floor(Math.random() * 8) + 1;
+    for (let i = 0; i < count; i++) {
+      const daysAgo = Math.floor(Math.random() * 30);
+      const d = new Date(Date.now() - daysAgo * 86400000 - Math.random() * 86400000);
+      results.push({
+        id: Math.random(),
+        game_id: g.id,
+        score: Math.floor(Math.random() * 120) + 5,
+        duration_s: Math.floor(Math.random() * 300) + 30,
+        started_at: d.toISOString(),
+        games: { slug: g.slug, title: g.title }
+      });
+    }
+  });
+  return results.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+}
+
+function renderGameCards(games, sessions) {
+  const grid = $('gameStatsGrid');
+
+  // group sessions by game
+  const byGame = {};
+  sessions.forEach(s => {
+    const slug = s.games?.slug || 'unknown';
+    if (!byGame[slug]) byGame[slug] = [];
+    byGame[slug].push(s);
+  });
+
+  // find global max score for progress bar
+  const globalMax = sessions.reduce((m, s) => Math.max(m, s.score || 0), 1);
+
+  if (games.length === 0) {
+    grid.innerHTML = '<div class="state-empty"><span style="font-size:2rem">🎮</span><span>Игры не найдены</span></div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  games.forEach((g, idx) => {
+    const meta = GAME_META[g.slug] || { name: g.title, icon: '🎮', color: 'purple', genre: g.genre || '—' };
+    const gameSessions = byGame[g.slug] || [];
+    const played = gameSessions.length;
+    const best = gameSessions.reduce((m, s) => Math.max(m, s.score || 0), 0);
+    const total = gameSessions.reduce((sum, s) => sum + (s.score || 0), 0);
+    const avgDur = played > 0 ? Math.round(gameSessions.reduce((s, x) => s + (x.duration_s || 0), 0) / played) : 0;
+    const pct = globalMax > 0 ? Math.round((best / globalMax) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'game-stat-card';
+    card.dataset.color = meta.color;
+    card.style.animationDelay = (idx * 0.07) + 's';
+    card.innerHTML = `
+      <div class="gsc-header">
+        <div class="gsc-icon">${meta.icon}</div>
+        <div class="gsc-title-wrap">
+          <div class="gsc-game-name">${meta.name}</div>
+          <div class="gsc-genre">${meta.genre}</div>
+        </div>
+      </div>
+      <div class="gsc-divider"></div>
+      <div class="gsc-metrics">
+        <div class="gsc-metric"><div class="gsc-metric-val">${played}</div><div class="gsc-metric-label">Партий</div></div>
+        <div class="gsc-metric"><div class="gsc-metric-val">${best}</div><div class="gsc-metric-label">Рекорд</div></div>
+        <div class="gsc-metric"><div class="gsc-metric-val">${played > 0 ? fmtDur(avgDur) : '—'}</div><div class="gsc-metric-label">Ср. время</div></div>
+      </div>
+      <div class="gsc-progress-wrap">
+        <div class="gsc-progress-label"><span>Рейтинг среди игр</span><span>${pct}%</span></div>
+        <div class="gsc-bar"><div class="gsc-bar-fill" style="width:0%" data-target="${pct}%"></div></div>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    // animate progress bar
+    setTimeout(() => {
+      const fill = card.querySelector('.gsc-bar-fill');
+      if (fill) fill.style.width = fill.dataset.target;
+    }, 200 + idx * 80);
+  });
+}
+
+function renderSessionsTable(sessions) {
+  if (sessions.length === 0) {
+    $('sessionsCard').style.display = 'none';
+    return;
+  }
+  $('sessionsCard').style.display = 'block';
+  $('sessionCount').textContent = sessions.length + ' партий';
+  buildTableRows(sessions);
+}
+
+function buildTableRows(data) {
+  const body = $('sessionsTableBody');
+  const maxScore = data.reduce((m, s) => Math.max(m, s.score || 0), 1);
+
+  body.innerHTML = '';
+  data.forEach(s => {
+    const meta = GAME_META[s.games?.slug] || { icon: '🎮', color: 'purple', name: s.games?.title || '—' };
+    const pct = s.score / maxScore;
+    let rankClass = 'rank-normal', rankLabel = 'обычная';
+    if (pct >= 0.9) { rankClass = 'rank-gold'; rankLabel = '🥇 Топ'; }
+    else if (pct >= 0.7) { rankClass = 'rank-silver'; rankLabel = '🥈 Хорошо'; }
+    else if (pct >= 0.5) { rankClass = 'rank-bronze'; rankLabel = '🥉 Норм'; }
+
+    const icoColors = {
+      purple:'rgba(180,141,255,0.18);border:1px solid rgba(180,141,255,0.25)',
+      blue:'rgba(126,184,255,0.18);border:1px solid rgba(126,184,255,0.25)',
+      mint:'rgba(100,220,180,0.18);border:1px solid rgba(100,220,180,0.25)',
+      pink:'rgba(255,158,210,0.18);border:1px solid rgba(255,158,210,0.25)',
+      orange:'rgba(255,160,100,0.18);border:1px solid rgba(255,160,100,0.25)',
+    };
+    const icoStyle = icoColors[meta.color] || icoColors.purple;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><div class="td-game"><div class="td-game-ico" style="background:${icoStyle}">${meta.icon}</div>${meta.name}</div></td>
+      <td><span class="td-score">${s.score ?? 0}</span></td>
+      <td class="td-dur">${fmtDur(s.duration_s)}</td>
+      <td class="td-date">${fmtDate(s.started_at)}</td>
+      <td><span class="td-rank ${rankClass}">${rankLabel}</span></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// Sort
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sortMode = btn.dataset.sort;
+    applyTableFilters();
+  });
+});
+
+$('tableSearch').addEventListener('input', applyTableFilters);
+
+function applyTableFilters() {
+  const q = ($('tableSearch').value || '').toLowerCase();
+  let data = [...allSessions].filter(s =>
+    !q || (s.games?.title || '').toLowerCase().includes(q) || (GAME_META[s.games?.slug]?.name || '').toLowerCase().includes(q)
+  );
+  if (sortMode === 'score') data.sort((a, b) => (b.score || 0) - (a.score || 0));
+  else if (sortMode === 'game') data.sort((a, b) => (a.games?.title || '').localeCompare(b.games?.title || ''));
+  else data.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+  buildTableRows(data);
+}
+
+// ══════════════════════════════════════════
+//  PASS TOGGLE
+// ══════════════════════════════════════════
+function toggleDashPass() {
+  passVisible = !passVisible;
+  $('fieldPassword').textContent = passVisible ? currentUser.password : '••••••••';
+  $('dashEyeIcon').innerHTML = passVisible
+    ? '<line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.5 6.5A9 9 0 0 1 12 6c7 0 11 6 11 6s-1.3 2.3-3.5 4M9 9A3 3 0 0 0 15 15M1 12s4-8 11-8"/>'
+    : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+// ══════════════════════════════════════════
+//  LOGOUT
+// ══════════════════════════════════════════
+$('logoutBtn').onclick = async () => {
+  if (currentUser?.id) {
+    try { await sbFetch(`users?id=eq.${currentUser.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'offline' }) }); } catch {}
+  }
+  currentUser = null; statsLoaded = false; allSessions = [];
+  $('dash-page').classList.remove('active');
+  $('auth-page').classList.add('active');
+  $('loginMsg').textContent = ''; $('loginPassword').value = '';
+};
+</script>
+</body>
+</html>
