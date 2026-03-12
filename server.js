@@ -9,7 +9,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 app.use(cors({
-  origin: 'https://ferniex-minigame.vercel.app',
+  origin: [
+    'https://ferniex-minigame.vercel.app',
+    'https://ferniex-id.vercel.app',
+  ],
   credentials: true
 }));
 
