@@ -948,6 +948,7 @@ let sortMode = 'date';
 
 function openDashboard(user) {
   currentUser = user;
+  localStorage.setItem('fernieid_session', JSON.stringify(user));
   passVisible = false;
 
   const initial = (user.username || 'U')[0].toUpperCase();
@@ -1216,6 +1217,7 @@ function toggleDashPass() {
 //  LOGOUT
 // ══════════════════════════════════════════
 $('logoutBtn').onclick = async () => {
+  localStorage.removeItem('fernieid_session');
   if (currentUser?.id) {
     try { await sbFetch(`users?id=eq.${currentUser.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'offline' }) }); } catch {}
   }
@@ -1224,6 +1226,12 @@ $('logoutBtn').onclick = async () => {
   $('auth-page').classList.add('active');
   $('loginMsg').textContent = ''; $('loginPassword').value = '';
 };
+(function autoLogin() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('fernieid_session'));
+    if (saved?.username) openDashboard(saved);
+  } catch {}
+})();
 </script>
 </body>
 </html>
