@@ -2,12 +2,20 @@ import express from "express";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import cors from "cors"; // ← подключаем CORS
+
 dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
+// ===== Настройка CORS =====
+// В production лучше указывать конкретный домен фронтенда вместо '*'
+app.use(cors({
+  origin: 'https://ferniex-minigame.vercel.app/',
+  credentials: true
+}));
 // ====== Регистрация ======
 app.post("/api/register", async (req,res)=>{
   const {username,password} = req.body;
