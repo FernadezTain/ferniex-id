@@ -218,9 +218,14 @@ app.post("/api/stats", async (req, res) => {
 
   try {
     // ── 1. Получаем game_id из Supabase ──────────────────────────────
-    const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${game}&select=id,title`, { headers: sbHeaders });
-    const gameData = await gameRes.json();
-    if (!gameData.length) return res.json({ success: false, error: "Игра не найдена" });
+const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${game}&select=id,title`, { headers: sbHeaders });
+const gameData = await gameRes.json();
+const gameTitle = gameData[0]?.title || game;
+const gameId    = gameData[0]?.id;
+if (!gameId) {
+  // Игра не в каталоге — пропускаем запись сессии, но награды выдаём
+  console.warn(`Игра с slug="${game}" не найдена в Supabase — сессия не записана`);
+}
 
     // ── 2. Записываем сессию в Supabase ──────────────────────────────
     const sessionRes = await fetch(`${SB_URL}/rest/v1/game_sessions`, {
@@ -255,7 +260,6 @@ app.post("/api/stats", async (req, res) => {
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
 
     const { telegram_id, username } = users[0];
-    const gameTitle = gameData[0].title || game;
 
     // ── 5. Выдаём РЕАЛЬНЫЕ награды в SQLite ──────────────────────────
     let rewards = null;
