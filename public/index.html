@@ -1435,17 +1435,20 @@ async function doUnlink() {
   btn.style.opacity = '0.6';
   btn.style.pointerEvents = 'none';
   try {
-    await sbFetch(`users?id=eq.${currentUser.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ telegram_id: null })
+    const res = await fetch('/api/telegram/unlink', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
     });
-    currentUser.telegram_id = null;
-    localStorage.setItem('fernieid_session', JSON.stringify(currentUser));
-    // обновляем UI
-    $('secTgStatus').textContent = 'Не привязан';
-    $('secTgStatus').className = 'sec-status sec-off';
-    $('secTgDesc').textContent = 'Привяжи через Telegram бота';
-    $('unlinkTgBtn').style.display = 'none';
+    const data = await res.json();
+    if (data.success) {
+      currentUser.telegram_id = null;
+      localStorage.setItem('fernieid_session', JSON.stringify(currentUser));
+      $('secTgStatus').textContent = 'Не привязан';
+      $('secTgStatus').className = 'sec-status sec-off';
+      $('secTgDesc').textContent = 'Привяжи через Telegram бота';
+      $('unlinkTgBtn').style.display = 'none';
+    }
   } catch(e) {
     console.error(e);
   }
