@@ -943,6 +943,7 @@ tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);verti
 // ══════════════════════════════════════════
 const SUPABASE_URL = 'https://wkuxcniydsvejcbgpfml.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_ZPY2IBGHuKpdKSBLwwtpDw_DGxDce03';
+const API = 'https://ferniex-id.vercel.app';
 
 async function sbFetch(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -1060,7 +1061,7 @@ $('regSubmit').onclick = async () => {
   msg.style.color = 'var(--muted)';
   msg.textContent = 'Создаём аккаунт...';
 
-  const res = await fetch('/api/register', {
+  const res = await fetch(`${API}/api/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: u, password: p })
@@ -1087,7 +1088,7 @@ $('loginSubmit').onclick = async () => {
   msg.style.color = 'var(--muted)';
   msg.textContent = 'Проверяем...';
 
-  const res = await fetch('/api/login', {
+  const res = await fetch(`${API}/api/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username: u, password: p })
@@ -1466,7 +1467,7 @@ async function doUnlink() {
   btn.style.opacity = '0.6';
   btn.style.pointerEvents = 'none';
   try {
-    const res = await fetch('/api/telegram/unlink', {
+    const res = await fetch(`${API}/api/telegram/unlink`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser.id })
