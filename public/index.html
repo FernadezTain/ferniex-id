@@ -737,14 +737,20 @@ tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);verti
           <h2>🛡️ Безопасность</h2>
           <p>Управление защитой твоего аккаунта</p>
         </div>
-        <div class="gl-card" style="max-width:520px;">
-          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🛡️</span><span class="sec-name">Аккаунт защищён паролем</span></div><div class="sec-status sec-on">Активно</div></div>
-          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🔑</span><span class="sec-name">Пароль задан</span></div><div class="sec-status sec-on">Да</div></div>
-          <div class="sec-item"><div class="sec-left"><span class="sec-ico">📱</span><span class="sec-name">2FA аутентификация</span></div><div class="sec-status sec-off">Скоро</div></div>
-          <div class="sec-item"><div class="sec-left"><span class="sec-ico">📧</span><span class="sec-name">Email подтверждение</span></div><div class="sec-status sec-off">Скоро</div></div>
-          <div class="sec-item"><div class="sec-left"><span class="sec-ico">🌍</span><span class="sec-name">Последний вход</span></div><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div>
-        </div>
-      </div>
+<div class="gl-card" style="max-width:520px;">
+  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🛡️</span><span class="sec-name">Аккаунт защищён паролем</span></div><div class="sec-status sec-on">Активно</div></div>
+  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🔑</span><span class="sec-name">Пароль задан</span></div><div class="sec-status sec-on">Да</div></div>
+  <div class="sec-item">
+    <div class="sec-left"><span class="sec-ico">✈️</span><span class="sec-name">Telegram</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="secTgId" style="font-size:.72rem;color:var(--muted);">—</span>
+      <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
+    </div>
+  </div>
+  <div class="sec-item"><div class="sec-left"><span class="sec-ico">📱</span><span class="sec-name">2FA аутентификация</span></div><div class="sec-status sec-off">Скоро</div></div>
+  <div class="sec-item"><div class="sec-left"><span class="sec-ico">📧</span><span class="sec-name">Email подтверждение</span></div><div class="sec-status sec-off">Скоро</div></div>
+  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🌍</span><span class="sec-name">Последний вход</span></div><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div>
+</div>
 
     </main>
   </div>
@@ -983,6 +989,19 @@ function openDashboard(user) {
   $('section-overview').classList.add('active');
 
   loadOverviewStats();
+
+  // Telegram статус
+  const tgStatus = $('secTgStatus');
+  const tgId     = $('secTgId');
+  if (user.telegram_id) {
+    tgStatus.textContent = 'Привязан ✓';
+    tgStatus.className   = 'sec-status sec-on';
+    tgId.textContent     = 'ID: ' + user.telegram_id;
+  } else {
+    tgStatus.textContent = 'Не привязан';
+    tgStatus.className   = 'sec-status sec-off';
+    tgId.textContent     = '—';
+  }
 }
 
 async function loadOverviewStats() {
