@@ -876,24 +876,24 @@ $('regSubmit').onclick = async () => {
   if (p !== p2) { msg.textContent = 'Пароли не совпадают!'; return; }
   if (p.length < 4) { msg.textContent = 'Пароль слишком короткий'; return; }
 
-  try {
-    // Try Supabase first
-    const existing = await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=id`);
-    if (existing.length > 0) { msg.style.color = 'var(--red)'; msg.textContent = 'Логин уже занят!'; return; }
-    await sbFetch('users', { method: 'POST', body: JSON.stringify({ username: u, password: p, balance: 0, status: 'offline' }) });
-  } catch {
-    // Fallback to localStorage
-    const users = getUsers();
-    if (users[u.toLowerCase()]) { msg.style.color = 'var(--red)'; msg.textContent = 'Логин уже занят!'; return; }
-    users[u.toLowerCase()] = { username: u, password: p, regDate: new Date().toISOString(), games: 0, balance: 0 };
-    saveUsers(users);
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Создаём аккаунт...';
+
+  const res = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p })
+  });
+  const data = await res.json();
+  if (data.success) {
+    msg.style.color = 'var(--teal)';
+    msg.textContent = '✓ Аккаунт создан! Войди 👇';
+    setTimeout(() => { $('tab-login-btn').click(); msg.textContent = ''; $('loginUsername').value = u; }, 1200);
+  } else {
+    msg.style.color = 'var(--red)';
+    msg.textContent = data.error || 'Ошибка';
   }
-
-  msg.style.color = 'var(--teal)';
-  msg.textContent = '✓ Аккаунт создан! Войди 👇';
-  setTimeout(() => { $('tab-login-btn').click(); msg.textContent = ''; $('loginUsername').value = u; }, 1200);
 };
-
 // ══════════════════════════════════════════
 //  LOGIN
 // ══════════════════════════════════════════
@@ -906,34 +906,24 @@ $('loginSubmit').onclick = async () => {
   msg.style.color = 'var(--muted)';
   msg.textContent = 'Проверяем...';
 
-  let user = null;
-  try {
-    const rows = await sbFetch(`users?username=eq.${encodeURIComponent(u)}&password=eq.${encodeURIComponent(p)}&select=*`);
-    if (rows.length > 0) {
-      user = { ...rows[0], regDate: rows[0].created_at };
-      // set online
-      await sbFetch(`users?id=eq.${rows[0].id}`, { method: 'PATCH', body: JSON.stringify({ status: 'online', last_seen_at: new Date().toISOString() }) });
-    }
-  } catch {
-    // Fallback localStorage
-    const users = getUsers();
-    const u2 = users[u.toLowerCase()];
-    if (u2 && u2.password === p) user = u2;
-  }
-
-  if (!user) {
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p })
+  });
+  const data = await res.json();
+  if (data.success) {
+    msg.style.color = 'var(--teal)';
+    msg.textContent = '✓ Входим...';
+    // получаем данные юзера из Supabase
+    const rows = await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=*`);
+    const user = rows[0] ? { ...rows[0], regDate: rows[0].created_at } : { username: u, regDate: new Date().toISOString() };
+    setTimeout(() => openDashboard(user), 500);
+  } else {
     msg.style.color = 'var(--red)';
-    msg.textContent = '✗ Неверный логин или пароль';
-    return;
+    msg.textContent = data.error || '✗ Неверный логин или пароль';
   }
-
-  msg.style.color = 'var(--teal)';
-  msg.textContent = '✓ Входим...';
-  setTimeout(() => openDashboard(user), 500);
 };
-
-['loginUsername','loginPassword'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('loginSubmit').click(); }));
-['regUsername','regPassword','regPassword2'].forEach(id => $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('regSubmit').click(); }));
 
 // ══════════════════════════════════════════
 //  NAVIGATION
