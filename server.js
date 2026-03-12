@@ -26,6 +26,21 @@ const sbHeaders = {
   "Content-Type": "application/json"
 };
 
+// ====== Хелпер: отправка сообщения в Telegram ======
+async function sendTgMessage(chatId, text) {
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, parse_mode: "HTML", text })
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("TG sendMessage error:", err);
+    return false;
+  }
+  return true;
+}
+
 // ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
@@ -62,7 +77,7 @@ app.post("/api/login", async (req, res) => {
     res.json({
       success: true,
       userId: user.id,
-      telegramLinked: !!user.telegram_id  // ← сообщаем сайту привязан ли тг
+      telegramLinked: !!user.telegram_id
     });
   } catch (e) {
     console.error(e);
@@ -84,16 +99,18 @@ app.get("/api/balance/:userId", async (req, res) => {
   }
 });
 
-// ====== Сохранение статистики игры ======
+// ====== Сохранение статистики игры + автонаграда ======
 app.post("/api/stats", async (req, res) => {
   const { userId, game, score } = req.body;
   if (!userId || !game || score === undefined)
     return res.json({ success: false, error: "Недостаточно данных" });
   try {
-    const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${game}&select=id`, { headers: sbHeaders });
+    // Получаем game_id
+    const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${game}&select=id,title`, { headers: sbHeaders });
     const gameData = await gameRes.json();
     if (!gameData.length) return res.json({ success: false, error: "Игра не найдена" });
 
+    // Записываем сессию
     const sessionRes = await fetch(`${SB_URL}/rest/v1/game_sessions`, {
       method: "POST",
       headers: { ...sbHeaders, Prefer: "return=minimal" },
@@ -105,18 +122,57 @@ app.post("/api/stats", async (req, res) => {
       })
     });
 
-    if (sessionRes.ok) {
-      await fetch(`${SB_URL}/rest/v1/rpc/refresh_leaderboard`, {
-        method: "POST",
-        headers: sbHeaders,
-        body: JSON.stringify({})
-      });
-      res.json({ success: true });
-    } else {
+    if (!sessionRes.ok) {
       const err = await sessionRes.text();
       console.error("Session insert error:", err);
-      res.json({ success: false, error: "Ошибка записи сессии" });
+      return res.json({ success: false, error: "Ошибка записи сессии" });
     }
+
+    // Обновляем лидерборд
+    await fetch(`${SB_URL}/rest/v1/rpc/refresh_leaderboard`, {
+      method: "POST",
+      headers: sbHeaders,
+      body: JSON.stringify({})
+    }).catch(() => {}); // не критично если упадёт
+
+    // Начисляем монеты и шлём уведомление в Telegram
+    const coins = Math.floor(score / 5);
+    if (coins > 0) {
+      // Получаем данные пользователя
+      const userRes = await fetch(
+        `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username,balance`,
+        { headers: sbHeaders }
+      );
+      const users = await userRes.json();
+
+      if (users.length) {
+        const { telegram_id, username, balance } = users[0];
+        const gameTitle = gameData[0].title || game;
+
+        // Начисляем монеты в базу
+        await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+          method: "PATCH",
+          headers: sbHeaders,
+          body: JSON.stringify({ balance: (balance || 0) + coins })
+        }).catch(() => {});
+
+        // Шлём в Telegram если привязан
+        if (telegram_id) {
+          await sendTgMessage(telegram_id,
+            `🎮 <b>Результат игры</b>\n\n` +
+            `👤 Игрок: <b>${username}</b>\n` +
+            `🕹 Игра: <b>${gameTitle}</b>\n` +
+            `⭐ Счёт: <b>${score}</b>\n` +
+            `🪙 Награда: <b>+${coins} монет</b>\n\n` +
+            `<i>Монеты зачислены в FernieX!</i>`
+          );
+        }
+
+        return res.json({ success: true, coins, telegramSent: !!telegram_id });
+      }
+    }
+
+    res.json({ success: true, coins: 0 });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
@@ -184,7 +240,46 @@ app.post("/api/telegram/link", async (req, res) => {
   }
 });
 
-// ====== Отправка награды через бота ======
+// ====== Отвязка Telegram ======
+app.post("/api/telegram/unlink", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: "Нет userId" });
+  try {
+    // Получаем telegram_id ДО отвязки
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`,
+      { headers: sbHeaders }
+    );
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+
+    const { telegram_id, username } = users[0];
+
+    // Отвязываем в базе
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: "PATCH",
+      headers: sbHeaders,
+      body: JSON.stringify({ telegram_id: null })
+    });
+
+    // Шлём уведомление если был привязан
+    if (telegram_id) {
+      await sendTgMessage(telegram_id,
+        `🔓 <b>Telegram отвязан от FernieID</b>\n\n` +
+        `👤 Аккаунт: <b>${username}</b>\n\n` +
+        `⚠️ Ты больше <b>не будешь получать награды</b> за игры в FernieX.\n\n` +
+        `<i>Чтобы снова привязать — войди на сайт в раздел Безопасность.</i>`
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Отправка награды вручную (legacy, оставляем для совместимости) ======
 app.post("/api/reward", async (req, res) => {
   const { userId, game, score } = req.body;
   if (!userId || !game || score === undefined)
@@ -202,31 +297,16 @@ app.post("/api/reward", async (req, res) => {
     const coins = Math.floor(score / 5);
     if (coins <= 0) return res.json({ success: false, error: "Мало очков для награды" });
 
-    const tgRes = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: telegram_id,
-          parse_mode: "HTML",
-          text:
-            `🎮 <b>Результат игры</b>\n\n` +
-            `👤 Игрок: <b>${username}</b>\n` +
-            `🕹 Игра: <b>${game}</b>\n` +
-            `⭐ Счёт: <b>${score}</b>\n` +
-            `🪙 Награда: <b>+${coins} монет</b>\n\n` +
-            `<i>Монеты зачислены в FernieX!</i>`
-        })
-      }
+    const ok = await sendTgMessage(telegram_id,
+      `🎮 <b>Результат игры</b>\n\n` +
+      `👤 Игрок: <b>${username}</b>\n` +
+      `🕹 Игра: <b>${game}</b>\n` +
+      `⭐ Счёт: <b>${score}</b>\n` +
+      `🪙 Награда: <b>+${coins} монет</b>\n\n` +
+      `<i>Монеты зачислены в FernieX!</i>`
     );
 
-    if (!tgRes.ok) {
-      const err = await tgRes.text();
-      console.error("TG sendMessage error:", err);
-      return res.json({ success: false, error: "Ошибка отправки в Telegram" });
-    }
-
+    if (!ok) return res.json({ success: false, error: "Ошибка отправки в Telegram" });
     res.json({ success: true, coins });
   } catch (e) {
     console.error(e);
