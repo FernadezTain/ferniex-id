@@ -880,21 +880,24 @@ tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);verti
       <div class="sec-card-right"><div class="sec-status sec-on">Да</div></div>
     </div>
 
-    <div class="sec-card" id="secTgCard">
-      <div class="sec-card-left">
-        <div class="sec-card-ico-wrap">✈️</div>
-        <div class="sec-card-info">
-          <div class="sec-card-name">Telegram</div>
-          <div class="sec-card-desc" id="secTgDesc">Не привязан</div>
-        </div>
-      </div>
-      <div class="sec-card-right">
-        <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
-        <button class="unlink-btn" id="unlinkTgBtn" style="display:none;" onclick="confirmUnlink()">
-          🔗 Отвязать
-        </button>
-      </div>
+<div class="sec-card" id="secTgCard">
+  <div class="sec-card-left">
+    <div class="sec-card-ico-wrap">✈️</div>
+    <div class="sec-card-info">
+      <div class="sec-card-name">Telegram</div>
+      <div class="sec-card-desc" id="secTgDesc">Не привязан</div>
     </div>
+  </div>
+  <div class="sec-card-right">
+    <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
+    <button class="unlink-btn" id="unlinkTgBtn" style="display:none;" onclick="confirmUnlink()">
+      🔗 Отвязать
+    </button>
+    <button class="unlink-btn" id="linkTgBtn" style="display:none;background:rgba(78,205,196,0.08);border-color:rgba(78,205,196,0.25);color:var(--teal);" onclick="doLinkTelegram()">
+      🔗 Привязать
+    </button>
+  </div>
+</div>
 
     <div class="sec-card">
       <div class="sec-card-left">
@@ -1166,16 +1169,19 @@ function openDashboard(user) {
   const tgStatus = $('secTgStatus');
   const tgDesc   = $('secTgDesc');
   const unlinkBtn = $('unlinkTgBtn');
+  const linkBtn   = $('linkTgBtn');
   if (user.telegram_id) {
     tgStatus.textContent = 'Привязан ✓';
     tgStatus.className   = 'sec-status sec-on';
     tgDesc.textContent   = 'ID: ' + user.telegram_id;
     unlinkBtn.style.display = 'inline-flex';
+    linkBtn.style.display   = 'none';
   } else {
     tgStatus.textContent = 'Не привязан';
     tgStatus.className   = 'sec-status sec-off';
     tgDesc.textContent   = 'Привяжи через Telegram бота';
     unlinkBtn.style.display = 'none';
+    linkBtn.style.display   = 'inline-flex';
   }
 }
 
@@ -1429,6 +1435,31 @@ function confirmUnlink() {
 function closeConfirm() {
   $('confirmOverlay').classList.remove('show');
 }
+async function doLinkTelegram() {
+  const btn = $('linkTgBtn');
+  btn.textContent = 'Генерируем...';
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+  try {
+    const res = await fetch('/api/telegram/generate-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const url = `https://t.me/FernieXBot?start=link_${data.token}`;
+      window.open(url, '_blank');
+      $('secTgDesc').textContent = 'Открой бота и отправь команду';
+    }
+  } catch(e) {
+    console.error(e);
+  }
+  btn.textContent = '🔗 Привязать';
+  btn.style.opacity = '';
+  btn.style.pointerEvents = '';
+}
+
 async function doUnlink() {
   const btn = $('confirmOkBtn');
   btn.textContent = 'Отвязываем...';
