@@ -488,6 +488,125 @@ tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);verti
   .game-stats-grid{grid-template-columns:1fr;}
   .dash-footer{margin:0 1rem 1.5rem;flex-wrap:wrap;gap:.6rem;}
 }
+
+/* ── SECURITY CARDS ── */
+.sec-cards{display:flex;flex-direction:column;gap:.75rem;max-width:520px;}
+.sec-card{
+  border-radius:16px;padding:1.1rem 1.4rem;
+  background:rgba(20,15,32,0.55);
+  backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
+  border:1px solid rgba(255,255,255,0.09);
+  box-shadow:0 4px 20px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.07);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  position:relative;overflow:hidden;
+  transition:transform .25s cubic-bezier(.22,.68,0,1.2),border-color .25s,box-shadow .25s;
+  animation:cardSlideIn .4s cubic-bezier(.22,.68,0,1.2) both;
+}
+.sec-card::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.22) 35%,rgba(255,255,255,0.45) 50%,rgba(255,255,255,0.22) 65%,transparent);pointer-events:none;}
+.sec-card:hover{transform:translateY(-2px);border-color:rgba(180,141,255,0.2);
+  box-shadow:0 10px 32px rgba(180,141,255,0.1),inset 0 1px 0 rgba(255,255,255,0.1);}
+@keyframes cardSlideIn{
+  from{opacity:0;transform:translateY(14px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.sec-card:nth-child(1){animation-delay:.05s;}
+.sec-card:nth-child(2){animation-delay:.10s;}
+.sec-card:nth-child(3){animation-delay:.15s;}
+.sec-card:nth-child(4){animation-delay:.20s;}
+.sec-card:nth-child(5){animation-delay:.25s;}
+.sec-card:nth-child(6){animation-delay:.30s;}
+
+.sec-card-left{display:flex;align-items:center;gap:12px;min-width:0;}
+.sec-card-ico-wrap{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.05rem;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  transition:background .25s,border-color .25s;
+}
+.sec-card:hover .sec-card-ico-wrap{background:rgba(180,141,255,0.12);border-color:rgba(180,141,255,0.22);}
+.sec-card-info{}
+.sec-card-name{font-size:.84rem;font-weight:500;color:rgba(255,255,255,.85);margin-bottom:.18rem;}
+.sec-card-desc{font-size:.68rem;color:var(--muted);letter-spacing:.2px;}
+
+.sec-card-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* unlink button */
+.unlink-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'Inter',sans-serif;font-size:.7rem;font-weight:600;
+  color:rgba(255,107,107,0.75);
+  padding:5px 11px;border-radius:100px;cursor:pointer;
+  background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.18);
+  box-shadow:0 2px 8px rgba(255,107,107,0.05);
+  transition:all .25s;position:relative;overflow:hidden;
+}
+.unlink-btn::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3) 50%,transparent);}
+.unlink-btn:hover{
+  color:var(--red);background:rgba(255,107,107,0.14);border-color:rgba(255,107,107,0.35);
+  box-shadow:0 4px 16px rgba(255,107,107,0.18);transform:scale(1.04);
+}
+.unlink-btn:active{transform:scale(0.97);}
+
+/* confirm modal */
+.confirm-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;padding:1rem;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.confirm-overlay.show{opacity:1;pointer-events:all;}
+.confirm-modal{
+  width:100%;max-width:380px;
+  background:rgba(18,12,28,0.92);
+  backdrop-filter:blur(40px) saturate(1.8);-webkit-backdrop-filter:blur(40px) saturate(1.8);
+  border:1px solid rgba(255,107,107,0.25);border-radius:24px;padding:2rem;
+  box-shadow:0 40px 80px rgba(0,0,0,0.7),0 0 0 1px rgba(255,107,107,0.1),inset 0 1px 0 rgba(255,255,255,0.08);
+  transform:scale(0.88) translateY(20px);transition:transform .35s cubic-bezier(.22,.68,0,1.3);
+  position:relative;overflow:hidden;
+}
+.confirm-modal::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,107,107,0.5) 35%,rgba(255,180,180,0.8) 50%,rgba(255,107,107,0.5) 65%,transparent);}
+.confirm-overlay.show .confirm-modal{transform:scale(1) translateY(0);}
+
+.confirm-icon{
+  width:56px;height:56px;border-radius:16px;margin:0 auto 1.2rem;
+  display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+  background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.25);
+  box-shadow:0 0 24px rgba(255,107,107,0.15);
+  animation:iconPulse 2s ease infinite;
+}
+@keyframes iconPulse{
+  0%,100%{box-shadow:0 0 16px rgba(255,107,107,0.15);}
+  50%{box-shadow:0 0 32px rgba(255,107,107,0.35);}
+}
+.confirm-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;text-align:center;
+  margin-bottom:.6rem;letter-spacing:-.3px;}
+.confirm-text{font-size:.82rem;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:.6rem;}
+.confirm-warning{
+  font-size:.78rem;text-align:center;line-height:1.6;
+  padding:.75rem 1rem;border-radius:12px;margin-bottom:1.5rem;
+  background:rgba(255,184,122,0.1);border:1px solid rgba(255,184,122,0.2);color:var(--orange);
+}
+.confirm-btns{display:flex;gap:.75rem;}
+.confirm-cancel{
+  flex:1;padding:11px;border-radius:12px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .2s;
+}
+.confirm-cancel:hover{background:rgba(255,255,255,0.11);color:var(--text);}
+.confirm-ok{
+  flex:1;padding:11px;border-radius:12px;
+  background:rgba(255,107,107,0.15);border:1px solid rgba(255,107,107,0.3);
+  font-family:'Inter',sans-serif;font-size:.84rem;font-weight:600;
+  color:var(--red);cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+}
+.confirm-ok::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,150,150,0.5) 50%,transparent);}
+.confirm-ok:hover{background:rgba(255,107,107,0.25);box-shadow:0 4px 18px rgba(255,107,107,0.2);}
+
 </style>
 </head>
 <body>
@@ -732,25 +851,79 @@ tbody td{padding:.85rem 1.2rem;font-size:.82rem;color:rgba(255,255,255,.8);verti
       </div>
 
       <!-- ── SECTION: SECURITY ── -->
-      <div class="dash-section" id="section-security">
-        <div class="stats-page-header">
-          <h2>🛡️ Безопасность</h2>
-          <p>Управление защитой твоего аккаунта</p>
-        </div>
-<div class="gl-card" style="max-width:520px;">
-  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🛡️</span><span class="sec-name">Аккаунт защищён паролем</span></div><div class="sec-status sec-on">Активно</div></div>
-  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🔑</span><span class="sec-name">Пароль задан</span></div><div class="sec-status sec-on">Да</div></div>
-  <div class="sec-item">
-    <div class="sec-left"><span class="sec-ico">✈️</span><span class="sec-name">Telegram</span></div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span id="secTgId" style="font-size:.72rem;color:var(--muted);">—</span>
-      <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
-    </div>
+<div class="dash-section" id="section-security">
+  <div class="stats-page-header">
+    <h2>🛡️ Безопасность</h2>
+    <p>Управление защитой твоего аккаунта</p>
   </div>
 
-  <div class="sec-item"><div class="sec-left"><span class="sec-ico">🌍</span><span class="sec-name">Последний вход</span></div><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div>
+  <div class="sec-cards">
+    <div class="sec-card">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">🛡️</div>
+        <div class="sec-card-info">
+          <div class="sec-card-name">Аккаунт защищён</div>
+          <div class="sec-card-desc">Базовая защита активна</div>
+        </div>
+      </div>
+      <div class="sec-card-right"><div class="sec-status sec-on">Активно</div></div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">🔑</div>
+        <div class="sec-card-info">
+          <div class="sec-card-name">Пароль задан</div>
+          <div class="sec-card-desc">Вход защищён паролем</div>
+        </div>
+      </div>
+      <div class="sec-card-right"><div class="sec-status sec-on">Да</div></div>
+    </div>
+
+    <div class="sec-card" id="secTgCard">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">✈️</div>
+        <div class="sec-card-info">
+          <div class="sec-card-name">Telegram</div>
+          <div class="sec-card-desc" id="secTgDesc">Не привязан</div>
+        </div>
+      </div>
+      <div class="sec-card-right">
+        <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
+        <button class="unlink-btn" id="unlinkTgBtn" style="display:none;" onclick="confirmUnlink()">
+          🔗 Отвязать
+        </button>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">🌍</div>
+        <div class="sec-card-info">
+          <div class="sec-card-name">Последний вход</div>
+          <div class="sec-card-desc">Текущая сессия</div>
+        </div>
+      </div>
+      <div class="sec-card-right"><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div>
+    </div>
+  </div>
 </div>
 
+<!-- Confirm modal -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-title">Отвязать Telegram?</div>
+    <div class="confirm-text">Ты уверен, что хочешь отвязать свой Telegram аккаунт?</div>
+    <div class="confirm-warning">
+      🎮 После отвязки ты <strong>не будешь получать награды</strong> за игры в Telegram боте. Монеты за сыгранные партии перестанут приходить!
+    </div>
+    <div class="confirm-btns">
+      <button class="confirm-cancel" onclick="closeConfirm()">Отмена</button>
+      <button class="confirm-ok" id="confirmOkBtn" onclick="doUnlink()">Отвязать</button>
+    </div>
+  </div>
+</div>
     </main>
   </div>
 
@@ -989,17 +1162,20 @@ function openDashboard(user) {
 
   loadOverviewStats();
 
-  // Telegram статус
+// Telegram статус
   const tgStatus = $('secTgStatus');
-  const tgId     = $('secTgId');
+  const tgDesc   = $('secTgDesc');
+  const unlinkBtn = $('unlinkTgBtn');
   if (user.telegram_id) {
     tgStatus.textContent = 'Привязан ✓';
     tgStatus.className   = 'sec-status sec-on';
-    tgId.textContent     = 'ID: ' + user.telegram_id;
+    tgDesc.textContent   = 'ID: ' + user.telegram_id;
+    unlinkBtn.style.display = 'inline-flex';
   } else {
     tgStatus.textContent = 'Не привязан';
     tgStatus.className   = 'sec-status sec-off';
-    tgId.textContent     = '—';
+    tgDesc.textContent   = 'Привяжи через Telegram бота';
+    unlinkBtn.style.display = 'none';
   }
 }
 
@@ -1244,6 +1420,45 @@ $('logoutBtn').onclick = async () => {
   $('auth-page').classList.add('active');
   $('loginMsg').textContent = ''; $('loginPassword').value = '';
 };
+// ══════════════════════════════════════════
+//  UNLINK TELEGRAM
+// ══════════════════════════════════════════
+function confirmUnlink() {
+  $('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  $('confirmOverlay').classList.remove('show');
+}
+async function doUnlink() {
+  const btn = $('confirmOkBtn');
+  btn.textContent = 'Отвязываем...';
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+  try {
+    await sbFetch(`users?id=eq.${currentUser.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ telegram_id: null })
+    });
+    currentUser.telegram_id = null;
+    localStorage.setItem('fernieid_session', JSON.stringify(currentUser));
+    // обновляем UI
+    $('secTgStatus').textContent = 'Не привязан';
+    $('secTgStatus').className = 'sec-status sec-off';
+    $('secTgDesc').textContent = 'Привяжи через Telegram бота';
+    $('unlinkTgBtn').style.display = 'none';
+  } catch(e) {
+    console.error(e);
+  }
+  btn.textContent = 'Отвязать';
+  btn.style.opacity = '';
+  btn.style.pointerEvents = '';
+  closeConfirm();
+}
+// Закрытие по клику вне модалки
+$('confirmOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+
 (async function autoLogin() {
   try {
     const saved = JSON.parse(localStorage.getItem('fernieid_session'));
