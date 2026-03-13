@@ -103,7 +103,7 @@ body{
 .gl-btn-primary:active{transform:scale(0.98);}
 
 /* ════ DASHBOARD ════ */
-#dash-page{flex-direction:column;padding:0;}
+#dash-page{flex-direction:column;padding:0;height:100vh;overflow:hidden;}
 
 .dash-header{
   position:sticky;top:0;z-index:100;height:56px;
@@ -129,7 +129,7 @@ body{
 }
 .logout-btn:hover,logout-btn:active{color:var(--red);border-color:rgba(255,107,107,0.3);}
 
-.dash-body{display:flex;flex:1;min-height:0;}
+.dash-body{display:flex;flex:1;min-height:0;overflow:hidden;}
 
 /* ── SIDEBAR: только десктоп ── */
 .sidebar{
