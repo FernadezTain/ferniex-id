@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
+
 dotenv.config();
 
 const app = express();
@@ -19,7 +20,6 @@ app.use(cors({
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const BOT_URL   = process.env.BOT_URL;
 
 const sbHeaders = {
   apikey: SB_KEY,
@@ -27,58 +27,23 @@ const sbHeaders = {
   "Content-Type": "application/json"
 };
 
-// ══════════════════════════════════════════
-//  Определение устройства из User-Agent
-// ══════════════════════════════════════════
-function parseDevice(ua = "") {
-  if (!ua) return "Неизвестное устройство";
-
-  // iOS devices
-  const iosMatch = ua.match(/iPhone(?:\s*OS\s*([\d_]+))?/i);
-  if (iosMatch) {
-    const ver = iosMatch[1] ? " iOS " + iosMatch[1].replace(/_/g, ".") : "";
-    return `📱 iPhone${ver}`;
+// ====== Хелпер: Telegram ======
+async function sendTgMessage(chatId, text) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, parse_mode: "HTML", text })
+    });
+    if (!res.ok) { console.error("TG error:", await res.text()); return false; }
+    return true;
+  } catch (e) {
+    console.error("TG exception:", e.message);
+    return false;
   }
-  const ipadMatch = ua.match(/iPad(?:.*CPU.*OS\s*([\d_]+))?/i);
-  if (ipadMatch) {
-    const ver = ipadMatch[1] ? " iPadOS " + ipadMatch[1].replace(/_/g, ".") : "";
-    return `📱 iPad${ver}`;
-  }
-
-  // Android device models
-  const androidModel = ua.match(/Android[\s/][\d.]+;\s*([^;)]+)/i);
-  if (androidModel) {
-    const model = androidModel[1].trim();
-    return `📱 ${model} (Android)`;
-  }
-
-  // Windows
-  if (/Windows NT 10/i.test(ua)) return "🖥️ Windows 10/11";
-  if (/Windows NT 6\.3/i.test(ua)) return "🖥️ Windows 8.1";
-  if (/Windows NT 6\.1/i.test(ua)) return "🖥️ Windows 7";
-  if (/Windows/i.test(ua)) return "🖥️ Windows";
-
-  // macOS
-  const macMatch = ua.match(/Mac OS X ([\d_]+)/i);
-  if (macMatch) {
-    const ver = macMatch[1].replace(/_/g, ".");
-    return `💻 macOS ${ver}`;
-  }
-
-  // Linux
-  if (/Linux/i.test(ua)) return "🐧 Linux";
-
-  // Browsers as fallback
-  if (/Chrome/i.test(ua)) return "🌐 Chrome Browser";
-  if (/Firefox/i.test(ua)) return "🌐 Firefox Browser";
-  if (/Safari/i.test(ua)) return "🌐 Safari Browser";
-
-  return "🖥️ Неизвестное устройство";
 }
 
-// ══════════════════════════════════════════
-//  Регистрация
-// ══════════════════════════════════════════
+// ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: "Все поля обязательны" });
@@ -100,53 +65,17 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Вход + уведомление Telegram
-// ══════════════════════════════════════════
+// ====== Вход ======
 app.post("/api/login", async (req, res) => {
-  const { username, password, clientIp, userAgent } = req.body;
+  const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: "Все поля обязательны" });
-
   try {
     const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${username}`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
-
     const user = data[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
-
-    // Определяем IP: приоритет — тот что прислал клиент, fallback — из заголовков
-    const ip = clientIp
-      || req.headers["x-forwarded-for"]?.split(",")[0]?.trim()
-      || req.headers["x-real-ip"]
-      || req.socket?.remoteAddress
-      || "неизвестен";
-
-    const device = parseDevice(userAgent || req.headers["user-agent"] || "");
-
-    // Отправляем уведомление в Telegram если привязан
-    if (user.telegram_id && BOT_URL) {
-      const now = new Date().toLocaleString("ru-RU", {
-        day: "2-digit", month: "2-digit", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-        timeZone: "Europe/Moscow"
-      });
-
-      fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegram_id: user.telegram_id,
-          type: "login",
-          username: user.username,
-          ip,
-          device,
-          time: now
-        })
-      }).catch(e => console.error("Login notify error:", e));
-    }
-
     res.json({ success: true, userId: user.id, telegramLinked: !!user.telegram_id });
   } catch (e) {
     console.error(e);
@@ -154,9 +83,7 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Баланс
-// ══════════════════════════════════════════
+// ====== Баланс ======
 app.get("/api/balance/:userId", async (req, res) => {
   const userId = req.params.userId;
   try {
@@ -170,56 +97,72 @@ app.get("/api/balance/:userId", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Сохранение статистики + уведомление TG
-// ══════════════════════════════════════════
+// ====== Сохранение статистики + уведомление в TG ======
 app.post("/api/stats", async (req, res) => {
-  const { userId, game, score } = req.body;
-  const gameSlug = (game || '').replace(/-/g, '_');
-  if (!userId || !gameSlug || score === undefined)
+const { userId, game, score } = req.body;
+const gameSlug = (game || '').replace(/-/g, '_');
+if (!userId || !gameSlug || score === undefined)
     return res.json({ success: false, error: "Недостаточно данных" });
+
   try {
+    // 1. game_id из Supabase
     const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${gameSlug}&select=id,title`, { headers: sbHeaders });
     const gameData = await gameRes.json();
     const gameTitle = gameData[0]?.title || game;
     const gameId    = gameData[0]?.id;
 
+    // 2. Записываем сессию
     if (gameId) {
       const sessionRes = await fetch(`${SB_URL}/rest/v1/game_sessions`, {
         method: "POST",
         headers: { ...sbHeaders, Prefer: "return=minimal" },
-        body: JSON.stringify({ user_id: userId, game_id: gameId, score, ended_at: new Date().toISOString() })
+        body: JSON.stringify({
+          user_id: userId,
+          game_id: gameId,
+          score: score,
+          ended_at: new Date().toISOString()
+        })
       });
-      if (!sessionRes.ok) console.error("Session insert error:", await sessionRes.text());
+      if (!sessionRes.ok) {
+        console.error("Session insert error:", await sessionRes.text());
+      }
     }
 
+    // 3. Обновляем лидерборд (некритично)
     fetch(`${SB_URL}/rest/v1/rpc/refresh_leaderboard`, {
       method: "POST", headers: sbHeaders, body: JSON.stringify({})
     }).catch(() => {});
 
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    // 4. Получаем telegram_id юзера
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`,
+      { headers: sbHeaders }
+    );
     const users = await userRes.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+
     const { telegram_id, username } = users[0];
 
-    if (telegram_id && BOT_URL) {
-      await fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegram_id, username, game: gameTitle, score })
-      }).catch(e => console.error("Bot notify error:", e));
+    // 5. Уведомление в Telegram (без реального начисления монет)
+    if (telegram_id) {
+      await sendTgMessage(telegram_id,
+        `🎮 <b>Результат игры</b>\n\n` +
+        `👤 Игрок: <b>${username}</b>\n` +
+        `🕹 Игра: <b>${gameTitle}</b>\n` +
+        `⭐ Счёт: <b>${score}</b>\n\n` +
+        `<i>Результат сохранён в FernieID!</i>`
+      );
     }
 
     res.json({ success: true, telegramSent: !!telegram_id });
+
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
 
-// ══════════════════════════════════════════
-//  Лидерборд
-// ══════════════════════════════════════════
+// ====== Лидерборд ======
 app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   const { gameSlug } = req.params;
   const limit = req.query.limit || 10;
@@ -236,9 +179,7 @@ app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Генерация токена привязки Telegram
-// ══════════════════════════════════════════
+// ====== Генерация токена привязки Telegram ======
 app.post("/api/telegram/generate-token", async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, error: "Нет userId" });
@@ -260,21 +201,22 @@ app.post("/api/telegram/generate-token", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Привязка telegram_id по токену
-// ══════════════════════════════════════════
+// ====== Привязка telegram_id по токену (вызывается из бота) ======
 app.post("/api/telegram/link", async (req, res) => {
   const { token, telegram_id } = req.body;
   if (!token || !telegram_id) return res.json({ success: false, error: "Нет данных" });
   try {
-    const findRes = await fetch(`${SB_URL}/rest/v1/users?link_token=eq.${token}&select=id,username`, { headers: sbHeaders });
+    const findRes = await fetch(
+      `${SB_URL}/rest/v1/users?link_token=eq.${token}&select=id,username`,
+      { headers: sbHeaders }
+    );
     const users = await findRes.json();
     if (!users.length) return res.json({ success: false, error: "Токен не найден или устарел" });
     const user = users[0];
     await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
       method: "PATCH",
       headers: sbHeaders,
-      body: JSON.stringify({ telegram_id, link_token: null })
+      body: JSON.stringify({ telegram_id: telegram_id, link_token: null })
     });
     res.json({ success: true, username: user.username });
   } catch (e) {
@@ -283,14 +225,15 @@ app.post("/api/telegram/link", async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════
-//  Отвязка Telegram
-// ══════════════════════════════════════════
+// ====== Отвязка Telegram ======
 app.post("/api/telegram/unlink", async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`,
+      { headers: sbHeaders }
+    );
     const users = await userRes.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
     const { telegram_id } = users[0];
@@ -301,18 +244,103 @@ app.post("/api/telegram/unlink", async (req, res) => {
       body: JSON.stringify({ telegram_id: null })
     });
 
-    if (telegram_id && BOT_URL) {
-      await fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ telegram_id, username: null, game: null, score: null, type: "unlink" })
-      }).catch(() => {});
+    if (telegram_id) {
+      await sendTgMessage(telegram_id,
+        `🛡 <b>Система Безопасности</b>\n` +
+        `<blockquote>🔓 Ваш Telegram аккаунт был <b>успешно отвязан</b> от FernieID.\n` +
+        `ID: <b>${telegram_id}</b></blockquote>\n` +
+        `Если отвязку сделали вы — просто проигнорируйте это сообщение. ✅\n` +
+        `Если отвязали <b>не вы</b> — свяжитесь с поддержкой через /ask 🆘`
+      );
     }
 
     res.json({ success: true });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Баланс семян из Telegram бота
+// ══════════════════════════════════════════
+app.get("/api/seeds/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, seeds: 0, error: "Telegram не привязан" });
+    const { telegram_id } = users[0];
+    const botRes = await fetch(`${BOT_URL}/api/seeds?telegram_id=${telegram_id}`);
+    const botData = await botRes.json();
+    res.json({ success: true, seeds: botData.seeds ?? 0 });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, seeds: 0, error: "Ошибка сервера" });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Купить кейс (списать семена через бота)
+// ══════════════════════════════════════════
+app.post("/api/cases/buy", async (req, res) => {
+  const { userId, caseSlug, quantity } = req.body;
+  if (!userId || !caseSlug || !quantity)
+    return res.json({ success: false, error: "Недостаточно данных" });
+  const PRICES = { ferniex_silver: 2500, fernie_gold: 4000 };
+  const price = PRICES[caseSlug];
+  if (!price) return res.json({ success: false, error: "Кейс не найден" });
+  const total = price * quantity;
+  try {
+    // Получаем telegram_id
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, error: "Telegram не привязан" });
+    const { telegram_id } = users[0];
+    // Списываем семена через бота
+    const spendRes = await fetch(`${BOT_URL}/api/seeds/spend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegram_id, amount: total })
+    });
+    const spendData = await spendRes.json();
+    if (!spendData.success) return res.json({ success: false, error: spendData.error || "Недостаточно семян" });
+    // Добавляем кейс в инвентарь Supabase
+    const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, { headers: sbHeaders });
+    const invData = await invRes.json();
+    if (invData.length) {
+      await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, {
+        method: "PATCH",
+        headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ quantity: invData[0].quantity + quantity })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/inventory`, {
+        method: "POST",
+        headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ user_id: userId, case_slug: caseSlug, quantity })
+      });
+    }
+    res.json({ success: true, spent: total });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Инвентарь пользователя
+// ══════════════════════════════════════════
+app.get("/api/inventory/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&select=*`, { headers: sbHeaders });
+    const data = await invRes.json();
+    res.json({ success: true, items: data });
+  } catch (e) {
+    res.json({ success: false, items: [] });
   }
 });
 
