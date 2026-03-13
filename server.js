@@ -99,13 +99,14 @@ app.get("/api/balance/:userId", async (req, res) => {
 
 // ====== Сохранение статистики + уведомление в TG ======
 app.post("/api/stats", async (req, res) => {
-  const { userId, game, score } = req.body;
-  if (!userId || !game || score === undefined)
+const { userId, game, score } = req.body;
+const gameSlug = (game || '').replace(/-/g, '_');
+if (!userId || !gameSlug || score === undefined)
     return res.json({ success: false, error: "Недостаточно данных" });
 
   try {
     // 1. game_id из Supabase
-    const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${game}&select=id,title`, { headers: sbHeaders });
+    const gameRes = await fetch(`${SB_URL}/rest/v1/games?slug=eq.${gameSlug}&select=id,title`, { headers: sbHeaders });
     const gameData = await gameRes.json();
     const gameTitle = gameData[0]?.title || game;
     const gameId    = gameData[0]?.id;
