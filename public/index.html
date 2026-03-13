@@ -1656,6 +1656,7 @@ async function doSpin10() {
     if(spinIsSpinning) { await new Promise(r => setTimeout(r, 100)); i--; continue; }
 
     spinIsSpinning = true;
+    $('spinTitle').textContent = `🎰 ${CASES[spinCaseSlug].name} — ${i+1}/10`;
     $('spinResult').classList.remove('show');
 
     let serverWinner = null;
