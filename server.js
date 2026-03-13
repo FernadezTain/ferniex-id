@@ -20,6 +20,7 @@ app.use(cors({
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_URL   = process.env.BOT_URL || 'https://a36865-997d.m.d-f.pw';
 
 const sbHeaders = {
   apikey: SB_KEY,
