@@ -1391,25 +1391,57 @@ async function doUnlink(){
 // ════ ИГРОВАЯ ПАНЕЛЬ ════
 const CASES = {
   ferniex_silver: {
-    name: 'FernieX Silver', emoji: '🥈', price: 3000, cls: 'silver',
+    name: 'Silver', emoji: '🥈', price: 3000, cls: 'silver',
     items: [
-{name:'🌱 Семена x500',  chance:40},
-{name:'🌱 Семена x1000', chance:30},
-{name:'💎 DC x50',       chance:18},
-{name:'💎 DC x150',      chance:11},
-{name:'⭐ DC x500',      chance:1},
+      {name:'🌱 Семена x500',  emoji:'🌱', rarity:'common',    chance:40},
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:30},
+      {name:'💎 DC x50',       emoji:'💎', rarity:'rare',      chance:18},
+      {name:'💎 DC x150',      emoji:'💎', rarity:'rare',      chance:11},
+      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:1},
     ]
   },
   fernie_gold: {
-    name: 'Fernie Gold', emoji: '🥇', price: 6000, cls: 'gold',
+    name: 'Gold', emoji: '🥇', price: 6000, cls: 'gold',
     items: [
-{name:'🌱 Семена x1000', chance:40},
-{name:'🌱 Семена x2500', chance:30},
-{name:'💎 DC x200',      chance:18},
-{name:'💎 DC x500',      chance:11},
-{name:'🌟 DC x2000',     chance:1},
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:40},
+      {name:'🌱 Семена x2500', emoji:'🌱', rarity:'common',    chance:30},
+      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:18},
+      {name:'💎 DC x500',      emoji:'💎', rarity:'rare',      chance:11},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:1},
     ]
-  }
+  },
+  fernie_starter: {
+    name: 'Shadow', emoji: '📦', price: 1000, cls: 'silver',
+    items: [
+      {name:'🌱 Семена x300',  emoji:'🌱', rarity:'common',    chance:45},
+      {name:'💵 Игровая Валюта x5000', emoji:'💵', rarity:'common',    chance:30},
+      {name:'💵 Игровая Валюта x15000',emoji:'💵', rarity:'rare',      chance:15},
+      {name:'💎 DC x30',       emoji:'💎', rarity:'rare',      chance:9},
+      {name:'⭐ DC x300',      emoji:'⭐', rarity:'legendary', chance:1},
+    ]
+  },
+  fernie_crystal: {
+    name: 'Crystal', emoji: '💎', price: 8000, cls: 'gold',
+    items: [
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:40},
+      {name:'💵 Игровая Валюта x20000',emoji:'💵', rarity:'common',    chance:28},
+      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:18},
+      {name:'💵 Игровая Валюта x50000',emoji:'💵', rarity:'rare',      chance:10},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:3},
+      {name:'👑 DC x5000',     emoji:'👑', rarity:'legendary', chance:1},
+    ]
+  },
+  fernie_royal: {
+    name: 'Royal', emoji: '👑', price: 15000, cls: 'gold',
+    items: [
+      {name:'🌱 Семена x3000',  emoji:'🌱', rarity:'common',    chance:35},
+      {name:'💵 Игровая Валюта x50000', emoji:'💵', rarity:'common',    chance:28},
+      {name:'💎 DC x500',       emoji:'💎', rarity:'rare',      chance:20},
+      {name:'💵 Игровая Валюта x150000',emoji:'💵', rarity:'rare',      chance:11},
+      {name:'🌟 DC x3000',      emoji:'🌟', rarity:'epic',      chance:5},
+      {name:'👑 DC x10000',     emoji:'👑', rarity:'legendary', chance:1},
+    ]
+  },
 };
 
 // Табы верхнего уровня
