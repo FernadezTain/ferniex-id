@@ -470,6 +470,26 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   .stats-row .stat-card:last-child{grid-column:span 2;}
   .stat-value{font-size:1rem;}
 }
+/* Webkit (Chrome, Safari, мобильный Chrome) */
+.main-content::-webkit-scrollbar {
+  width: 4px;
+}
+.main-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.main-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, var(--p1), var(--p2));
+  border-radius: 100px;
+}
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, var(--p2), var(--p3));
+}
+
+/* Firefox */
+.main-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--p1) transparent;
+}
 </style>
 </head>
 <body>
