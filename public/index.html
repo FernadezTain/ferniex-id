@@ -170,17 +170,22 @@ body{
 .mobile-nav{
   display:none;
   position:fixed;bottom:0;left:0;right:0;z-index:300;
-  background:rgba(5,1,10,0.98);
-  border-top:1px solid rgba(180,141,255,0.18);
-  padding:0 0 env(safe-area-inset-bottom);
-  will-change:transform;
-  box-shadow:0 -8px 32px rgba(0,0,0,0.6);
+  padding:0 12px calc(env(safe-area-inset-bottom) + 8px);
+  background:transparent;
+  pointer-events:none;
 }
 .mobile-nav-inner{
   display:flex;
   justify-content:space-around;
-  align-items:stretch;
+  align-items:center;
   height:58px;
+  background:rgba(14,8,24,0.96);
+  border:1px solid rgba(180,141,255,0.15);
+  border-radius:20px;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  pointer-events:all;
+  padding:0 8px;
 }
 .mobile-nav-btn{
   flex:1;
@@ -192,26 +197,26 @@ body{
   letter-spacing:.3px;
   position:relative;
   border:none;background:none;
+  height:100%;
 }
 .mobile-nav-btn::before{
   content:'';
-  position:absolute;top:0;left:20%;right:20%;height:2px;
+  position:absolute;top:-1px;left:15%;right:15%;height:2px;
   background:linear-gradient(90deg,var(--p1),var(--p2));
   border-radius:0 0 3px 3px;
   opacity:0;transition:opacity .18s;
 }
 .mobile-nav-btn.active::before{opacity:1;}
 .mnav-icon-wrap{
-  width:36px;height:28px;
+  width:38px;height:28px;
   display:flex;align-items:center;justify-content:center;
   border-radius:10px;
   transition:background .18s;
-  position:relative;
 }
 .mobile-nav-btn.active .mnav-icon-wrap{
-  background:rgba(180,141,255,0.12);
+  background:rgba(180,141,255,0.15);
 }
-.mobile-nav-btn .mnav-icon{font-size:1.3rem;line-height:1;display:block;}
+.mobile-nav-btn .mnav-icon{font-size:1.25rem;line-height:1;display:block;}
 .mobile-nav-btn.active{color:var(--p1);}
 .mobile-nav-btn.active .mnav-icon{
   filter:drop-shadow(0 0 5px rgba(180,141,255,0.6));
@@ -479,10 +484,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   .sidebar{display:none;}
   .mobile-nav{display:block;}
   .header-name{display:none;}
-  .main-content{
+.main-content{
     padding:1.25rem 1rem;
-    /* Добавляем отступ снизу под мобильный нав */
-    padding-bottom:calc(58px + env(safe-area-inset-bottom) + 1rem);
+    padding-bottom:calc(58px + 20px + env(safe-area-inset-bottom) + 1rem);
   }
   .dash-footer{margin:.5rem 1rem calc(var(--nav-h) + .75rem + env(safe-area-inset-bottom));}
   .game-stats-grid{grid-template-columns:1fr;}
