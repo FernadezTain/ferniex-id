@@ -1029,7 +1029,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="spin-result-rarity" id="spinResultRarity"></div>
     </div>
     <div class="spin-footer">
-      <button class="spin-again-btn" id="spinAgainBtn" onclick="doSpin()">🎰 Крутить ещё</button>
+      <button class="spin-again-btn" id="spinAgainBtn" onclick="doSpin()">🎰 Открыть кейс</button>
       <button class="spin-done-btn" onclick="closeSpinModal()">Закрыть</button>
     </div>
   </div>
@@ -1569,10 +1569,11 @@ function openSpinModal(slug, fromInventory, qty = 0) {
   $('spinTitle').textContent = `🎰 ${c.name}`;
   $('spinAgainBtn').className = 'spin-again-btn ' + c.cls;
   $('spinResult').classList.remove('show');
-  $('spinAgainBtn').style.display = fromInventory && qty > 0 ? '' : 'none';
+  $('spinAgainBtn').style.display = '';
+  $('spinAgainBtn').textContent = '🎰 Открыть кейс';
+  $('spinAgainBtn').disabled = false;
   buildSpinTrack(slug);
   $('spinOverlay').classList.add('show');
-  if(fromInventory) setTimeout(() => doSpin(), 400);
 }
 function closeSpinModal() {
   if(spinIsSpinning) return;
