@@ -1654,7 +1654,11 @@ async function doSpin() {
   track.innerHTML = '';
 
   // Находим объект предмета по имени
-  const winItem = items.find(i => i.name === serverWinner.name) || items[0];
+const winItem = items.find(i => i.name === serverWinner.name) 
+             || items.find(i => i.emoji === serverWinner.emoji)
+             || items[0];
+
+console.log('server:', serverWinner.name, '| found:', winItem?.name);
 
   for (let i = 0; i < 48; i++) {
     const item = (i === WIN_IDX) ? winItem : weightedRandom(items);
