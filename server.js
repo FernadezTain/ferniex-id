@@ -68,7 +68,7 @@ app.post("/api/register", async (req, res) => {
 
 // ====== Вход ======
 app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, clientIp, userAgent } = req.body;
   if (!username || !password) return res.json({ success: false, error: "Все поля обязательны" });
   try {
     const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${username}`, { headers: sbHeaders });
@@ -77,6 +77,33 @@ app.post("/api/login", async (req, res) => {
     const user = data[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
+
+    if (user.telegram_id) {
+      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+      // Упрощаем userAgent до читаемого вида
+      let device = 'неизвестно';
+      if (userAgent) {
+        if (/Android/.test(userAgent)) device = 'Android';
+        else if (/iPhone|iPad/.test(userAgent)) device = 'iOS';
+        else if (/Windows/.test(userAgent)) device = 'Windows';
+        else if (/Mac/.test(userAgent)) device = 'MacOS';
+        else if (/Linux/.test(userAgent)) device = 'Linux';
+      }
+
+      fetch(`${BOT_URL}/api/fernieid/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: user.telegram_id,
+          type: 'login',
+          username,
+          ip: clientIp || req.ip || 'неизвестен',
+          device,
+          time: now
+        })
+      }).catch(e => console.error('login notify:', e));
+    }
+
     res.json({ success: true, userId: user.id, telegramLinked: !!user.telegram_id });
   } catch (e) {
     console.error(e);
@@ -284,9 +311,6 @@ app.get("/api/seeds/:userId", async (req, res) => {
     res.json({ success: false, seeds: 0, error: e.message });
   }
 });
-// ══════════════════════════════════════════
-//  Купить кейс (списать семена через бота)
-// ══════════════════════════════════════════
 app.post("/api/cases/buy", async (req, res) => {
   const { userId, caseSlug, quantity } = req.body;
   if (!userId || !caseSlug || !quantity)
@@ -296,13 +320,11 @@ app.post("/api/cases/buy", async (req, res) => {
   if (!price) return res.json({ success: false, error: "Кейс не найден" });
   const total = price * quantity;
   try {
-    // Получаем telegram_id
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
     const users = await userRes.json();
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: "Telegram не привязан" });
-    const { telegram_id } = users[0];
-    // Списываем семена через бота
+    const { telegram_id, username } = users[0];
     const spendRes = await fetch(`${BOT_URL}/api/seeds/spend`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -310,7 +332,6 @@ app.post("/api/cases/buy", async (req, res) => {
     });
     const spendData = await spendRes.json();
     if (!spendData.success) return res.json({ success: false, error: spendData.error || "Недостаточно семян" });
-    // Добавляем кейс в инвентарь Supabase
     const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, { headers: sbHeaders });
     const invData = await invRes.json();
     if (invData.length) {
@@ -326,13 +347,21 @@ app.post("/api/cases/buy", async (req, res) => {
         body: JSON.stringify({ user_id: userId, case_slug: caseSlug, quantity })
       });
     }
+    const caseNames = { ferniex_silver: 'FernieX Silver', fernie_gold: 'Fernie Gold' };
+    await sendTgMessage(telegram_id,
+      `🛒 <b>Покупка на сайте</b>\n\n` +
+      `👤 Игрок: <b>${username}</b>\n` +
+      `📦 Товар: <b>Кейс</b>\n` +
+      `🏷 Название: <b>${caseNames[caseSlug] || caseSlug}</b>\n` +
+      `🔢 Кол-во: <b>${quantity} шт.</b>\n` +
+      `💰 Сумма: <b>${total.toLocaleString('ru-RU')} 🌱</b>`
+    );
     res.json({ success: true, spent: total });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
-
 // ══════════════════════════════════════════
 //  Открыть кейс — честный серверный дроп
 // ══════════════════════════════════════════
@@ -344,8 +373,7 @@ const CASE_DEFINITIONS = {
       {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:25, reward:{type:'seeds', amount:1000}},
       {name:'💎 DC x50',       emoji:'💎', rarity:'rare',      chance:20, reward:{type:'dc',    amount:50}},
       {name:'💎 DC x150',      emoji:'💎', rarity:'rare',      chance:12, reward:{type:'dc',    amount:150}},
-      {name:'💜 AC x10',       emoji:'💜', rarity:'epic',      chance:6,  reward:{type:'ac',    amount:10}},
-      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:2,  reward:{type:'dc',    amount:500}},
+      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:8,  reward:{type:'dc',    amount:500}},
     ]
   },
   fernie_gold: {
@@ -355,8 +383,7 @@ const CASE_DEFINITIONS = {
       {name:'🌱 Семена x2500', emoji:'🌱', rarity:'common',    chance:18, reward:{type:'seeds', amount:2500}},
       {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:22, reward:{type:'dc',    amount:200}},
       {name:'💎 DC x500',      emoji:'💎', rarity:'rare',      chance:16, reward:{type:'dc',    amount:500}},
-      {name:'💜 AC x25',       emoji:'💜', rarity:'epic',      chance:12, reward:{type:'ac',    amount:25}},
-      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:7,  reward:{type:'dc',    amount:2000}},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:19, reward:{type:'dc',    amount:2000}},
     ]
   }
 };
