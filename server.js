@@ -80,28 +80,41 @@ app.post("/api/login", async (req, res) => {
 
     if (user.telegram_id) {
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-      // Упрощаем userAgent до читаемого вида
       let device = 'неизвестно';
       if (userAgent) {
-        if (/Android/.test(userAgent)) device = 'Android';
-        else if (/iPhone|iPad/.test(userAgent)) device = 'iOS';
-        else if (/Windows/.test(userAgent)) device = 'Windows';
-        else if (/Mac/.test(userAgent)) device = 'MacOS';
-        else if (/Linux/.test(userAgent)) device = 'Linux';
+        const match = userAgent.match(/\(([^)]+)\)/);
+        if (match) {
+          const parts = match[1].split(';').map(s => s.trim());
+          if (/Android/.test(userAgent)) {
+            const model = parts[2] || parts[1] || 'Android';
+            const version = parts[1] || '';
+            device = `📱 ${model} (${version})`;
+          } else if (/iPhone/.test(userAgent)) {
+            device = `🍎 iPhone (iOS ${userAgent.match(/OS ([\d_]+)/)?.[1]?.replace(/_/g,'.') || ''})`;
+          } else if (/iPad/.test(userAgent)) {
+            device = `🍎 iPad`;
+          } else if (/Windows/.test(userAgent)) {
+            device = `🖥 Windows`;
+          } else if (/Mac/.test(userAgent)) {
+            device = `🖥 MacOS`;
+          } else if (/Linux/.test(userAgent)) {
+            device = `🖥 Linux`;
+          }
+        }
       }
 
-      fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: user.telegram_id,
-          type: 'login',
-          username,
-          ip: clientIp || req.ip || 'неизвестен',
-          device,
-          time: now
-        })
-      }).catch(e => console.error('login notify:', e));
+      await sendTgMessage(user.telegram_id,
+        `🔐 <b>Выполнен вход в Личный Кабинет FernieID</b>\n\n` +
+        `<blockquote>` +
+        `👤 Аккаунт: <b>${username}</b>\n` +
+        `🕒 Время: <b>${now} МСК</b>` +
+        `</blockquote>\n\n` +
+        `<blockquote>` +
+        `🌐 IP: <code>${clientIp || req.ip || 'неизвестен'}</code>\n` +
+        `📱 Устройство: <b>${device}</b>` +
+        `</blockquote>\n\n` +
+        `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
+      );
     }
 
     res.json({ success: true, userId: user.id, telegramLinked: !!user.telegram_id });
