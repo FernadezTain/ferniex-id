@@ -328,7 +328,7 @@ app.post("/api/cases/buy", async (req, res) => {
   const { userId, caseSlug, quantity } = req.body;
   if (!userId || !caseSlug || !quantity)
     return res.json({ success: false, error: "Недостаточно данных" });
-  const PRICES = { ferniex_silver: 2500, fernie_gold: 4000 };
+  const PRICES = { ferniex_silver: 3000, fernie_gold: 6000, fernie_starter: 1000, fernie_crystal: 8000, fernie_royal: 15000 };
   const price = PRICES[caseSlug];
   if (!price) return res.json({ success: false, error: "Кейс не найден" });
   const total = price * quantity;
@@ -360,7 +360,7 @@ app.post("/api/cases/buy", async (req, res) => {
         body: JSON.stringify({ user_id: userId, case_slug: caseSlug, quantity })
       });
     }
-    const caseNames = { ferniex_silver: 'FernieX Silver', fernie_gold: 'Fernie Gold' };
+    const caseNames = { ferniex_silver: 'Silver', fernie_gold: 'Gold', fernie_starter: 'Shadow', fernie_crystal: 'Crystal', fernie_royal: 'Royal' };
     await sendTgMessage(telegram_id,
       `🛒 <b>Покупка на сайте</b>\n\n` +
       `👤 Игрок: <b>${username}</b>\n` +
@@ -380,25 +380,57 @@ app.post("/api/cases/buy", async (req, res) => {
 // ══════════════════════════════════════════
 const CASE_DEFINITIONS = {
   ferniex_silver: {
-    name: 'FernieX Silver',
+    name: 'Silver',
     items: [
-      {name:'🌱 Семена x500',  emoji:'🌱', rarity:'common',    chance:35, reward:{type:'seeds', amount:500}},
-      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:25, reward:{type:'seeds', amount:1000}},
-      {name:'💎 DC x50',       emoji:'💎', rarity:'rare',      chance:20, reward:{type:'dc',    amount:50}},
-      {name:'💎 DC x150',      emoji:'💎', rarity:'rare',      chance:12, reward:{type:'dc',    amount:150}},
-      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:8,  reward:{type:'dc',    amount:500}},
+      {name:'🌱 Семена x500',  emoji:'🌱', rarity:'common',    chance:40, reward:{type:'seeds',  amount:500}},
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:30, reward:{type:'seeds',  amount:1000}},
+      {name:'💎 DC x50',       emoji:'💎', rarity:'rare',      chance:18, reward:{type:'dc',     amount:50}},
+      {name:'💎 DC x150',      emoji:'💎', rarity:'rare',      chance:11, reward:{type:'dc',     amount:150}},
+      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:1,  reward:{type:'dc',     amount:500}},
     ]
   },
   fernie_gold: {
-    name: 'Fernie Gold',
+    name: 'Gold',
     items: [
-      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:25, reward:{type:'seeds', amount:1000}},
-      {name:'🌱 Семена x2500', emoji:'🌱', rarity:'common',    chance:18, reward:{type:'seeds', amount:2500}},
-      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:22, reward:{type:'dc',    amount:200}},
-      {name:'💎 DC x500',      emoji:'💎', rarity:'rare',      chance:16, reward:{type:'dc',    amount:500}},
-      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:19, reward:{type:'dc',    amount:2000}},
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:40, reward:{type:'seeds',  amount:1000}},
+      {name:'🌱 Семена x2500', emoji:'🌱', rarity:'common',    chance:30, reward:{type:'seeds',  amount:2500}},
+      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:18, reward:{type:'dc',     amount:200}},
+      {name:'💎 DC x500',      emoji:'💎', rarity:'rare',      chance:11, reward:{type:'dc',     amount:500}},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:1,  reward:{type:'dc',     amount:2000}},
     ]
-  }
+  },
+  fernie_starter: {
+    name: 'Shadow',
+    items: [
+      {name:'🌱 Семена x300',  emoji:'🌱', rarity:'common',    chance:45, reward:{type:'seeds',  amount:300}},
+      {name:'💵 Игровая Валюта x5000', emoji:'💵', rarity:'common',    chance:30, reward:{type:'rubles', amount:5000}},
+      {name:'💵 Игровая Валюта x15000',emoji:'💵', rarity:'rare',      chance:15, reward:{type:'rubles', amount:15000}},
+      {name:'💎 DC x30',       emoji:'💎', rarity:'rare',      chance:9,  reward:{type:'dc',     amount:30}},
+      {name:'⭐ DC x300',      emoji:'⭐', rarity:'legendary', chance:1,  reward:{type:'dc',     amount:300}},
+    ]
+  },
+  fernie_crystal: {
+    name: 'Crystal',
+    items: [
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:40, reward:{type:'seeds',  amount:1000}},
+      {name:'💵 Игровая Валюта x20000',emoji:'💵', rarity:'common',    chance:28, reward:{type:'rubles', amount:20000}},
+      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:18, reward:{type:'dc',     amount:200}},
+      {name:'💵 Игровая Валюта x50000',emoji:'💵', rarity:'rare',      chance:10, reward:{type:'rubles', amount:50000}},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:3,  reward:{type:'dc',     amount:2000}},
+      {name:'👑 DC x5000',     emoji:'👑', rarity:'legendary', chance:1,  reward:{type:'dc',     amount:5000}},
+    ]
+  },
+  fernie_royal: {
+    name: 'Royal',
+    items: [
+      {name:'🌱 Семена x3000',  emoji:'🌱', rarity:'common',    chance:35, reward:{type:'seeds',  amount:3000}},
+      {name:'💵 Игровая Валюта x50000', emoji:'💵', rarity:'common',    chance:28, reward:{type:'rubles', amount:50000}},
+      {name:'💎 DC x500',       emoji:'💎', rarity:'rare',      chance:20, reward:{type:'dc',     amount:500}},
+      {name:'💵 Игровая Валюта x150000',emoji:'💵', rarity:'rare',      chance:11, reward:{type:'rubles', amount:150000}},
+      {name:'🌟 DC x3000',      emoji:'🌟', rarity:'epic',      chance:5,  reward:{type:'dc',     amount:3000}},
+      {name:'👑 DC x10000',     emoji:'👑', rarity:'legendary', chance:1,  reward:{type:'dc',     amount:10000}},
+    ]
+  },
 };
 
 function weightedRandom(items) {
