@@ -269,18 +269,20 @@ app.get("/api/seeds/:userId", async (req, res) => {
   try {
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
     const users = await userRes.json();
+    console.log('seeds users:', JSON.stringify(users));
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, seeds: 0, error: "Telegram не привязан" });
-    const { telegram_id } = users[0];
+    const telegram_id = users[0].telegram_id;
+    console.log('fetching seeds for telegram_id:', telegram_id);
     const botRes = await fetch(`${BOT_URL}/api/seeds?telegram_id=${telegram_id}`);
     const botData = await botRes.json();
-    res.json({ success: true, seeds: botData.seeds ?? 0 });
+    console.log('botData:', JSON.stringify(botData));
+    res.json({ success: true, seeds: Number(botData.seeds) || 0 });
   } catch (e) {
-    console.error(e);
-    res.json({ success: false, seeds: 0, error: "Ошибка сервера" });
+    console.error('seeds error:', e);
+    res.json({ success: false, seeds: 0, error: e.message });
   }
 });
-
 // ══════════════════════════════════════════
 //  Купить кейс (списать семена через бота)
 // ══════════════════════════════════════════
