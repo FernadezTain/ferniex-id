@@ -334,6 +334,103 @@ app.post("/api/cases/buy", async (req, res) => {
 });
 
 // ══════════════════════════════════════════
+//  Открыть кейс — честный серверный дроп
+// ══════════════════════════════════════════
+const CASE_DEFINITIONS = {
+  ferniex_silver: {
+    name: 'FernieX Silver',
+    items: [
+      {name:'🌱 Семена x500',  emoji:'🌱', rarity:'common',    chance:35, reward:{type:'seeds', amount:500}},
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:25, reward:{type:'seeds', amount:1000}},
+      {name:'💎 DC x50',       emoji:'💎', rarity:'rare',      chance:20, reward:{type:'dc',    amount:50}},
+      {name:'💎 DC x150',      emoji:'💎', rarity:'rare',      chance:12, reward:{type:'dc',    amount:150}},
+      {name:'💜 AC x10',       emoji:'💜', rarity:'epic',      chance:6,  reward:{type:'ac',    amount:10}},
+      {name:'⭐ DC x500',      emoji:'⭐', rarity:'legendary', chance:2,  reward:{type:'dc',    amount:500}},
+    ]
+  },
+  fernie_gold: {
+    name: 'Fernie Gold',
+    items: [
+      {name:'🌱 Семена x1000', emoji:'🌱', rarity:'common',    chance:25, reward:{type:'seeds', amount:1000}},
+      {name:'🌱 Семена x2500', emoji:'🌱', rarity:'common',    chance:18, reward:{type:'seeds', amount:2500}},
+      {name:'💎 DC x200',      emoji:'💎', rarity:'rare',      chance:22, reward:{type:'dc',    amount:200}},
+      {name:'💎 DC x500',      emoji:'💎', rarity:'rare',      chance:16, reward:{type:'dc',    amount:500}},
+      {name:'💜 AC x25',       emoji:'💜', rarity:'epic',      chance:12, reward:{type:'ac',    amount:25}},
+      {name:'🌟 DC x2000',     emoji:'🌟', rarity:'legendary', chance:7,  reward:{type:'dc',    amount:2000}},
+    ]
+  }
+};
+
+function weightedRandom(items) {
+  const total = items.reduce((s, i) => s + i.chance, 0);
+  let r = Math.random() * total;
+  for (const item of items) { r -= item.chance; if (r <= 0) return item; }
+  return items[items.length - 1];
+}
+
+app.post("/api/cases/open", async (req, res) => {
+  const { userId, caseSlug } = req.body;
+  if (!userId || !caseSlug) return res.json({ success: false, error: "Недостаточно данных" });
+
+  const caseDef = CASE_DEFINITIONS[caseSlug];
+  if (!caseDef) return res.json({ success: false, error: "Кейс не найден" });
+
+  try {
+    // Проверяем инвентарь
+    const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}&select=*`, { headers: sbHeaders });
+    const invData = await invRes.json();
+    if (!invData.length || invData[0].quantity < 1)
+      return res.json({ success: false, error: "Кейса нет в инвентаре" });
+
+    // Списываем 1 кейс
+    const newQty = invData[0].quantity - 1;
+    if (newQty > 0) {
+      await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ quantity: newQty })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, {
+        method: "DELETE", headers: sbHeaders
+      });
+    }
+
+    // Честный серверный дроп
+    const wonItem = weightedRandom(caseDef.items);
+
+    // Получаем telegram_id и шлём уведомление
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    const users = await userRes.json();
+    const { telegram_id, username } = users[0] || {};
+
+    if (telegram_id && BOT_URL) {
+      fetch(`${BOT_URL}/api/fernieid/notify`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id,
+          type: "case_reward",
+          username: username || "—",
+          case_name: caseDef.name,
+          item_name: wonItem.name,
+          item_emoji: wonItem.emoji,
+          item_rarity: wonItem.rarity,
+          reward: wonItem.reward
+        })
+      }).catch(e => console.error("case_reward notify:", e));
+    }
+
+    res.json({
+      success: true,
+      item: { name: wonItem.name, emoji: wonItem.emoji, rarity: wonItem.rarity, reward: wonItem.reward },
+      inventory_left: newQty
+    });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ══════════════════════════════════════════
 //  Инвентарь пользователя
 // ══════════════════════════════════════════
 app.get("/api/inventory/:userId", async (req, res) => {
