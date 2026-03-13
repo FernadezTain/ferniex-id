@@ -1671,7 +1671,7 @@ async function doSpin() {
   const itemW = 96 + 8; // width + gap
   const wrapWidth = track.parentElement.offsetWidth;
   const winCenter = WIN_IDX * itemW + 48; // 48 = половина элемента
-  const offset = winCenter - wrapWidth / 2 + (Math.random() * 20 - 10);
+const offset = winCenter - wrapWidth / 2 + itemW * 2 + (Math.random() * 10 - 5);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
