@@ -166,29 +166,55 @@ body{
   contain:layout;
 }
 
-/* ── МОБИЛЬНЫЙ НИЖНИЙ НАВ ── */
+/* ── МОБИЛЬНЫЙ НИЖНИЙ НАВ (Telegram-style) ── */
 .mobile-nav{
   display:none;
-  position:fixed;bottom:0;left:0;right:0;z-index:200;
-  background:rgba(6,1,12,0.95);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  border-top:1px solid rgba(180,141,255,0.14);
-  padding:.55rem .5rem calc(.55rem + env(safe-area-inset-bottom));
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:rgba(5,1,10,0.98);
+  border-top:1px solid rgba(180,141,255,0.18);
+  padding:0 0 env(safe-area-inset-bottom);
   will-change:transform;
+  box-shadow:0 -8px 32px rgba(0,0,0,0.6);
 }
-.mobile-nav-inner{display:flex;justify-content:space-around;}
+.mobile-nav-inner{
+  display:flex;
+  justify-content:space-around;
+  align-items:stretch;
+  height:58px;
+}
 .mobile-nav-btn{
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-  padding:.35rem .75rem;border-radius:12px;cursor:pointer;
-  font-size:.6rem;font-weight:500;color:var(--muted);
-  transition:color .2s;-webkit-tap-highlight-color:transparent;
-  /* Предотвращаем двойной тап */
+  flex:1;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:0;cursor:pointer;
+  font-size:.58rem;font-weight:600;color:rgba(255,255,255,0.35);
+  transition:color .18s;-webkit-tap-highlight-color:transparent;
   touch-action:manipulation;
+  letter-spacing:.3px;
+  position:relative;
+  border:none;background:none;
 }
-.mobile-nav-btn .mnav-icon{font-size:1.25rem;line-height:1;}
+.mobile-nav-btn::before{
+  content:'';
+  position:absolute;top:0;left:20%;right:20%;height:2px;
+  background:linear-gradient(90deg,var(--p1),var(--p2));
+  border-radius:0 0 3px 3px;
+  opacity:0;transition:opacity .18s;
+}
+.mobile-nav-btn.active::before{opacity:1;}
+.mnav-icon-wrap{
+  width:36px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:10px;
+  transition:background .18s;
+  position:relative;
+}
+.mobile-nav-btn.active .mnav-icon-wrap{
+  background:rgba(180,141,255,0.12);
+}
+.mobile-nav-btn .mnav-icon{font-size:1.3rem;line-height:1;display:block;}
 .mobile-nav-btn.active{color:var(--p1);}
 .mobile-nav-btn.active .mnav-icon{
-  filter:drop-shadow(0 0 6px rgba(180,141,255,0.7));
+  filter:drop-shadow(0 0 5px rgba(180,141,255,0.6));
 }
 
 /* ── SECTIONS ── */
@@ -456,7 +482,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   .main-content{
     padding:1.25rem 1rem;
     /* Добавляем отступ снизу под мобильный нав */
-    padding-bottom:calc(var(--nav-h) + 1rem + env(safe-area-inset-bottom));
+    padding-bottom:calc(58px + env(safe-area-inset-bottom) + 1rem);
   }
   .dash-footer{margin:.5rem 1rem calc(var(--nav-h) + .75rem + env(safe-area-inset-bottom));}
   .game-stats-grid{grid-template-columns:1fr;}
@@ -490,6 +516,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   scrollbar-width: thin;
   scrollbar-color: var(--p1) transparent;
 }
+#unlinkTgBtn,#linkTgBtn{display:none;}
 </style>
 </head>
 <body>
@@ -714,8 +741,8 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
             <div class="sec-card-left"><div class="sec-card-ico-wrap">✈️</div><div><div class="sec-card-name">Telegram</div><div class="sec-card-desc" id="secTgDesc">Не привязан</div></div></div>
             <div class="sec-card-right">
               <div class="sec-status sec-off" id="secTgStatus">Не привязан</div>
-              <button class="unlink-btn" id="unlinkTgBtn" style="display:none;" onclick="confirmUnlink()">🔗 Отвязать</button>
-              <button class="unlink-btn" id="linkTgBtn" style="display:none;background:rgba(78,205,196,0.07);border-color:rgba(78,205,196,0.22);color:var(--teal);" onclick="doLinkTelegram()">🔗 Привязать</button>
+              <button class="unlink-btn" id="unlinkTgBtn" onclick="confirmUnlink()">🔗 Отвязать</button>
+              <button class="unlink-btn" id="linkTgBtn" style="background:rgba(78,205,196,0.07);border-color:rgba(78,205,196,0.22);color:var(--teal);" onclick="doLinkTelegram()">🔗 Привязать</button>
             </div>
           </div>
           <div class="sec-card">
@@ -727,21 +754,24 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     </main>
   </div>
 
-  <!-- МОБИЛЬНЫЙ НАВ -->
+<!-- МОБИЛЬНЫЙ НАВ (Telegram-style) -->
   <nav class="mobile-nav" id="mobileNav">
     <div class="mobile-nav-inner">
       <div class="mobile-nav-btn active" data-section="overview">
-        <div class="mnav-icon">🏠</div><span>Обзор</span>
+        <div class="mnav-icon-wrap"><span class="mnav-icon">🏠</span></div>
+        <span>Обзор</span>
       </div>
       <div class="mobile-nav-btn" data-section="gamestats">
-        <div class="mnav-icon">🎮</div><span>Статистика</span>
+        <div class="mnav-icon-wrap"><span class="mnav-icon">🎮</span></div>
+        <span>Статистика</span>
       </div>
       <div class="mobile-nav-btn" data-section="security">
-        <div class="mnav-icon">🛡️</div><span>Безопасность</span>
+        <div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div>
+        <span>Безопасность</span>
       </div>
     </div>
   </nav>
-
+  
   <footer class="dash-footer">
     <div class="footer-logo"><div class="footer-dot"></div>FernieID</div>
     <div class="footer-copy">© 2026 FernieID</div>
