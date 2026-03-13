@@ -1617,7 +1617,6 @@ async function doSpin() {
   $('spinAgainBtn').disabled = true;
   $('spinAgainBtn').textContent = 'Крутится...';
 
-  // 1. Сначала запрашиваем у сервера выпавший предмет
   let serverWinner = null;
   try {
     const res = await fetch(`${API}/api/cases/open`, {
@@ -1632,8 +1631,7 @@ async function doSpin() {
       $('spinAgainBtn').textContent = '🎰 Крутить ещё';
       return;
     }
-    serverWinner = data.item; // { name, emoji, rarity, reward }
-    // Обновляем кол-во в инвентаре
+    serverWinner = data.item;
     if (typeof data.inventory_left === 'number') {
       $('spinAgainBtn').style.display = data.inventory_left > 0 ? '' : 'none';
     }
@@ -1646,19 +1644,16 @@ async function doSpin() {
 
   const track = $('spinTrack');
   const items = CASES[spinCaseSlug].items;
-
-  // 2. Строим дорожку — победный предмет (от сервера) на позиции 32
   const WIN_IDX = 32;
+
+  const winItem = items.find(i => i.name === serverWinner.name)
+               || items.find(i => i.emoji === serverWinner.emoji)
+               || items[0];
+
+  // Строим дорожку
   track.style.transition = 'none';
   track.style.transform = 'translateX(0)';
   track.innerHTML = '';
-
-  // Находим объект предмета по имени
-const winItem = items.find(i => i.name === serverWinner.name) 
-             || items.find(i => i.emoji === serverWinner.emoji)
-             || items[0];
-
-console.log('server:', serverWinner.name, '| found:', winItem?.name);
 
   for (let i = 0; i < 48; i++) {
     const item = (i === WIN_IDX) ? winItem : weightedRandom(items);
@@ -1666,12 +1661,17 @@ console.log('server:', serverWinner.name, '| found:', winItem?.name);
     div.className = `spin-item rarity-${item.rarity}`;
     if (i === WIN_IDX) div.style.cssText = 'box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';
     div.innerHTML = `<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;
-    div.dataset.name = item.name; div.dataset.rarity = item.rarity; div.dataset.emoji = item.emoji;
     track.appendChild(div);
   }
 
-  const itemW = 104;
-  const offset = WIN_IDX * itemW - (track.parentElement.offsetWidth / 2 - 48) + (Math.random() * 20 - 10);
+  // Ждём рендер DOM
+  await new Promise(r => setTimeout(r, 50));
+
+  // Считаем offset: центр победного элемента должен совпасть с иглой (центр трека)
+  const itemW = 96 + 8; // width + gap
+  const wrapWidth = track.parentElement.offsetWidth;
+  const winCenter = WIN_IDX * itemW + 48; // 48 = половина элемента
+  const offset = winCenter - wrapWidth / 2 + (Math.random() * 20 - 10);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -1681,7 +1681,6 @@ console.log('server:', serverWinner.name, '| found:', winItem?.name);
   });
 
   setTimeout(() => {
-    // Показываем ИМЕННО тот предмет что выпал (от сервера)
     $('spinResultEmoji').textContent = winItem.emoji;
     $('spinResultName').textContent = winItem.name;
     const rarityNames = {common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
