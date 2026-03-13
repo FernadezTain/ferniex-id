@@ -20,28 +20,13 @@ app.use(cors({
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_URL   = process.env.BOT_URL;
 
 const sbHeaders = {
   apikey: SB_KEY,
   Authorization: `Bearer ${SB_KEY}`,
   "Content-Type": "application/json"
 };
-
-// ====== Хелпер: Telegram ======
-async function sendTgMessage(chatId, text) {
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, parse_mode: "HTML", text })
-    });
-    if (!res.ok) { console.error("TG error:", await res.text()); return false; }
-    return true;
-  } catch (e) {
-    console.error("TG exception:", e.message);
-    return false;
-  }
-}
 
 // ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
@@ -99,9 +84,10 @@ app.get("/api/balance/:userId", async (req, res) => {
 
 // ====== Сохранение статистики + уведомление в TG ======
 app.post("/api/stats", async (req, res) => {
-const { userId, game, score } = req.body;
-const gameSlug = (game || '').replace(/-/g, '_');
-if (!userId || !gameSlug || score === undefined)
+  const { userId, game, score } = req.body;
+  const gameSlug = (game || '').replace(/-/g, '_');
+
+  if (!userId || !gameSlug || score === undefined)
     return res.json({ success: false, error: "Недостаточно данных" });
 
   try {
@@ -143,15 +129,18 @@ if (!userId || !gameSlug || score === undefined)
 
     const { telegram_id, username } = users[0];
 
-    // 5. Уведомление в Telegram (без реального начисления монет)
-    if (telegram_id) {
-      await sendTgMessage(telegram_id,
-        `🎮 <b>Результат игры</b>\n\n` +
-        `👤 Игрок: <b>${username}</b>\n` +
-        `🕹 Игра: <b>${gameTitle}</b>\n` +
-        `⭐ Счёт: <b>${score}</b>\n\n` +
-        `<i>Результат сохранён в FernieID!</i>`
-      );
+    // 5. Уведомление через бота
+    if (telegram_id && BOT_URL) {
+      await fetch(`${BOT_URL}/api/fernieid/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id,
+          username,
+          game: gameTitle,
+          score
+        })
+      }).catch(e => console.error("Bot notify error:", e));
     }
 
     res.json({ success: true, telegramSent: !!telegram_id });
@@ -201,7 +190,7 @@ app.post("/api/telegram/generate-token", async (req, res) => {
   }
 });
 
-// ====== Привязка telegram_id по токену (вызывается из бота) ======
+// ====== Привязка telegram_id по токену ======
 app.post("/api/telegram/link", async (req, res) => {
   const { token, telegram_id } = req.body;
   if (!token || !telegram_id) return res.json({ success: false, error: "Нет данных" });
@@ -244,14 +233,19 @@ app.post("/api/telegram/unlink", async (req, res) => {
       body: JSON.stringify({ telegram_id: null })
     });
 
-    if (telegram_id) {
-      await sendTgMessage(telegram_id,
-        `🛡 <b>Система Безопасности</b>\n` +
-        `<blockquote>🔓 Ваш Telegram аккаунт был <b>успешно отвязан</b> от FernieID.\n` +
-        `ID: <b>${telegram_id}</b></blockquote>\n` +
-        `Если отвязку сделали вы — просто проигнорируйте это сообщение. ✅\n` +
-        `Если отвязали <b>не вы</b> — свяжитесь с поддержкой через /ask 🆘`
-      );
+    // Уведомление об отвязке через бота
+    if (telegram_id && BOT_URL) {
+      await fetch(`${BOT_URL}/api/fernieid/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id,
+          username: null,
+          game: null,
+          score: null,
+          type: "unlink"
+        })
+      }).catch(() => {});
     }
 
     res.json({ success: true });
