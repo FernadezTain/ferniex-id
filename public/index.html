@@ -998,7 +998,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     </div>
     <div class="buy-qty-row">
       <span class="buy-qty-label">Кол-во</span>
-      <input class="buy-qty-input" type="number" id="buyQtyInput" min="1" max="100" value="1">
+      <input class="buy-qty-input" type="number" id="buyQtyInput" min="1" max="10000" value="1">
     </div>
     <div class="buy-total-row">
       <span class="buy-total-label">Итого</span>
@@ -1530,7 +1530,7 @@ $('buyOverlay').addEventListener('click', e => { if(e.target === $('buyOverlay')
 $('buyQtyInput').addEventListener('input', updateBuyTotal);
 function updateBuyTotal() {
   if(!activeCaseSlug) return;
-  const qty = Math.min(100, Math.max(1, parseInt($('buyQtyInput').value) || 1));
+  const qty = Math.min(10000, Math.max(1, parseInt($('buyQtyInput').value) || 1));
   $('buyQtyInput').value = qty;
   const total = CASES[activeCaseSlug].price * qty;
   $('buyTotalVal').textContent = total.toLocaleString('ru-RU') + ' 🌱';
