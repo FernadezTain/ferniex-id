@@ -1705,7 +1705,7 @@ async function doSpin10() {
       track.appendChild(div);
     }
 
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))));
     const itemW = 104;
     const wrapWidth = track.parentElement.offsetWidth;
     const winCenter = WIN_IDX * itemW + itemW / 2;
@@ -1782,9 +1782,7 @@ async function doSpin() {
   const items = CASES[spinCaseSlug].items;
   const WIN_IDX = 32;
 
-  const winItem = items.find(i => i.name === serverWinner.name)
-               || items.find(i => i.emoji === serverWinner.emoji)
-               || items[0];
+  const winItem = serverWinner;
 
   // Строим дорожку
   track.style.transition = 'none';
@@ -1801,7 +1799,7 @@ async function doSpin() {
   }
 
   // Ждём рендер DOM
-  await new Promise(r => setTimeout(r, 50));
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))));
 
   // Считаем offset: центр победного элемента должен совпасть с иглой (центр трека)
   const itemW = 96 + 8; // width + gap
