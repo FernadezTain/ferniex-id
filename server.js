@@ -185,16 +185,20 @@ if (!userId || !gameSlug || score === undefined)
     const { telegram_id, username } = users[0];
 
     // 5. Уведомление в Telegram (без реального начисления монет)
-    if (telegram_id) {
-      await sendTgMessage(telegram_id,
-        `🎮 <b>Результат игры</b>\n\n` +
-        `👤 Игрок: <b>${username}</b>\n` +
-        `🕹 Игра: <b>${gameTitle}</b>\n` +
-        `⭐ Счёт: <b>${score}</b>\n\n` +
-        `<i>Результат сохранён в FernieID!</i>`
-      );
-    }
-
+// 5. Уведомление — через бота (чтобы он начислил реальные награды)
+if (telegram_id) {
+  fetch(`${BOT_URL}/api/fernieid/notify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      telegram_id,
+      type: "game",
+      username,
+      game: gameTitle,
+      score
+    })
+  }).catch(e => console.error("notify error:", e));
+}
     res.json({ success: true, telegramSent: !!telegram_id });
 
   } catch (e) {
@@ -441,15 +445,20 @@ function weightedRandom(items) {
 }
 
 app.post("/api/cases/open", async (req, res) => {
-  const { userId, caseSlug, skipNotify } = req.body;
+  const { userId, caseSlug } = req.body;
   if (!userId || !caseSlug) return res.json({ success: false, error: "Недостаточно данных" });
+
   const caseDef = CASE_DEFINITIONS[caseSlug];
   if (!caseDef) return res.json({ success: false, error: "Кейс не найден" });
+
   try {
+    // Проверяем инвентарь
     const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}&select=*`, { headers: sbHeaders });
     const invData = await invRes.json();
     if (!invData.length || invData[0].quantity < 1)
       return res.json({ success: false, error: "Кейса нет в инвентаре" });
+
+    // Списываем 1 кейс
     const newQty = invData[0].quantity - 1;
     if (newQty > 0) {
       await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, {
@@ -461,12 +470,16 @@ app.post("/api/cases/open", async (req, res) => {
         method: "DELETE", headers: sbHeaders
       });
     }
+
+    // Честный серверный дроп
     const wonItem = weightedRandom(caseDef.items);
+
+    // Получаем telegram_id и шлём уведомление
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
     const users = await userRes.json();
     const { telegram_id, username } = users[0] || {};
 
-    if (!skipNotify && telegram_id && BOT_URL) {
+    if (telegram_id && BOT_URL) {
       fetch(`${BOT_URL}/api/fernieid/notify`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -502,22 +515,44 @@ app.post("/api/cases/notify-batch", async (req, res) => {
     const { telegram_id, username } = users[0] || {};
     if (!telegram_id) return res.json({ success: false });
     const caseDef = CASE_DEFINITIONS[caseSlug];
+
+    // ── Начисляем награды через бота для каждого предмета ──
+    for (const item of results) {
+      await fetch(`${BOT_URL}/api/fernieid/notify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id,
+          type: "case_reward",
+          username: username || "—",
+          case_name: caseDef?.name || caseSlug,
+          item_name: item.name,
+          item_emoji: item.emoji,
+          item_rarity: item.rarity,
+          reward: item.reward
+        })
+      });
+    }
+
+    // ── Одно итоговое сообщение со списком ──
     const rarityLabels = {common:'🔘 Обычный', rare:'🔵 Редкий', epic:'🟣 Эпический', legendary:'🟡 Легендарный'};
     const itemsList = results.map((item, i) =>
       `${i+1}. ${item.emoji} <b>${item.name}</b> — ${rarityLabels[item.rarity] || item.rarity}`
     ).join('\n');
     await sendTgMessage(telegram_id,
-      `🎰 <b>Открытие ${results.length} кейсов</b>\n\n` +
+      `🎰 <b>Итог: открытие ${results.length} кейсов</b>\n\n` +
       `👤 Игрок: <b>${username}</b>\n` +
       `📦 Кейс: <b>${caseDef?.name || caseSlug}</b>\n\n` +
       `<blockquote>${itemsList}</blockquote>`
     );
+
     res.json({ success: true });
   } catch(e) {
     console.error(e);
     res.json({ success: false });
   }
 });
+
 // ══════════════════════════════════════════
 //  Инвентарь пользователя
 // ══════════════════════════════════════════
