@@ -567,5 +567,116 @@ app.get("/api/inventory/:userId", async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  MC Launcher login — регистрирует лаунчер
+// ══════════════════════════════════════════
+app.post("/api/mc/launcher-login", async (req, res) => {
+  const { userId, profiles, username } = req.body;
+  if (!userId) return res.json({ success: false });
+  try {
+    // Upsert launcher_profiles
+    for (const profile of (profiles || [])) {
+      const check = await fetch(
+        `${SB_URL}/rest/v1/mc_profiles?user_id=eq.${userId}&profile_name=eq.${encodeURIComponent(profile)}`,
+        { headers: sbHeaders }
+      );
+      const existing = await check.json();
+      if (!existing.length) {
+        await fetch(`${SB_URL}/rest/v1/mc_profiles`, {
+          method: "POST", headers: { ...sbHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify({ user_id: userId, profile_name: profile })
+        });
+      }
+    }
+    res.json({ success: true });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
+// ══════════════════════════════════════════
+//  MC Session — start / end
+// ══════════════════════════════════════════
+app.post("/api/mc/session", async (req, res) => {
+  const { userId, event, profile, version } = req.body;
+  if (!userId || !event) return res.json({ success: false });
+  try {
+    const now = new Date().toISOString();
+    if (event === "start") {
+      await fetch(`${SB_URL}/rest/v1/mc_sessions`, {
+        method: "POST", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ user_id: userId, profile_name: profile || "Player",
+          version: version || "unknown", started_at: now, ended_at: null })
+      });
+    } else if (event === "end") {
+      // Find last open session
+      const open = await fetch(
+        `${SB_URL}/rest/v1/mc_sessions?user_id=eq.${userId}&profile_name=eq.${encodeURIComponent(profile||"Player")}&ended_at=is.null&order=started_at.desc&limit=1`,
+        { headers: sbHeaders }
+      );
+      const sessions = await open.json();
+      if (sessions.length) {
+        const dur = Math.floor((Date.now() - new Date(sessions[0].started_at).getTime()) / 1000);
+        await fetch(`${SB_URL}/rest/v1/mc_sessions?id=eq.${sessions[0].id}`, {
+          method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+          body: JSON.stringify({ ended_at: now, duration_seconds: dur })
+        });
+      }
+    }
+    res.json({ success: true });
+  } catch(e) { res.json({ success: false, error: e.message }); }
+});
+
+// ══════════════════════════════════════════
+//  MC Stats для лаунчера
+// ══════════════════════════════════════════
+app.get("/api/mc/stats/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/mc_sessions?user_id=eq.${userId}&ended_at=not.is.null&select=*&order=started_at.desc`,
+      { headers: sbHeaders }
+    );
+    const sessions = await r.json();
+
+    const now = new Date();
+    const todayStr  = now.toISOString().slice(0,10);
+    const weekAgo   = new Date(now - 7*864e5).toISOString();
+    const monthAgo  = new Date(now - 30*864e5).toISOString();
+
+    const totalSec  = sessions.reduce((s,x) => s+(x.duration_seconds||0), 0);
+    const todaySec  = sessions.filter(x => x.started_at >= todayStr+'T00:00:00').reduce((s,x)=>s+(x.duration_seconds||0),0);
+    const weekSec   = sessions.filter(x => x.started_at >= weekAgo).reduce((s,x)=>s+(x.duration_seconds||0),0);
+    const monthSec  = sessions.filter(x => x.started_at >= monthAgo).reduce((s,x)=>s+(x.duration_seconds||0),0);
+
+    // Per profile
+    const profileMap = {};
+    sessions.forEach(s => {
+      const p = s.profile_name || "Player";
+      if (!profileMap[p]) profileMap[p] = { profile:p, total_seconds:0, today:0, week:0, month:0 };
+      profileMap[p].total_seconds += s.duration_seconds||0;
+      if (s.started_at >= todayStr+'T00:00:00') profileMap[p].today += s.duration_seconds||0;
+      if (s.started_at >= weekAgo)  profileMap[p].week  += s.duration_seconds||0;
+      if (s.started_at >= monthAgo) profileMap[p].month += s.duration_seconds||0;
+    });
+
+    // Daily totals for chart (last 30 days, grouped by date+profile)
+    const dailyMap = {};
+    sessions.forEach(s => {
+      const date = s.started_at.slice(0,10);
+      const key  = date + '|' + (s.profile_name||"Player");
+      if (!dailyMap[key]) dailyMap[key] = { date, profile: s.profile_name||"Player", seconds: 0 };
+      dailyMap[key].seconds += s.duration_seconds||0;
+    });
+
+    res.json({
+      total_seconds: totalSec,
+      today_seconds: todaySec,
+      week_seconds:  weekSec,
+      month_seconds: monthSec,
+      profiles: Object.values(profileMap).sort((a,b) => b.total_seconds - a.total_seconds),
+      daily:    Object.values(dailyMap)
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
