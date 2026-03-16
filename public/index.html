@@ -522,6 +522,73 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 }
 #unlinkTgBtn,#linkTgBtn{display:none;}
 
+/* ════ СТОРОННИЕ ИГРЫ ════ */
+.tpg-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.85rem;line-height:1.8;}
+.tpg-empty-icon{font-size:3rem;display:block;margin-bottom:.75rem;opacity:.4;}
+.tpg-card{
+  border-radius:18px;overflow:hidden;position:relative;
+  background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  padding:1.5rem;margin-bottom:1rem;
+  display:flex;align-items:center;gap:1.25rem;
+}
+.tpg-card-icon{font-size:2.5rem;width:60px;height:60px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:rgba(100,220,180,0.12);border:1px solid rgba(100,220,180,0.2);}
+.tpg-card-info{flex:1;min-width:0;}
+.tpg-card-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.25rem;}
+.tpg-card-profiles{font-size:.72rem;color:var(--muted);}
+.tpg-detail-btn{
+  padding:9px 18px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(100,220,180,0.12);border:1px solid rgba(100,220,180,0.22);
+  color:#7de8c0;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;
+  transition:all .2s;flex-shrink:0;-webkit-tap-highlight-color:transparent;
+}
+.tpg-detail-btn:hover{background:rgba(100,220,180,0.2);}
+/* MC Detail */
+.mc-total-card{
+  display:flex;align-items:center;gap:12px;padding:1rem 1.25rem;
+  background:rgba(100,220,180,0.08);border:1px solid rgba(100,220,180,0.15);
+  border-radius:14px;margin-bottom:1rem;
+}
+.mc-total-icon{font-size:1.8rem;flex-shrink:0;}
+.mc-total-lbl{font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.2rem;}
+.mc-total-val{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#7de8c0;}
+.mc-periods-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1.25rem;}
+.mc-period-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  border-radius:11px;padding:.75rem;text-align:center;}
+.mc-period-lbl{font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;}
+.mc-period-val{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--text);}
+.mc-profile-card{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px;padding:1rem;margin-bottom:.6rem;
+}
+.mc-profile-header{display:flex;align-items:center;gap:9px;margin-bottom:.75rem;}
+.mc-profile-av{width:28px;height:28px;border-radius:7px;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:.75rem;color:#fff;flex-shrink:0;}
+.mc-profile-name{font-weight:600;font-size:.88rem;flex:1;}
+.mc-profile-total{font-size:.78rem;color:#7de8c0;font-family:'Syne',sans-serif;font-weight:700;}
+.mc-profile-periods{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin-bottom:.6rem;}
+.mc-pp{background:rgba(255,255,255,0.03);border-radius:7px;padding:.45rem .5rem;text-align:center;}
+.mc-pp-lbl{font-size:.55rem;color:var(--muted);margin-bottom:.2rem;}
+.mc-pp-val{font-size:.8rem;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;}
+/* Mini bar chart */
+.mc-bars{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:.5rem;padding:0 2px;}
+.mc-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;
+  background:rgba(100,220,180,0.3);cursor:default;position:relative;}
+.mc-bar:hover{background:rgba(100,220,180,0.6);}
+.mc-bar-tip{
+  position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);
+  background:rgba(20,15,32,0.95);border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;padding:2px 6px;font-size:.6rem;color:var(--text);
+  white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;
+}
+.mc-bar:hover .mc-bar-tip{opacity:1;}
+.mc-section-lbl{font-size:.65rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:.6rem;margin-top:.25rem;}
+
 /* ════ ИГРОВАЯ ПАНЕЛЬ ════ */
 .gp-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;background:rgba(255,255,255,0.04);border-radius:14px;padding:5px;}
 .gp-tab{flex:1;padding:10px;border:none;background:none;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer;border-radius:10px;transition:all .22s;letter-spacing:.3px;-webkit-tap-highlight-color:transparent;}
@@ -768,7 +835,8 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="nav-item active" data-section="overview"><span class="nav-icon">🏠</span><span class="nav-label">Обзор</span></div>
       <div class="nav-item" data-section="gamestats"><span class="nav-icon">🎮</span><span class="nav-label">Статистика</span><span class="nav-badge">5</span></div>
       <div class="sidebar-section-label" style="margin-top:16px;">Аккаунт</div>
-      <div class="nav-item" data-section="security"><span class="nav-icon">🛡️</span><span class="nav-label">Безопасность</span></div>
+      <div class="nav-item" data-section="thirdparty"><span class="nav-icon">🕹️</span><span class="nav-label">Сторонние игры</span></div>
+<div class="nav-item" data-section="security"><span class="nav-icon">🛡️</span><span class="nav-label">Безопасность</span></div>
     </aside>
 
     <main class="main-content">
@@ -929,6 +997,37 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     </div>
   </div>
 </div>
+
+<!-- THIRD PARTY GAMES -->
+<div class="dash-section" id="section-thirdparty">
+  <div class="stats-page-header">
+    <h2>🕹️ Сторонние игры</h2>
+    <p>Игры, подключённые через сторонние лаунчеры</p>
+  </div>
+  <div id="thirdparty-list">
+    <div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>
+  </div>
+</div>
+
+<!-- MC DETAIL MODAL -->
+<div class="buy-overlay" id="mcDetailOverlay" style="z-index:999">
+  <div class="buy-modal" style="max-width:520px;max-height:85vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.8rem">⛏️</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800">Minecraft</div>
+          <div style="font-size:.7rem;color:var(--muted)">Статистика по профилям</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('mcDetailOverlay').classList.remove('show')" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer">✕</button>
+    </div>
+    <div id="mcDetailContent">
+      <div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>
+    </div>
+  </div>
+</div>
+
       <!-- SECURITY -->
       <div class="dash-section" id="section-security">
         <div class="stats-page-header">
@@ -978,6 +1077,10 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="mobile-nav-btn" data-section="gamestats">
         <div class="mnav-icon-wrap"><span class="mnav-icon">🎮</span></div>
         <span>Статистика</span>
+        <div class="mobile-nav-btn" data-section="thirdparty">
+  <div class="mnav-icon-wrap"><span class="mnav-icon">🕹️</span></div>
+  <span>Игры</span>
+</div>
       </div>
       <div class="mobile-nav-btn" data-section="security">
         <div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div>
@@ -1152,6 +1255,7 @@ function switchSection(section) {
   document.querySelectorAll(`[data-section="${section}"]`).forEach(el=>el.classList.add('active'));
   $('section-'+section).classList.add('active');
   if(section==='gamestats')loadGameStats();
+if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
   // Скролл наверх при переключении секций (важно на мобилке)
   const mc=document.querySelector('.main-content');
   if(mc)mc.scrollTop=0;
@@ -1339,9 +1443,128 @@ function toggleDashPass(){
     :'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
 }
 
+// ════ СТОРОННИЕ ИГРЫ ════
+let thirdPartyLoaded = false;
+
+async function loadThirdPartyGames() {
+  if (!currentUser?.id) return;
+  const list = $('thirdparty-list');
+  if (!list) return;
+  list.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    const res = await fetch(`${API}/api/third-party-games/${currentUser.id}`);
+    const data = await res.json();
+    if (!data.games?.length) {
+      list.innerHTML = `
+        <div class="tpg-empty">
+          <span class="tpg-empty-icon">🕹️</span>
+          Сторонних игр пока нет.<br>
+          Войдите в аккаунт FernieID в <strong>FerniexLauncher</strong>,<br>
+          чтобы здесь появилась статистика Minecraft.
+        </div>`;
+      return;
+    }
+    list.innerHTML = '';
+    data.games.forEach(game => {
+      const card = document.createElement('div');
+      card.className = 'tpg-card';
+      card.innerHTML = `
+        <div class="tpg-card-icon">${game.icon}</div>
+        <div class="tpg-card-info">
+          <div class="tpg-card-name">${game.name}</div>
+          <div class="tpg-card-profiles">
+            ${game.profiles.length} профил${game.profiles.length === 1 ? 'ь' : game.profiles.length < 5 ? 'я' : 'ей'}:
+            ${game.profiles.map(p => `<strong>${p}</strong>`).join(', ')}
+          </div>
+        </div>
+        <button class="tpg-detail-btn" onclick="openMcDetail()">Подробнее...</button>`;
+      list.appendChild(card);
+    });
+  } catch {
+    list.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка загрузки</span></div>';
+  }
+}
+
+async function openMcDetail() {
+  const overlay = $('mcDetailOverlay');
+  const content = $('mcDetailContent');
+  overlay.classList.add('show');
+  content.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    const res = await fetch(`${API}/api/mc/stats/${currentUser.id}`);
+    const stats = await res.json();
+    const fmtTime = (s) => {
+      if (!s || s < 60) return s > 0 ? s + ' сек' : '0 мин';
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+      if (h === 0) return m + ' мин';
+      if (m === 0) return h + ' ч';
+      return h + ' ч ' + m + ' мин';
+    };
+    const getLast7 = () => {
+      const d = [];
+      for (let i = 6; i >= 0; i--) {
+        const dt = new Date(); dt.setDate(dt.getDate() - i);
+        d.push(dt.toISOString().slice(0, 10));
+      }
+      return d;
+    };
+    let html = `
+      <div class="mc-total-card">
+        <div class="mc-total-icon">🎮</div>
+        <div>
+          <div class="mc-total-lbl">Провёл в игре всего</div>
+          <div class="mc-total-val">${fmtTime(stats.total_seconds || 0)}</div>
+        </div>
+      </div>
+      <div class="mc-periods-grid">
+        <div class="mc-period-card"><div class="mc-period-lbl">Сегодня</div><div class="mc-period-val">${fmtTime(stats.today_seconds || 0)}</div></div>
+        <div class="mc-period-card"><div class="mc-period-lbl">Неделя</div><div class="mc-period-val">${fmtTime(stats.week_seconds || 0)}</div></div>
+        <div class="mc-period-card"><div class="mc-period-lbl">Месяц</div><div class="mc-period-val">${fmtTime(stats.month_seconds || 0)}</div></div>
+      </div>`;
+    if (stats.profiles?.length) {
+      html += `<div class="mc-section-lbl">👤 Данные по профилям</div>`;
+      const last7 = getLast7();
+      stats.profiles.forEach(p => {
+        const profileDays = (stats.daily || []).filter(d => d.profile === p.profile);
+        const vals = last7.map(date => {
+          const f = profileDays.find(x => x.date === date);
+          return f ? f.seconds : 0;
+        });
+        const maxV = Math.max(...vals, 1);
+        const bars = vals.map((s, i) => {
+          const pct = Math.max(Math.round((s / maxV) * 100), s > 0 ? 3 : 0);
+          return `<div class="mc-bar" style="height:${pct}%"><div class="mc-bar-tip">${last7[i].slice(5)}: ${fmtTime(s)}</div></div>`;
+        }).join('');
+        html += `
+          <div class="mc-profile-card">
+            <div class="mc-profile-header">
+              <div class="mc-profile-av">${(p.profile||'?')[0].toUpperCase()}</div>
+              <div class="mc-profile-name">${p.profile}</div>
+              <div class="mc-profile-total">${fmtTime(p.total_seconds)}</div>
+            </div>
+            <div class="mc-profile-periods">
+              <div class="mc-pp"><div class="mc-pp-lbl">Сегодня</div><div class="mc-pp-val">${fmtTime(p.today)}</div></div>
+              <div class="mc-pp"><div class="mc-pp-lbl">Неделя</div><div class="mc-pp-val">${fmtTime(p.week)}</div></div>
+              <div class="mc-pp"><div class="mc-pp-lbl">Месяц</div><div class="mc-pp-val">${fmtTime(p.month)}</div></div>
+              <div class="mc-pp"><div class="mc-pp-lbl">Всего</div><div class="mc-pp-val">${fmtTime(p.total_seconds)}</div></div>
+            </div>
+            <div class="mc-bars">${bars}</div>
+          </div>`;
+      });
+    }
+    content.innerHTML = html;
+  } catch {
+    content.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка загрузки статистики</span></div>';
+  }
+}
+
+$('mcDetailOverlay').addEventListener('click', e => {
+  if (e.target === $('mcDetailOverlay')) $('mcDetailOverlay').classList.remove('show');
+});
+
 $('logoutBtn').onclick=async()=>{
   localStorage.removeItem('fernieid_session');
-  currentUser=null;statsLoaded=false;allSessions=[];
+  currentUser=null;statsLoaded=false;allSessions=[];thirdPartyLoaded=false;
   $('dash-page').classList.remove('active');$('auth-page').classList.add('active');
   $('loginMsg').textContent='';$('loginPassword').value='';
 };
