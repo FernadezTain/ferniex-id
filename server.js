@@ -678,5 +678,32 @@ app.get("/api/mc/stats/:userId", async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ══════════════════════════════════════════
+//  Сторонние игры пользователя
+// ══════════════════════════════════════════
+app.get("/api/third-party-games/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/mc_profiles?user_id=eq.${userId}&select=profile_name`,
+      { headers: sbHeaders }
+    );
+    const profiles = await r.json();
+    const games = [];
+    if (profiles.length) {
+      games.push({
+        id: 'minecraft',
+        name: 'Minecraft',
+        icon: '⛏️',
+        color: 'mint',
+        profiles: profiles.map(p => p.profile_name)
+      });
+    }
+    res.json({ success: true, games });
+  } catch (e) {
+    res.json({ success: false, games: [] });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
