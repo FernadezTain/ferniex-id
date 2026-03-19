@@ -90,6 +90,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+
 // ====== Вход ======
 app.post("/api/login", async (req, res) => {
   const { username, password, clientIp, userAgent } = req.body;
@@ -241,6 +242,19 @@ app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Ошибка сервера" });
+  }
+});
+
+app.get("/api/test-bot", async (req, res) => {
+  try {
+    const result = await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+      telegram_id: "ТВОЙ_TELEGRAM_ID",
+      type: "test",
+      username: "test"
+    });
+    res.json({ success: true, result });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
