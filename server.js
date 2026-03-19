@@ -248,7 +248,7 @@ app.get("/api/leaderboard/:gameSlug", async (req, res) => {
 app.get("/api/test-bot", async (req, res) => {
   try {
     const result = await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
-      telegram_id: "ТВОЙ_TELEGRAM_ID",
+      telegram_id: "7406372338",
       type: "test",
       username: "test"
     });
