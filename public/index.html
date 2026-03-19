@@ -1316,14 +1316,14 @@ async function loadOverviewStats(){
 }
 
 // GAME STATS
-const GAME_META={
-  pixel_snake:{name:'Pixel Snake',icon:'🐍',color:'purple',genre:'Аркада'},
-  pixel_racer:{name:'Pixel Racer',icon:'🏎️',color:'blue',genre:'Гонки'},
-  ferniex_blocks:{name:"FernieX-Block's",icon:'🟩',color:'mint',genre:'Стратегия'},
-  code_quests:{name:'CodeQuests',icon:'💻',color:'pink',genre:'Головоломка'},
-  battle_tanks:{name:'Battle Tanks',icon:'🪖',color:'orange',genre:'Экшн'},
+const GAME_META = {
+  pixel_snake:      {name:'Pixel Snake',     icon:'🐍', color:'purple', genre:'Аркада'},
+  pixel_racer:      {name:'Pixel Racer',     icon:'🏎️', color:'blue',   genre:'Гонки'},
+  ferniex_blocks:   {name:"FernieX-Block's", icon:'🟩', color:'mint',   genre:'Стратегия'},
+  battle_tanks:     {name:'Battle Tanks',    icon:'🪖', color:'orange', genre:'Экшн'},
+  codequest_python: {name:'CodeQuest Python',icon:'🐍', color:'blue',   genre:'Головоломка, Программирование'},
+  codequest_csharp: {name:'CodeQuest C#',    icon:'💜', color:'purple', genre:'Головоломка, Программирование'},
 };
-
 async function loadGameStats(){
   if(statsLoaded)return;
   const grid=$('gameStatsGrid');
