@@ -20,7 +20,7 @@ app.use(cors({
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const BOT_URL   = process.env.BOT_URL || 'https://a36865-997d.m.d-f.pw';
+const BOT_URL   = process.env.BOT_URL || 'https://a37106-4464.j.d-f.pw';
 
 const sbHeaders = {
   apikey: SB_KEY,
@@ -184,7 +184,7 @@ if (!userId || !gameSlug || score === undefined)
 
     const { telegram_id, username } = users[0];
 
-    // 5. Уведомление в Telegram (без реального начисления монет)
+
 // 5. Уведомление — через бота (чтобы он начислил реальные награды)
 if (telegram_id) {
   fetch(`${BOT_URL}/api/fernieid/notify`, {
