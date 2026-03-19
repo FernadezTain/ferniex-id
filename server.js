@@ -4,29 +4,6 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
 
-async function notifyBot(url, body, retries = 2) {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-      return await res.json();
-    } catch (e) {
-      if (i === retries) {
-        console.error(`notifyBot failed (${url}):`, e.message);
-        return null;
-      }
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-    }
-  }
-}
-
 dotenv.config();
 
 const app = express();
@@ -50,6 +27,30 @@ const sbHeaders = {
   Authorization: `Bearer ${SB_KEY}`,
   "Content-Type": "application/json"
 };
+
+// ====== Хелпер: notifyBot с retry ======
+async function notifyBot(url, body, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      return await res.json();
+    } catch (e) {
+      if (i === retries) {
+        console.error(`notifyBot failed (${url}):`, e.message);
+        return null;
+      }
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+}
 
 // ====== Хелпер: Telegram ======
 async function sendTgMessage(chatId, text) {
@@ -163,9 +164,9 @@ app.get("/api/balance/:userId", async (req, res) => {
 
 // ====== Сохранение статистики + уведомление в TG ======
 app.post("/api/stats", async (req, res) => {
-const { userId, game, score } = req.body;
-const gameSlug = (game || '').replace(/-/g, '_');
-if (!userId || !gameSlug || score === undefined)
+  const { userId, game, score } = req.body;
+  const gameSlug = (game || '').replace(/-/g, '_');
+  if (!userId || !gameSlug || score === undefined)
     return res.json({ success: false, error: "Недостаточно данных" });
 
   try {
@@ -207,9 +208,7 @@ if (!userId || !gameSlug || score === undefined)
 
     const { telegram_id, username } = users[0];
 
-
-// 5. Уведомление — через бота (чтобы он начислил реальные награды)
-// 5. Уведомление — через бота (чтобы он начислил реальные награды)
+    // 5. Уведомление — через бота (чтобы он начислил реальные награды)
     if (telegram_id) {
       notifyBot(`${BOT_URL}/api/fernieid/notify`, {
         telegram_id,
@@ -227,6 +226,7 @@ if (!userId || !gameSlug || score === undefined)
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
+
 // ====== Лидерборд ======
 app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   const { gameSlug } = req.params;
@@ -348,6 +348,10 @@ app.get("/api/seeds/:userId", async (req, res) => {
     res.json({ success: false, seeds: 0, error: e.message });
   }
 });
+
+// ══════════════════════════════════════════
+//  Покупка кейса
+// ══════════════════════════════════════════
 app.post("/api/cases/buy", async (req, res) => {
   const { userId, caseSlug, quantity } = req.body;
   if (!userId || !caseSlug || !quantity)
@@ -399,6 +403,7 @@ app.post("/api/cases/buy", async (req, res) => {
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
+
 // ══════════════════════════════════════════
 //  Открыть кейс — честный серверный дроп
 // ══════════════════════════════════════════
@@ -500,19 +505,16 @@ app.post("/api/cases/open", async (req, res) => {
     const { telegram_id, username } = users[0] || {};
 
     if (telegram_id && BOT_URL) {
-      fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegram_id,
-          type: "case_reward",
-          username: username || "—",
-          case_name: caseDef.name,
-          item_name: wonItem.name,
-          item_emoji: wonItem.emoji,
-          item_rarity: wonItem.rarity,
-          reward: wonItem.reward
-        })
-      }).catch(e => console.error("case_reward notify:", e));
+      notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+        telegram_id,
+        type: "case_reward",
+        username: username || "—",
+        case_name: caseDef.name,
+        item_name: wonItem.name,
+        item_emoji: wonItem.emoji,
+        item_rarity: wonItem.rarity,
+        reward: wonItem.reward
+      }); // не await — не блокируем ответ
     }
 
     res.json({
@@ -536,25 +538,21 @@ app.post("/api/cases/notify-batch", async (req, res) => {
     if (!telegram_id) return res.json({ success: false });
     const caseDef = CASE_DEFINITIONS[caseSlug];
 
-    // ── Начисляем награды через бота для каждого предмета ──
+    // Начисляем награды через бота для каждого предмета
     for (const item of results) {
-      await fetch(`${BOT_URL}/api/fernieid/notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          telegram_id,
-          type: "case_reward",
-          username: username || "—",
-          case_name: caseDef?.name || caseSlug,
-          item_name: item.name,
-          item_emoji: item.emoji,
-          item_rarity: item.rarity,
-          reward: item.reward
-        })
+      await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+        telegram_id,
+        type: "case_reward",
+        username: username || "—",
+        case_name: caseDef?.name || caseSlug,
+        item_name: item.name,
+        item_emoji: item.emoji,
+        item_rarity: item.rarity,
+        reward: item.reward
       });
     }
 
-    // ── Одно итоговое сообщение со списком ──
+    // Одно итоговое сообщение со списком
     const rarityLabels = {common:'🔘 Обычный', rare:'🔵 Редкий', epic:'🟣 Эпический', legendary:'🟡 Легендарный'};
     const itemsList = results.map((item, i) =>
       `${i+1}. ${item.emoji} <b>${item.name}</b> — ${rarityLabels[item.rarity] || item.rarity}`
@@ -594,7 +592,6 @@ app.post("/api/mc/launcher-login", async (req, res) => {
   const { userId, profiles, username } = req.body;
   if (!userId) return res.json({ success: false });
   try {
-    // Upsert launcher_profiles
     for (const profile of (profiles || [])) {
       const check = await fetch(
         `${SB_URL}/rest/v1/mc_profiles?user_id=eq.${userId}&profile_name=eq.${encodeURIComponent(profile)}`,
@@ -627,7 +624,6 @@ app.post("/api/mc/session", async (req, res) => {
           version: version || "unknown", started_at: now, ended_at: null })
       });
     } else if (event === "end") {
-      // Find last open session
       const open = await fetch(
         `${SB_URL}/rest/v1/mc_sessions?user_id=eq.${userId}&profile_name=eq.${encodeURIComponent(profile||"Player")}&ended_at=is.null&order=started_at.desc&limit=1`,
         { headers: sbHeaders }
@@ -667,7 +663,6 @@ app.get("/api/mc/stats/:userId", async (req, res) => {
     const weekSec   = sessions.filter(x => x.started_at >= weekAgo).reduce((s,x)=>s+(x.duration_seconds||0),0);
     const monthSec  = sessions.filter(x => x.started_at >= monthAgo).reduce((s,x)=>s+(x.duration_seconds||0),0);
 
-    // Per profile
     const profileMap = {};
     sessions.forEach(s => {
       const p = s.profile_name || "Player";
@@ -678,7 +673,6 @@ app.get("/api/mc/stats/:userId", async (req, res) => {
       if (s.started_at >= monthAgo) profileMap[p].month += s.duration_seconds||0;
     });
 
-    // Daily totals for chart (last 30 days, grouped by date+profile)
     const dailyMap = {};
     sessions.forEach(s => {
       const date = s.started_at.slice(0,10);
