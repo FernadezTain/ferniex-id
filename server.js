@@ -176,6 +176,7 @@ app.post("/api/stats", async (req, res) => {
     const gameData = await gameRes.json();
     const gameTitle = gameData[0]?.title || game;
     const gameId    = gameData[0]?.id;
+    console.log(">>> stats hit:", { userId, game, gameSlug, gameTitle, gameId, score });
 
     // 2. Записываем сессию
     if (gameId) {
@@ -205,25 +206,31 @@ app.post("/api/stats", async (req, res) => {
       { headers: sbHeaders }
     );
     const users = await userRes.json();
+    console.log(">>> users from DB:", JSON.stringify(users));
+
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
 
     const { telegram_id, username } = users[0];
+    console.log(">>> telegram_id:", telegram_id, "username:", username);
 
     // 5. Уведомление — через бота (чтобы он начислил реальные награды)
     if (telegram_id) {
-      notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+      const notifyResult = await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
         telegram_id,
         type: "game",
         username,
         game: gameTitle,
         score
-      }); // не await — не блокируем ответ
+      });
+      console.log(">>> notifyBot result:", JSON.stringify(notifyResult));
+    } else {
+      console.log(">>> telegram_id пустой, уведомление не отправлено");
     }
 
     res.json({ success: true, telegramSent: !!telegram_id });
 
   } catch (e) {
-    console.error(e);
+    console.error(">>> stats error:", e);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
