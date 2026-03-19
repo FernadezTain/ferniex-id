@@ -4,6 +4,29 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
 
+async function notifyBot(url, body, retries = 2) {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      return await res.json();
+    } catch (e) {
+      if (i === retries) {
+        console.error(`notifyBot failed (${url}):`, e.message);
+        return null;
+      }
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+}
+
 dotenv.config();
 
 const app = express();
@@ -186,19 +209,17 @@ if (!userId || !gameSlug || score === undefined)
 
 
 // 5. Уведомление — через бота (чтобы он начислил реальные награды)
-if (telegram_id) {
-  fetch(`${BOT_URL}/api/fernieid/notify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      telegram_id,
-      type: "game",
-      username,
-      game: gameTitle,
-      score
-    })
-  }).catch(e => console.error("notify error:", e));
-}
+// 5. Уведомление — через бота (чтобы он начислил реальные награды)
+    if (telegram_id) {
+      notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+        telegram_id,
+        type: "game",
+        username,
+        game: gameTitle,
+        score
+      }); // не await — не блокируем ответ
+    }
+
     res.json({ success: true, telegramSent: !!telegram_id });
 
   } catch (e) {
@@ -206,7 +227,6 @@ if (telegram_id) {
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
-
 // ====== Лидерборд ======
 app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   const { gameSlug } = req.params;
