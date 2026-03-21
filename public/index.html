@@ -1734,7 +1734,7 @@ $('mcDetailOverlay').addEventListener('click', e => {
 
 $('logoutBtn').onclick=async()=>{
   localStorage.removeItem('fernieid_session');
-  currentUser=null;statsLoaded=false;allSessions=[];thirdPartyLoaded=false;adminLoaded=false;adminUsers=[];
+  currentUser=null;statsLoaded=false;allSessions=[];thirdPartyLoaded=false;
   $('dash-page').classList.remove('active');$('auth-page').classList.add('active');
   $('loginMsg').textContent='';$('loginPassword').value='';
 };
@@ -2289,7 +2289,7 @@ function renderAdminUsers(users) {
         <div class="auc-meta">ID: ${u.id} · Зарег: ${regDate} · ${u.telegram_id ? '✈️ TG привязан' : '❌ TG не привязан'}</div>
       </div>
       <span class="auc-role-pill ${isAdmin ? 'auc-role-admin' : 'auc-role-user'}">${isAdmin ? '👑 Админ' : '👤 Юзер'}</span>
-<button class="auc-manage-btn" data-uid="${u.id}">✏️</button>`;
+      <button class="auc-manage-btn" data-uid="${u.id}">✏️</button>`;
     frag.appendChild(div);
   });
   list.innerHTML = '';
