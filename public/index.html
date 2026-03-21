@@ -751,6 +751,83 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   .spin-item-emoji{font-size:1.5rem;}
 }
 
+/* ════ ADMIN PANEL ════ */
+.admin-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:1.5rem;}
+.admin-stat-card{border-radius:14px;padding:1rem;background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(0,0,0,0.38);display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center;}
+.asc-icon{font-size:1.4rem;}
+.asc-val{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--p1);}
+.asc-lbl{font-size:.62rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.admin-search-wrap{margin-bottom:1rem;}
+.admin-search-input{width:100%;padding:11px 16px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);outline:none;transition:border-color .2s;}
+.admin-search-input::placeholder{color:rgba(255,255,255,0.22);}
+.admin-search-input:focus{border-color:rgba(180,141,255,0.4);}
+.admin-user-card{display:flex;align-items:center;gap:12px;padding:.85rem 1rem;border-radius:14px;background:rgba(20,15,32,0.6);border:1px solid rgba(255,255,255,0.07);margin-bottom:.5rem;transition:border-color .2s;}
+.admin-user-card:hover{border-color:rgba(180,141,255,0.2);}
+.auc-avatar{width:36px;height:36px;border-radius:10px;flex-shrink:0;background:linear-gradient(135deg,var(--p1),var(--p2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:.85rem;}
+.auc-info{flex:1;min-width:0;}
+.auc-name{font-size:.85rem;font-weight:600;margin-bottom:.15rem;}
+.auc-meta{font-size:.65rem;color:var(--muted);}
+.auc-role-pill{font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:100px;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;}
+.auc-role-user{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,.5);}
+.auc-role-admin{background:rgba(255,184,122,0.14);border:1px solid rgba(255,184,122,0.28);color:var(--orange);}
+.auc-manage-btn{width:32px;height:32px;border-radius:9px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .2s;flex-shrink:0;-webkit-tap-highlight-color:transparent;}
+.auc-manage-btn:hover{background:rgba(180,141,255,0.15);border-color:rgba(180,141,255,0.3);color:var(--p1);}
+
+/* USER MANAGE MODAL */
+.umanage-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s;}
+.umanage-overlay.show{opacity:1;pointer-events:all;}
+.umanage-modal{width:100%;max-width:480px;max-height:85vh;overflow-y:auto;background:rgba(14,8,24,0.99);border-radius:24px;border:1px solid rgba(180,141,255,0.18);box-shadow:0 40px 80px rgba(0,0,0,0.75);transform:scale(0.9) translateY(14px);transition:transform .28s cubic-bezier(.22,.68,0,1.3);position:relative;}
+.umanage-overlay.show .umanage-modal{transform:scale(1) translateY(0);}
+.umanage-header{display:flex;align-items:center;gap:12px;padding:1.5rem 1.5rem 1rem;border-bottom:1px solid rgba(255,255,255,0.07);position:relative;}
+.umanage-avatar{width:44px;height:44px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--p1),var(--p2));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;box-shadow:0 0 16px rgba(180,141,255,0.3);}
+.umanage-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.2rem;}
+.umanage-role-badge{font-size:.62rem;font-weight:700;padding:2px 9px;border-radius:100px;display:inline-block;}
+.umanage-role-badge.user{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,.5);}
+.umanage-role-badge.admin{background:rgba(255,184,122,0.14);border:1px solid rgba(255,184,122,0.28);color:var(--orange);}
+.umanage-close{position:absolute;top:1rem;right:1rem;background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;transition:color .2s;-webkit-tap-highlight-color:transparent;}
+.umanage-close:hover{color:var(--text);}
+
+/* Табы */
+.umanage-tabs{display:flex;gap:.4rem;padding:.75rem 1.5rem .5rem;background:transparent;overflow:hidden;}
+.umanage-tab{flex:1;padding:9px;border:none;background:rgba(255,255,255,0.05);border-radius:10px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .22s;letter-spacing:.3px;-webkit-tap-highlight-color:transparent;}
+.umanage-tab.active{background:rgba(180,141,255,0.15);color:rgba(255,255,255,.92);box-shadow:0 2px 12px rgba(180,141,255,0.2);}
+.umanage-panel{display:none;padding:1rem 1.5rem 1.5rem;animation:formIn .25s ease both;}
+.umanage-panel.active{display:block;}
+@keyframes formIn{from{opacity:0;transform:translateX(12px);}to{opacity:1;transform:translateX(0);}}
+
+/* Поля */
+.um-field{margin-bottom:.9rem;}
+.um-label{font-size:.67rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.4rem;}
+.um-input-wrap{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:10px 13px;transition:border-color .2s;}
+.um-input-wrap:focus-within{border-color:rgba(180,141,255,0.4);}
+.um-prefix{font-size:.85rem;flex-shrink:0;}
+.um-input{flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);}
+.um-input::placeholder{color:rgba(255,255,255,0.22);}
+.um-select-wrap{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:2px 4px;transition:border-color .2s;}
+.um-select-wrap:focus-within{border-color:rgba(180,141,255,0.4);}
+.um-select{width:100%;padding:9px 10px;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);cursor:pointer;}
+.um-select option{background:#1a1028;}
+.um-footer{display:flex;gap:.6rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.07);}
+.um-btn-cancel{flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.um-btn-cancel:hover{background:rgba(255,255,255,0.11);color:var(--text);}
+.um-btn-save{flex:1;padding:11px;border-radius:11px;background:linear-gradient(135deg,rgba(180,141,255,0.28),rgba(126,184,255,0.2));border:1px solid rgba(180,141,255,0.38);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:rgba(255,255,255,.92);cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.um-btn-save:hover{box-shadow:0 6px 20px rgba(180,141,255,0.25);}
+
+/* Игровая стат в модале */
+.um-session-item{display:flex;align-items:center;gap:9px;padding:.6rem .75rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);margin-bottom:.4rem;}
+.um-session-ico{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.72rem;background:rgba(180,141,255,0.14);flex-shrink:0;}
+.um-session-game{flex:1;font-size:.78rem;color:rgba(255,255,255,.8);}
+.um-session-score{font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;color:var(--p1);}
+.um-session-date{font-size:.62rem;color:var(--muted);}
+
+@media(max-width:768px){
+  .admin-stats-row{grid-template-columns:repeat(2,1fr);}
+  .umanage-modal{max-width:100%;}
+}
+@media(max-width:400px){
+  .admin-stats-row{grid-template-columns:1fr 1fr;}
+}
+
 </style>
 </head>
 <body>
@@ -837,6 +914,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="sidebar-section-label" style="margin-top:16px;">Аккаунт</div>
       <div class="nav-item" data-section="thirdparty"><span class="nav-icon">🕹️</span><span class="nav-label">Сторонние игры</span></div>
 <div class="nav-item" data-section="security"><span class="nav-icon">🛡️</span><span class="nav-label">Безопасность</span></div>
+<div class="nav-item admin-only" data-section="admin" id="adminNavItem" style="display:none"><span class="nav-icon">👑</span><span class="nav-label">Админ панель</span></div>
     </aside>
 
     <main class="main-content">
@@ -1086,7 +1164,12 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         <div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div>
         <span>Безопасность</span>
       </div>
+      <div class="mobile-nav-btn admin-only" data-section="admin" id="adminMobileBtn" style="display:none">
+  <div class="mnav-icon-wrap"><span class="mnav-icon">👑</span></div>
+  <span>Админ</span>
+</div>
     </div>
+    
   </nav>
 
   <!-- BUY MODAL -->
@@ -1136,6 +1219,90 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   <button class="spin-again-btn" id="spinOpen10Btn" onclick="doSpin10()">🎰 Открыть 10</button>
   <button class="spin-done-btn" onclick="closeSpinModal()">Закрыть</button>
 </div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="dash-section" id="section-admin">
+  <div class="stats-page-header">
+    <h2>👑 Панель Администратора</h2>
+    <p>Управление пользователями сайта</p>
+  </div>
+
+  <!-- Стат карточки -->
+  <div class="admin-stats-row" id="adminStatsRow">
+    <div class="admin-stat-card" id="asc-users"><div class="asc-icon">👥</div><div class="asc-val" id="asc-total">—</div><div class="asc-lbl">Пользователей</div></div>
+    <div class="admin-stat-card" id="asc-admins"><div class="asc-icon">👑</div><div class="asc-val" id="asc-admin">—</div><div class="asc-lbl">Администраторов</div></div>
+    <div class="admin-stat-card" id="asc-tg"><div class="asc-icon">✈️</div><div class="asc-val" id="asc-tg">—</div><div class="asc-lbl">Telegram привязан</div></div>
+    <div class="admin-stat-card" id="asc-today"><div class="asc-icon">🆕</div><div class="asc-val" id="asc-new">—</div><div class="asc-lbl">Новых сегодня</div></div>
+    <div class="admin-stat-card"><div class="asc-icon">🎮</div><div class="asc-val" id="asc-sessions">—</div><div class="asc-lbl">Всего игр</div></div>
+    <div class="admin-stat-card"><div class="asc-icon">📅</div><div class="asc-val" id="asc-sessions-today">—</div><div class="asc-lbl">Игр сегодня</div></div>
+  </div>
+
+  <!-- Поиск -->
+  <div class="admin-search-wrap">
+    <input class="admin-search-input" id="adminSearchInput" placeholder="🔍 Поиск по имени..." oninput="filterAdminUsers()">
+  </div>
+
+  <!-- Список пользователей -->
+  <div id="adminUsersList">
+    <div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>
+  </div>
+</div>
+
+<!-- USER MANAGE MODAL -->
+<div class="umanage-overlay" id="umanageOverlay">
+  <div class="umanage-modal">
+    <div class="umanage-header">
+      <div class="umanage-avatar" id="umAvatar">U</div>
+      <div>
+        <div class="umanage-name" id="umName">username</div>
+        <div class="umanage-role-badge" id="umRoleBadge">user</div>
+      </div>
+      <button class="umanage-close" onclick="closeUmanage()">✕</button>
+    </div>
+
+    <!-- Табы -->
+    <div class="umanage-tabs">
+      <button class="umanage-tab active" data-umtab="account">👤 Аккаунт</button>
+      <button class="umanage-tab" data-umtab="gamestats">🎮 Игровая Статистика</button>
+    </div>
+
+    <!-- Аккаунт -->
+    <div class="umanage-panel active" id="ump-account">
+      <div class="um-field">
+        <label class="um-label">Имя</label>
+        <div class="um-input-wrap"><span class="um-prefix">👤</span><input class="um-input" id="umUsername" type="text" readonly></div>
+      </div>
+      <div class="um-field">
+        <label class="um-label">Пароль</label>
+        <div class="um-input-wrap"><span class="um-prefix">🔒</span><input class="um-input" id="umPassword" type="text" placeholder="Зашифрован — введите новый для смены"></div>
+      </div>
+      <div class="um-field">
+        <label class="um-label">Telegram ID</label>
+        <div class="um-input-wrap"><span class="um-prefix">✈️</span><input class="um-input" id="umTelegram" type="text" placeholder="Пусто = отвязать"></div>
+      </div>
+      <div class="um-field">
+        <label class="um-label">Статус на сайте</label>
+        <div class="um-select-wrap">
+          <select class="um-select" id="umRole">
+            <option value="user">👤 Пользователь</option>
+            <option value="admin">👑 Администратор</option>
+          </select>
+        </div>
+      </div>
+      <div class="um-footer">
+        <button class="um-btn-cancel" onclick="closeUmanage()">Отменить</button>
+        <button class="um-btn-save" onclick="saveUmanage()">Сохранить</button>
+      </div>
+    </div>
+
+    <!-- Игровая статистика -->
+    <div class="umanage-panel" id="ump-gamestats">
+      <div id="umGameStatsContent">
+        <div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1255,6 +1422,7 @@ function switchSection(section) {
   document.querySelectorAll(`[data-section="${section}"]`).forEach(el=>el.classList.add('active'));
   $('section-'+section).classList.add('active');
   if(section==='gamestats')loadGameStats();
+  if(section==='admin')loadAdminPanel();
 if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
   // Скролл наверх при переключении секций (важно на мобилке)
   const mc=document.querySelector('.main-content');
@@ -1288,6 +1456,8 @@ function openDashboard(user){
   $('statDays').textContent=diff;$('statRegDate').textContent='с '+fmtDateShort(rd);
   $('auth-page').classList.remove('active');$('dash-page').classList.add('active');
   switchSection('overview');loadOverviewStats();
+  checkAdminAccess();
+
   // Telegram статус
   const tgS=$('secTgStatus'),tgD=$('secTgDesc');
   if(user.telegram_id){
@@ -2063,6 +2233,159 @@ function showToast(msg) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
 }
+// ════ ADMIN PANEL ════
+let adminUsers = [], adminLoaded = false, activeUmanageId = null;
+
+async function loadAdminPanel() {
+  if (adminLoaded) return;
+  await loadAdminStats();
+  await loadAdminUsers();
+  adminLoaded = true;
+}
+
+async function loadAdminStats() {
+  try {
+    const r = await fetch(`${API}/api/admin/stats?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) return;
+    $('asc-total').textContent = d.total_users;
+    $('asc-admin').textContent = d.admin_count;
+    $('asc-tg').textContent = d.tg_linked;
+    $('asc-new').textContent = d.new_today;
+    $('asc-sessions').textContent = d.total_sessions;
+    $('asc-sessions-today').textContent = d.sessions_today;
+  } catch {}
+}
+
+async function loadAdminUsers() {
+  const list = $('adminUsersList');
+  list.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    const r = await fetch(`${API}/api/admin/users?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) { list.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка загрузки</span></div>'; return; }
+    adminUsers = d.users;
+    renderAdminUsers(adminUsers);
+  } catch { list.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка сети</span></div>'; }
+}
+
+function renderAdminUsers(users) {
+  const list = $('adminUsersList');
+  if (!users.length) { list.innerHTML = '<div class="state-empty"><span>🔍</span><span>Ничего не найдено</span></div>'; return; }
+  const frag = document.createDocumentFragment();
+  users.forEach(u => {
+    const div = document.createElement('div');
+    div.className = 'admin-user-card';
+    const isAdmin = u.role === 'admin';
+    const init = (u.username || '?')[0].toUpperCase();
+    const regDate = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric'}) : '—';
+    div.innerHTML = `
+      <div class="auc-avatar">${init}</div>
+      <div class="auc-info">
+        <div class="auc-name">${u.username}</div>
+        <div class="auc-meta">ID: ${u.id} · Зарег: ${regDate} · ${u.telegram_id ? '✈️ TG привязан' : '❌ TG не привязан'}</div>
+      </div>
+      <span class="auc-role-pill ${isAdmin ? 'auc-role-admin' : 'auc-role-user'}">${isAdmin ? '👑 Админ' : '👤 Юзер'}</span>
+      <button class="auc-manage-btn" onclick="openUmanage(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>`;
+    frag.appendChild(div);
+  });
+  list.innerHTML = '';
+  list.appendChild(frag);
+}
+
+function filterAdminUsers() {
+  const q = ($('adminSearchInput').value || '').toLowerCase();
+  renderAdminUsers(adminUsers.filter(u => !q || u.username?.toLowerCase().includes(q) || String(u.id).includes(q)));
+}
+
+function openUmanage(user) {
+  activeUmanageId = user.id;
+  const init = (user.username || '?')[0].toUpperCase();
+  $('umAvatar').textContent = init;
+  $('umName').textContent = user.username;
+  const badge = $('umRoleBadge');
+  badge.textContent = user.role === 'admin' ? '👑 Администратор' : '👤 Пользователь';
+  badge.className = 'umanage-role-badge ' + (user.role === 'admin' ? 'admin' : 'user');
+  $('umUsername').value = user.username;
+  $('umPassword').value = '';
+  $('umTelegram').value = user.telegram_id || '';
+  $('umRole').value = user.role || 'user';
+  // Сброс на таб Аккаунт
+  document.querySelectorAll('.umanage-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.umanage-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.umanage-tab[data-umtab="account"]').classList.add('active');
+  $('ump-account').classList.add('active');
+  $('umGameStatsContent').innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  $('umanageOverlay').classList.add('show');
+}
+
+function closeUmanage() { $('umanageOverlay').classList.remove('show'); }
+$('umanageOverlay').addEventListener('click', e => { if (e.target === $('umanageOverlay')) closeUmanage(); });
+
+// Табы в модале
+document.querySelectorAll('.umanage-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.umanage-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.umanage-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('ump-' + btn.dataset.umtab).classList.add('active');
+    if (btn.dataset.umtab === 'gamestats') loadUmanageStats();
+  });
+});
+
+async function loadUmanageStats() {
+  const el = $('umGameStatsContent');
+  el.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    const r = await fetch(`${API}/api/admin/user-sessions/${activeUmanageId}?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.sessions?.length) { el.innerHTML = '<div class="state-empty"><span>🎮</span><span>Игр пока нет</span></div>'; return; }
+    const frag = document.createDocumentFragment();
+    d.sessions.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'um-session-item';
+      const date = new Date(s.started_at).toLocaleDateString('ru-RU', {day:'numeric',month:'short'});
+      div.innerHTML = `<div class="um-session-ico">🎮</div><div class="um-session-game">${s.games?.title || '—'}</div><div class="um-session-score">${s.score}</div><div class="um-session-date">${date}</div>`;
+      frag.appendChild(div);
+    });
+    el.innerHTML = '';
+    el.appendChild(frag);
+  } catch { el.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка загрузки</span></div>'; }
+}
+
+async function saveUmanage() {
+  const btn = document.querySelector('.um-btn-save');
+  btn.textContent = 'Сохраняем...'; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
+  try {
+    const r = await fetch(`${API}/api/admin/update-user`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        adminId: currentUser.id,
+        userId: activeUmanageId,
+        newPassword: $('umPassword').value || undefined,
+        telegramId: $('umTelegram').value,
+        role: $('umRole').value
+      })
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast('✅ Сохранено');
+      closeUmanage();
+      adminLoaded = false;
+      loadAdminUsers();
+    } else showToast('❌ ' + (d.error || 'Ошибка'));
+  } catch { showToast('❌ Ошибка сети'); }
+  btn.textContent = 'Сохранить'; btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
+
+// Показ вкладки Админ только для админов — вызывается после openDashboard
+function checkAdminAccess() {
+  if (currentUser?.role === 'admin') {
+    $('adminNavItem').style.display = '';
+    $('adminMobileBtn').style.display = '';
+  }
+}
+
 </script>
 </body>
 </html>
