@@ -2235,7 +2235,6 @@ function showToast(msg) {
   t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
 }
 // ════ ADMIN PANEL ════
-let adminUsers = [], adminLoaded = false, activeUmanageId = null;
 
 async function loadAdminPanel() {
   if (adminLoaded) return;
@@ -2288,6 +2287,68 @@ function renderAdminUsers(users) {
       </div>
       <span class="auc-role-pill ${isAdmin ? 'auc-role-admin' : 'auc-role-user'}">${isAdmin ? '👑 Админ' : '👤 Юзер'}</span>
       <button class="auc-manage-btn" onclick="openUmanage(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>`;
+    frag.appendChild(div);
+  });
+  list.innerHTML = '';
+  list.appendChild(frag);
+}
+
+// ════ ADMIN PANEL ════
+let adminUsers = [], adminLoaded = false, activeUmanageId = null;
+
+async function loadAdminPanel() {
+  if (adminLoaded) return;
+  await loadAdminStats();
+  await loadAdminUsers();
+  adminLoaded = true;
+}
+
+async function loadAdminStats() {
+  try {
+    const r = await fetch(`${API}/api/admin/stats?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) return;
+    $('asc-total').textContent = d.total_users;
+    $('asc-admin').textContent = d.admin_count;
+    $('asc-tg').textContent = d.tg_linked;
+    $('asc-new').textContent = d.new_today;
+    $('asc-sessions').textContent = d.total_sessions;
+    $('asc-sessions-today').textContent = d.sessions_today;
+  } catch(e) { console.error('loadAdminStats error:', e); }
+}
+
+async function loadAdminUsers() {
+  const list = $('adminUsersList');
+  list.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  console.log('loadAdminUsers: adminId =', currentUser?.id);
+  try {
+    const r = await fetch(`${API}/api/admin/users?adminId=${currentUser.id}`);
+    const d = await r.json();
+    console.log('loadAdminUsers response:', d);
+    if (!d.success) { list.innerHTML = '<div class="state-empty"><span>⚠️</span><span>' + (d.error||'Ошибка') + '</span></div>'; return; }
+    adminUsers = d.users;
+    renderAdminUsers(adminUsers);
+  } catch(e) { console.error('loadAdminUsers error:', e); list.innerHTML = '<div class="state-empty"><span>⚠️</span><span>Ошибка сети</span></div>'; }
+}
+
+function renderAdminUsers(users) {
+  const list = $('adminUsersList');
+  if (!users.length) { list.innerHTML = '<div class="state-empty"><span>🔍</span><span>Ничего не найдено</span></div>'; return; }
+  const frag = document.createDocumentFragment();
+  users.forEach(u => {
+    const div = document.createElement('div');
+    div.className = 'admin-user-card';
+    const isAdmin = u.role === 'admin';
+    const init = (u.username || '?')[0].toUpperCase();
+    const regDate = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric'}) : '—';
+    div.innerHTML = `
+      <div class="auc-avatar">${init}</div>
+      <div class="auc-info">
+        <div class="auc-name">${u.username}</div>
+        <div class="auc-meta">ID: ${u.id} · Зарег: ${regDate} · ${u.telegram_id ? '✈️ TG привязан' : '❌ TG не привязан'}</div>
+      </div>
+      <span class="auc-role-pill ${isAdmin ? 'auc-role-admin' : 'auc-role-user'}">${isAdmin ? '👑 Админ' : '👤 Юзер'}</span>
+      <button class="auc-manage-btn" onclick='openUmanage(${JSON.stringify(u)})'>✏️</button>`;
     frag.appendChild(div);
   });
   list.innerHTML = '';
