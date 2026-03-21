@@ -737,5 +737,103 @@ app.get("/api/third-party-games/:userId", async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ADMIN API
+// ══════════════════════════════════════════
+
+async function checkAdmin(adminId) {
+  const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${adminId}&select=role`, { headers: sbHeaders });
+  const d = await r.json();
+  return d[0]?.role === 'admin';
+}
+
+// Список всех пользователей
+app.get('/api/admin/users', async (req, res) => {
+  const { adminId } = req.query;
+  if (!adminId) return res.json({ success: false, error: 'Нет adminId' });
+  try {
+    if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
+    const r = await fetch(
+      `${SB_URL}/rest/v1/users?select=id,username,role,balance,created_at,telegram_id&order=created_at.desc`,
+      { headers: sbHeaders }
+    );
+    const data = await r.json();
+    res.json({ success: true, users: data });
+  } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
+});
+
+// Статистика для админ панели
+app.get('/api/admin/stats', async (req, res) => {
+  const { adminId } = req.query;
+  if (!adminId) return res.json({ success: false, error: 'Нет adminId' });
+  try {
+    if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
+    const usersR = await fetch(`${SB_URL}/rest/v1/users?select=id,role,telegram_id,created_at`, { headers: sbHeaders });
+    const users = await usersR.json();
+    const sessionsR = await fetch(`${SB_URL}/rest/v1/game_sessions?select=id,score,started_at`, { headers: sbHeaders });
+    const sessions = await sessionsR.json();
+    const today = new Date().toISOString().slice(0,10);
+    res.json({
+      success: true,
+      total_users: users.length,
+      admin_count: users.filter(u => u.role === 'admin').length,
+      tg_linked: users.filter(u => u.telegram_id).length,
+      new_today: users.filter(u => u.created_at?.startsWith(today)).length,
+      total_sessions: sessions.length,
+      sessions_today: sessions.filter(s => s.started_at?.startsWith(today)).length,
+    });
+  } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
+});
+
+// Игровая статистика пользователя (для админа)
+app.get('/api/admin/user-sessions/:userId', async (req, res) => {
+  const { adminId } = req.query;
+  if (!adminId) return res.json({ success: false, error: 'Нет adminId' });
+  try {
+    if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
+    const r = await fetch(
+      `${SB_URL}/rest/v1/game_sessions?user_id=eq.${req.params.userId}&select=id,score,started_at,games(title,slug)&order=started_at.desc&limit=50`,
+      { headers: sbHeaders }
+    );
+    const data = await r.json();
+    res.json({ success: true, sessions: data });
+  } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
+});
+
+// Обновить пользователя (пароль, telegram, role)
+app.post('/api/admin/update-user', async (req, res) => {
+  const { adminId, userId, newPassword, telegramId, role } = req.body;
+  if (!adminId || !userId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
+    const patch = {};
+    if (role !== undefined) patch.role = role;
+    if (telegramId !== undefined) patch.telegram_id = telegramId === '' ? null : parseInt(telegramId) || null;
+    if (newPassword && newPassword.length >= 4) {
+      const hash = await bcrypt.hash(newPassword, 10);
+      patch.password_hash = hash;
+    }
+    if (!Object.keys(patch).length) return res.json({ success: false, error: 'Нечего обновлять' });
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify(patch)
+    });
+    if (r.ok) res.json({ success: true });
+    else res.json({ success: false, error: 'Ошибка обновления' });
+  } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
+});
+
+// Удалить пользователя
+app.post('/api/admin/delete-user', async (req, res) => {
+  const { adminId, userId } = req.body;
+  if (!adminId || !userId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+    res.json({ success: true });
+  } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
