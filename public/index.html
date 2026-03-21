@@ -1139,9 +1139,39 @@ document.querySelectorAll('.umanage-tab').forEach(btn=>{btn.addEventListener('cl
 
 async function loadUmanageStats(){
   const el=$('umGameStatsContent');el.innerHTML='<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
-  try{const r=await fetch(`${API}/api/admin/user-sessions/${activeUmanageId}?adminId=${currentUser.id}`);const d=await r.json();if(!d.sessions?.length){el.innerHTML='<div class="state-empty"><span>🎮</span><span>Игр пока нет</span></div>';return;}
-    const frag=document.createDocumentFragment();d.sessions.forEach(s=>{const div=document.createElement('div');div.className='um-session-item';const date=new Date(s.started_at).toLocaleDateString('ru-RU',{day:'numeric',month:'short'});div.innerHTML=`<div class="um-session-ico">🎮</div><div class="um-session-game">${s.games?.title||'—'}</div><div class="um-session-score">${s.score}</div><div class="um-session-date">${date}</div>`;frag.appendChild(div);});
-    el.innerHTML='';el.appendChild(frag);
+  try{
+    const r=await fetch(`${API}/api/admin/user-sessions/${activeUmanageId}?adminId=${currentUser.id}`);
+    const d=await r.json();
+    if(!d.sessions?.length){el.innerHTML='<div class="state-empty"><span>🎮</span><span>Игр пока нет</span></div>';return;}
+    const sessions=d.sessions;
+    const byGame={};
+    sessions.forEach(s=>{const slug=s.games?.slug||'unknown';if(!byGame[slug])byGame[slug]=[];byGame[slug].push(s);});
+    const globalMax=sessions.reduce((m,s)=>Math.max(m,s.score||0),1);
+    const games=Object.keys(byGame);
+    let html='<div class="game-stats-grid" style="margin-bottom:0">';
+    games.forEach((slug,idx)=>{
+      const meta=GAME_META[slug]||{name:slug,icon:'🎮',color:'purple',genre:'—'};
+      const gs=byGame[slug]||[];
+      const played=gs.length,best=gs.reduce((m,s)=>Math.max(m,s.score||0),0);
+      const avgDur=played>0?Math.round(gs.reduce((s,x)=>s+(x.duration_s||0),0)/played):0;
+      const pct=Math.round((best/globalMax)*100);
+      html+=`<div class="game-stat-card" data-color="${meta.color}">
+        <div class="gsc-header"><div class="gsc-icon">${meta.icon}</div><div><div class="gsc-game-name">${meta.name}</div><div class="gsc-genre">${meta.genre}</div></div></div>
+        <div class="gsc-divider"></div>
+        <div class="gsc-metrics">
+          <div class="gsc-metric"><div class="gsc-metric-val">${played}</div><div class="gsc-metric-label">Партий</div></div>
+          <div class="gsc-metric"><div class="gsc-metric-val">${best}</div><div class="gsc-metric-label">Рекорд</div></div>
+          <div class="gsc-metric"><div class="gsc-metric-val">${played>0?fmtDur(avgDur):'—'}</div><div class="gsc-metric-label">Ср. время</div></div>
+        </div>
+        <div class="gsc-progress-wrap">
+          <div class="gsc-progress-label"><span>Рейтинг</span><span>${pct}%</span></div>
+          <div class="gsc-bar"><div class="gsc-bar-fill" style="width:0%" data-target="${pct}%"></div></div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+    el.innerHTML=html;
+    requestAnimationFrame(()=>{el.querySelectorAll('.gsc-bar-fill').forEach((f,i)=>{setTimeout(()=>{f.style.width=f.dataset.target;},120+i*50);});});
   }catch{el.innerHTML='<div class="state-empty"><span>⚠️</span><span>Ошибка загрузки</span></div>';}
 }
 
