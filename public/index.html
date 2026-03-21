@@ -1424,6 +1424,7 @@ function switchSection(section) {
   if(section==='gamestats')loadGameStats();
   if(section==='admin')loadAdminPanel();
 if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
+if(section==='admin')loadAdminPanel();
   // Скролл наверх при переключении секций (важно на мобилке)
   const mc=document.querySelector('.main-content');
   if(mc)mc.scrollTop=0;
