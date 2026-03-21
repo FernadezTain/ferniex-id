@@ -1124,9 +1124,7 @@ async function doSpin10(){
       try{const res=await fetch(`${API}/api/cases/open`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,skipNotify:true})});const data=await res.json();if(!data.success){showToast('❌ '+(data.error||'Ошибка'));break;}serverWinner=data.item;results.push(serverWinner);if(data.inventory_left===0&&i<count-1){showToast(`⚠️ Кейсы закончились после ${i+1} открытий`);break;}}catch(e){showToast('❌ Ошибка сети');break;}
     }
     if(results.length>0){
-      const last=results[results.length-1];
-      const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
-      $('spinResultEmoji').textContent=last.emoji;$('spinResultName').textContent=last.name;$('spinResultRarity').textContent=rarityNames[last.rarity]||last.rarity;$('spinResult').classList.add('show');
+      showSpin10Results(results);
       try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error(e);}
       loadSeeds();updateSpinCaseCount();
     }
@@ -1146,13 +1144,37 @@ async function doSpin10(){
     const itemW=104,wrapWidth=track.parentElement.offsetWidth,winCenter=WIN_IDX*itemW+itemW/2,offset=winCenter-wrapWidth/2+itemW*2+(Math.random()*10-5);
     requestAnimationFrame(()=>{requestAnimationFrame(()=>{track.style.transition='transform 3s cubic-bezier(.17,.67,.12,.99)';track.style.transform=`translateX(-${offset}px)`;});});
     await new Promise(r=>setTimeout(r,3200));
-    $('spinResultEmoji').textContent=winItem.emoji;$('spinResultName').textContent=winItem.name;
-    const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};$('spinResultRarity').textContent=rarityNames[winItem.rarity]||winItem.rarity;$('spinResult').classList.add('show');spinIsSpinning=false;
-    if(i<count-1)await new Promise(r=>setTimeout(r,1500));
+    spinIsSpinning=false;
+    if(i<count-1)await new Promise(r=>setTimeout(r,600));
   }
-  if(results.length>0){try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error('batch notify error:',e);}loadSeeds();}
+
+  if(results.length>0){
+    showSpin10Results(results);
+    try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error('batch notify error:',e);}
+    loadSeeds();
+  }
   updateSpinCaseCount();
+  $('spinTitle').textContent=`🎰 ${CASES[spinCaseSlug].name}`;
   btn.disabled=false;$('spinAgainBtn').disabled=false;
+}
+
+function showSpin10Results(results){
+  const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
+  const rarityColors={common:'rgba(180,180,200,0.15)',rare:'rgba(126,184,255,0.18)',epic:'rgba(180,141,255,0.2)',legendary:'rgba(255,200,60,0.2)'};
+  const rarityBorder={common:'rgba(180,180,200,0.25)',rare:'rgba(126,184,255,0.35)',epic:'rgba(180,141,255,0.4)',legendary:'rgba(255,200,60,0.5)'};
+  const spinResult=$('spinResult');
+  spinResult.innerHTML=`
+    <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.75rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">🎰 Открыто ${results.length} кейсов</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.4rem;margin-bottom:.5rem;">
+      ${results.map(item=>`
+        <div style="border-radius:10px;padding:.5rem .3rem;background:${rarityColors[item.rarity]||rarityColors.common};border:1px solid ${rarityBorder[item.rarity]||rarityBorder.common};display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <span style="font-size:1.4rem;line-height:1;">${item.emoji}</span>
+          <span style="font-size:.48rem;font-weight:600;text-align:center;color:rgba(255,255,255,.7);line-height:1.2;">${item.name}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  spinResult.classList.add('show');
 }
 
 async function doSpin() {
