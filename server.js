@@ -488,20 +488,18 @@ function weightedRandom(items) {
 }
 
 app.post("/api/cases/open", async (req, res) => {
-  const { userId, caseSlug } = req.body;
+  const { userId, caseSlug, skipNotify } = req.body;  // добавь skipNotify
   if (!userId || !caseSlug) return res.json({ success: false, error: "Недостаточно данных" });
 
   const caseDef = CASE_DEFINITIONS[caseSlug];
   if (!caseDef) return res.json({ success: false, error: "Кейс не найден" });
 
   try {
-    // Проверяем инвентарь
     const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}&select=*`, { headers: sbHeaders });
     const invData = await invRes.json();
     if (!invData.length || invData[0].quantity < 1)
       return res.json({ success: false, error: "Кейса нет в инвентаре" });
 
-    // Списываем 1 кейс
     const newQty = invData[0].quantity - 1;
     if (newQty > 0) {
       await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, {
@@ -514,25 +512,26 @@ app.post("/api/cases/open", async (req, res) => {
       });
     }
 
-    // Честный серверный дроп
     const wonItem = weightedRandom(caseDef.items);
 
-    // Получаем telegram_id и шлём уведомление
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
-    const users = await userRes.json();
-    const { telegram_id, username } = users[0] || {};
+    // Уведомление только если skipNotify не передан
+    if (!skipNotify) {
+      const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+      const users = await userRes.json();
+      const { telegram_id, username } = users[0] || {};
 
-    if (telegram_id && BOT_URL) {
-      notifyBot(`${BOT_URL}/api/fernieid/notify`, {
-        telegram_id,
-        type: "case_reward",
-        username: username || "—",
-        case_name: caseDef.name,
-        item_name: wonItem.name,
-        item_emoji: wonItem.emoji,
-        item_rarity: wonItem.rarity,
-        reward: wonItem.reward
-      }); // не await — не блокируем ответ
+      if (telegram_id && BOT_URL) {
+        notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+          telegram_id,
+          type: "case_reward",
+          username: username || "—",
+          case_name: caseDef.name,
+          item_name: wonItem.name,
+          item_emoji: wonItem.emoji,
+          item_rarity: wonItem.rarity,
+          reward: wonItem.reward
+        });
+      }
     }
 
     res.json({
