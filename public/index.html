@@ -683,15 +683,21 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 <!-- SPIN MODAL -->
 <div class="spin-overlay" id="spinOverlay">
   <div class="spin-modal">
-    <div class="spin-header"><div class="spin-title" id="spinTitle">Открытие кейса</div><button class="spin-close" onclick="closeSpinModal()">✕</button></div>
-    <div class="spin-track-wrap"><div class="spin-needle"></div><div class="spin-track" id="spinTrack"></div></div>
-    <div class="spin-result" id="spinResult"><span class="spin-result-emoji" id="spinResultEmoji"></span><div class="spin-result-name" id="spinResultName"></div><div class="spin-result-rarity" id="spinResultRarity"></div></div>
-    <div class="spin-footer">
-      <button class="spin-again-btn" id="spinAgainBtn" onclick="doSpin()">🎰 Открыть кейс</button>
-      <button class="spin-again-btn" id="spinOpen10Btn" onclick="doSpin10()">🎰 Открыть 10</button>
-      <button class="spin-done-btn" onclick="closeSpinModal()">Закрыть</button>
-    </div>
+<div class="spin-header">
+  <div>
+    <div class="spin-title" id="spinTitle">Открытие кейса</div>
+    <div id="spinCaseCount" style="font-size:.65rem;color:var(--muted);margin-top:2px;"></div>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none;">
+      <div id="fastToggle" onclick="toggleFastOpen()" style="width:36px;height:20px;border-radius:100px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s,border-color .2s;flex-shrink:0;">
+        <div id="fastToggleKnob" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s,background .2s;opacity:0.5;"></div>
+      </div>
+      Быстрое открытие
+    </label>
+    <button class="spin-close" onclick="closeSpinModal()">✕</button>
+  </div>
+</div>
 </div>
 
 <!-- USER MANAGE MODAL -->
@@ -1045,7 +1051,48 @@ async function loadInventory(){
 }
 
 let spinCaseSlug=null,spinFromInventory=false,spinIsSpinning=false;
-function openSpinModal(slug,fromInventory,qty=0){spinCaseSlug=slug;spinFromInventory=fromInventory;const c=CASES[slug];$('spinTitle').textContent=`🎰 ${c.name}`;$('spinAgainBtn').className='spin-again-btn '+c.cls;$('spinResult').classList.remove('show');$('spinAgainBtn').style.display='';$('spinAgainBtn').textContent='🎰 Открыть кейс';$('spinAgainBtn').disabled=false;buildSpinTrack(slug);$('spinOverlay').classList.add('show');}
+let fastOpenEnabled = false;
+
+function toggleFastOpen() {
+  fastOpenEnabled = !fastOpenEnabled;
+  const toggle = $('fastToggle');
+  const knob = $('fastToggleKnob');
+  if (fastOpenEnabled) {
+    toggle.style.background = 'rgba(180,141,255,0.4)';
+    toggle.style.borderColor = 'rgba(180,141,255,0.6)';
+    knob.style.transform = 'translateX(16px)';
+    knob.style.opacity = '1';
+  } else {
+    toggle.style.background = 'rgba(255,255,255,0.1)';
+    toggle.style.borderColor = 'rgba(255,255,255,0.15)';
+    knob.style.transform = 'translateX(0)';
+    knob.style.opacity = '0.5';
+  }
+}
+async function updateSpinCaseCount() {
+  if (!currentUser?.id || !spinCaseSlug) return;
+  try {
+    const res = await fetch(`${API}/api/inventory/${currentUser.id}`);
+    const data = await res.json();
+    const item = data.items?.find(i => i.case_slug === spinCaseSlug);
+    const count = item?.quantity || 0;
+    $('spinCaseCount').textContent = count > 0 ? `Осталось: ${count} шт.` : 'Кейсов нет';
+  } catch { $('spinCaseCount').textContent = ''; }
+}
+
+function openSpinModal(slug, fromInventory, qty=0) {
+  spinCaseSlug = slug; spinFromInventory = fromInventory;
+  const c = CASES[slug];
+  $('spinTitle').textContent = `🎰 ${c.name}`;
+  $('spinAgainBtn').className = 'spin-again-btn ' + c.cls;
+  $('spinResult').classList.remove('show');
+  $('spinAgainBtn').style.display = '';
+  $('spinAgainBtn').textContent = '🎰 Открыть кейс';
+  $('spinAgainBtn').disabled = false;
+  buildSpinTrack(slug);
+  $('spinOverlay').classList.add('show');
+  updateSpinCaseCount();
+}
 function closeSpinModal(){if(spinIsSpinning)return;$('spinOverlay').classList.remove('show');loadInventory();}
 $('spinOverlay').addEventListener('click',e=>{if(e.target===$('spinOverlay'))closeSpinModal();});
 
@@ -1072,20 +1119,61 @@ async function doSpin10(){
     if(i<count-1)await new Promise(r=>setTimeout(r,1500));
   }
   if(results.length>0){try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error('batch notify error:',e);}loadSeeds();}
-  btn.disabled=false;$('spinAgainBtn').disabled=false;
+  updateSpinCaseCount();
+  btn.disabled=false; $('spinAgainBtn').disabled=false;
 }
 
-async function doSpin(){
-  if(spinIsSpinning)return;spinIsSpinning=true;$('spinResult').classList.remove('show');$('spinAgainBtn').disabled=true;$('spinAgainBtn').textContent='Крутится...';
-  let serverWinner=null;
-  try{const res=await fetch(`${API}/api/cases/open`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug})});const data=await res.json();if(!data.success){showToast('❌ '+(data.error||'Ошибка открытия'));spinIsSpinning=false;$('spinAgainBtn').disabled=false;$('spinAgainBtn').textContent='🎰 Крутить ещё';return;}serverWinner=data.item;if(typeof data.inventory_left==='number'){$('spinAgainBtn').style.display=data.inventory_left>0?'':'none';}}catch(e){showToast('❌ Ошибка сети');spinIsSpinning=false;$('spinAgainBtn').disabled=false;return;}
-  const track=$('spinTrack'),items=CASES[spinCaseSlug].items,WIN_IDX=32,winItem=serverWinner;
-  track.style.transition='none';track.style.transform='translateX(0)';track.innerHTML='';
-  for(let i=0;i<48;i++){const item=(i===WIN_IDX)?winItem:weightedRandom(items);const div=document.createElement('div');div.className=`spin-item rarity-${item.rarity}`;if(i===WIN_IDX)div.style.cssText='box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';div.innerHTML=`<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;track.appendChild(div);}
-  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,80))));
-  const itemW=96+8,wrapWidth=track.parentElement.offsetWidth,winCenter=WIN_IDX*itemW+48,offset=winCenter-wrapWidth/2+itemW*2+(Math.random()*10-5);
-  requestAnimationFrame(()=>{requestAnimationFrame(()=>{track.style.transition='transform 5s cubic-bezier(.17,.67,.12,.99)';track.style.transform=`translateX(-${offset}px)`;});});
-  setTimeout(()=>{$('spinResultEmoji').textContent=winItem.emoji;$('spinResultName').textContent=winItem.name;const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};$('spinResultRarity').textContent=rarityNames[winItem.rarity]||winItem.rarity;$('spinResult').classList.add('show');$('spinAgainBtn').disabled=false;$('spinAgainBtn').textContent='🎰 Крутить ещё';spinIsSpinning=false;loadSeeds();},5200);
+async function doSpin() {
+  if (spinIsSpinning) return;
+  spinIsSpinning = true;
+  $('spinResult').classList.remove('show');
+  $('spinAgainBtn').disabled = true;
+  $('spinAgainBtn').textContent = fastOpenEnabled ? 'Открываем...' : 'Крутится...';
+
+  let serverWinner = null;
+  try {
+    const res = await fetch(`${API}/api/cases/open`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug})});
+    const data = await res.json();
+    if (!data.success) { showToast('❌ '+(data.error||'Ошибка открытия')); spinIsSpinning=false; $('spinAgainBtn').disabled=false; $('spinAgainBtn').textContent='🎰 Крутить ещё'; return; }
+    serverWinner = data.item;
+    if (typeof data.inventory_left === 'number') { $('spinAgainBtn').style.display = data.inventory_left > 0 ? '' : 'none'; }
+  } catch(e) { showToast('❌ Ошибка сети'); spinIsSpinning=false; $('spinAgainBtn').disabled=false; return; }
+
+  const items = CASES[spinCaseSlug].items;
+  const winItem = serverWinner;
+  const rarityNames = {common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
+
+  if (fastOpenEnabled) {
+    $('spinResultEmoji').textContent = winItem.emoji;
+    $('spinResultName').textContent = winItem.name;
+    $('spinResultRarity').textContent = rarityNames[winItem.rarity] || winItem.rarity;
+    $('spinResult').classList.add('show');
+    $('spinAgainBtn').disabled = false;
+    $('spinAgainBtn').textContent = '🎰 Крутить ещё';
+    spinIsSpinning = false;
+    loadSeeds();
+    updateSpinCaseCount();
+    return;
+  }
+
+  const track = $('spinTrack');
+  track.style.transition = 'none'; track.style.transform = 'translateX(0)'; track.innerHTML = '';
+  for (let i = 0; i < 48; i++) {
+    const item = (i === 32) ? winItem : weightedRandom(items);
+    const div = document.createElement('div'); div.className = `spin-item rarity-${item.rarity}`;
+    if (i === 32) div.style.cssText = 'box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';
+    div.innerHTML = `<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;
+    track.appendChild(div);
+  }
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))));
+  const itemW = 96+8, wrapWidth = track.parentElement.offsetWidth, winCenter = 32*itemW+48, offset = winCenter-wrapWidth/2+itemW*2+(Math.random()*10-5);
+  requestAnimationFrame(() => { requestAnimationFrame(() => { track.style.transition = 'transform 5s cubic-bezier(.17,.67,.12,.99)'; track.style.transform = `translateX(-${offset}px)`; }); });
+  setTimeout(() => {
+    $('spinResultEmoji').textContent = winItem.emoji; $('spinResultName').textContent = winItem.name;
+    $('spinResultRarity').textContent = rarityNames[winItem.rarity] || winItem.rarity;
+    $('spinResult').classList.add('show'); $('spinAgainBtn').disabled=false; $('spinAgainBtn').textContent='🎰 Крутить ещё';
+    spinIsSpinning = false; loadSeeds(); updateSpinCaseCount();
+  }, 5200);
 }
 
 function showToast(msg){let t=document.getElementById('fernie-toast');if(!t){t=document.createElement('div');t.id='fernie-toast';t.style.cssText='position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(20,15,32,0.95);border:1px solid rgba(180,141,255,0.3);color:#fff;padding:10px 18px;border-radius:12px;font-size:.8rem;font-weight:500;z-index:9999;transition:opacity .3s;white-space:nowrap;backdrop-filter:blur(12px);';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._timer);t._timer=setTimeout(()=>{t.style.opacity='0';},2500);}
@@ -1114,7 +1202,7 @@ function renderAdminUsers(users){
     const div=document.createElement('div');div.className='admin-user-card';
     const isAdmin=u.role==='admin';const init=(u.username||'?')[0].toUpperCase();
     const regDate=u.created_at?new Date(u.created_at).toLocaleDateString('ru-RU',{day:'numeric',month:'short',year:'numeric'}):'—';
-    div.innerHTML=`<div class="auc-avatar">${init}</div><div class="auc-info"><div class="auc-name">${u.username}</div><div class="auc-meta">ID: ${u.id} · Зарег: ${regDate} · ${u.telegram_id?'✈️ TG привязан':'❌ TG не привязан'}</div></div><span class="auc-role-pill ${isAdmin?'auc-role-admin':'auc-role-user'}">${isAdmin?'👑 Админ':'👤 Юзер'}</span><button class="auc-manage-btn" data-uid="${u.id}">✏️</button>`;
+    div.innerHTML=`<div class="auc-avatar">${init}</div><div class="auc-info"><div class="auc-name">${u.username}</div><div class="auc-meta">ID: ${u.id} · Зарег: ${regDate} · ${u.telegram_id?'✈️ Telegram привязан':'❌ TG не привязан'}</div></div><span class="auc-role-pill ${isAdmin?'auc-role-admin':'auc-role-user'}">${isAdmin?'👑 Админ':'👤 Юзер'}</span><button class="auc-manage-btn" data-uid="${u.id}">✏️</button>`;
     frag.appendChild(div);
   });
   list.innerHTML='';list.appendChild(frag);
