@@ -1045,7 +1045,54 @@ $('buyOverlay').addEventListener('click',e=>{if(e.target===$('buyOverlay'))close
 $('buyQtyInput').addEventListener('input',updateBuyTotal);
 function updateBuyTotal(){if(!activeCaseSlug)return;const qty=Math.min(10000,Math.max(1,parseInt($('buyQtyInput').value)||1));$('buyQtyInput').value=qty;$('buyTotalVal').textContent=(CASES[activeCaseSlug].price*qty).toLocaleString('ru-RU')+' 🌱';}
 async function doBuyCase(){const btn=$('buyConfirmBtn'),qty=parseInt($('buyQtyInput').value)||1;btn.textContent='Покупаем...';btn.style.opacity='0.6';btn.style.pointerEvents='none';try{const res=await fetch(`${API}/api/cases/buy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:activeCaseSlug,quantity:qty})});const data=await res.json();if(data.success){closeBuyModal();loadSeeds();loadInventory();showToast(`✅ Куплено ${qty} шт. ${CASES[activeCaseSlug].name}`);}else{showToast('❌ '+(data.error||'Ошибка покупки'));}}catch{showToast('❌ Ошибка сети');}btn.textContent='Купить';btn.style.opacity='';btn.style.pointerEvents='';}
-function openCaseFromMarket(){closeBuyModal();openSpinModal(activeCaseSlug,false);}
+function openCaseFromMarket(){
+  closeBuyModal();
+  showCaseContents(activeCaseSlug);
+}
+
+function showCaseContents(slug){
+  const c = CASES[slug];
+  const rarityColors={common:'rgba(180,180,200,0.15)',rare:'rgba(126,184,255,0.18)',epic:'rgba(180,141,255,0.2)',legendary:'rgba(255,200,60,0.2)'};
+  const rarityBorder={common:'rgba(180,180,200,0.25)',rare:'rgba(126,184,255,0.35)',epic:'rgba(180,141,255,0.4)',legendary:'rgba(255,200,60,0.5)'};
+  const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
+
+  // Создаём оверлей
+  let overlay = $('caseContentsOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'caseContentsOverlay';
+    overlay.style.cssText='position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e=>{if(e.target===overlay)overlay.remove();});
+  }
+
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:420px;background:rgba(14,8,24,0.99);border-radius:22px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 36px 80px rgba(0,0,0,0.8);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:1.8rem;">${c.emoji}</span>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;">Кейс ${c.name}</div>
+            <div style="font-size:.65rem;color:var(--muted);">${c.items.length} предметов</div>
+          </div>
+        </div>
+        <button onclick="document.getElementById('caseContentsOverlay').remove()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;">✕</button>
+      </div>
+      <div style="padding:1.25rem;display:flex;flex-direction:column;gap:.5rem;max-height:60vh;overflow-y:auto;">
+        ${c.items.map(item=>`
+          <div style="display:flex;align-items:center;gap:12px;padding:.75rem 1rem;border-radius:12px;background:${rarityColors[item.rarity]||rarityColors.common};border:1px solid ${rarityBorder[item.rarity]||rarityBorder.common};">
+            <span style="font-size:1.6rem;flex-shrink:0;">${item.emoji}</span>
+            <div style="flex:1;">
+              <div style="font-size:.82rem;font-weight:600;color:rgba(255,255,255,.9);">${item.name}</div>
+              <div style="font-size:.62rem;color:var(--muted);margin-top:2px;">${rarityNames[item.rarity]||item.rarity}</div>
+            </div>
+            <div style="font-size:.7rem;font-weight:700;color:var(--muted);flex-shrink:0;">${item.chance}%</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
 
 async function loadInventory(){
   const grid=$('invGrid');grid.innerHTML='<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
