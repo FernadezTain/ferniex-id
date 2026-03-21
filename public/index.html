@@ -683,21 +683,29 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 <!-- SPIN MODAL -->
 <div class="spin-overlay" id="spinOverlay">
   <div class="spin-modal">
-<div class="spin-header">
-  <div>
-    <div class="spin-title" id="spinTitle">Открытие кейса</div>
-    <div id="spinCaseCount" style="font-size:.65rem;color:var(--muted);margin-top:2px;"></div>
-  </div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none;">
-      <div id="fastToggle" onclick="toggleFastOpen()" style="width:36px;height:20px;border-radius:100px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s,border-color .2s;flex-shrink:0;">
-        <div id="fastToggleKnob" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s,background .2s;opacity:0.5;"></div>
+    <div class="spin-header">
+      <div>
+        <div class="spin-title" id="spinTitle">Открытие кейса</div>
+        <div id="spinCaseCount" style="font-size:.65rem;color:var(--muted);margin-top:2px;"></div>
       </div>
-      Быстрое открытие
-    </label>
-    <button class="spin-close" onclick="closeSpinModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.72rem;color:var(--muted);user-select:none;">
+          <div id="fastToggle" onclick="toggleFastOpen()" style="width:36px;height:20px;border-radius:100px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);position:relative;cursor:pointer;transition:background .2s,border-color .2s;flex-shrink:0;">
+            <div id="fastToggleKnob" style="width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:transform .2s,background .2s;opacity:0.5;"></div>
+          </div>
+          Быстрое открытие
+        </label>
+        <button class="spin-close" onclick="closeSpinModal()">✕</button>
+      </div>
+    </div>
+    <div class="spin-track-wrap"><div class="spin-needle"></div><div class="spin-track" id="spinTrack"></div></div>
+    <div class="spin-result" id="spinResult"><span class="spin-result-emoji" id="spinResultEmoji"></span><div class="spin-result-name" id="spinResultName"></div><div class="spin-result-rarity" id="spinResultRarity"></div></div>
+    <div class="spin-footer">
+      <button class="spin-again-btn" id="spinAgainBtn" onclick="doSpin()">🎰 Открыть кейс</button>
+      <button class="spin-again-btn" id="spinOpen10Btn" onclick="doSpin10()">🎰 Открыть 10</button>
+      <button class="spin-done-btn" onclick="closeSpinModal()">Закрыть</button>
+    </div>
   </div>
-</div>
 </div>
 
 <!-- USER MANAGE MODAL -->
@@ -1083,12 +1091,19 @@ async function updateSpinCaseCount() {
 function openSpinModal(slug, fromInventory, qty=0) {
   spinCaseSlug = slug; spinFromInventory = fromInventory;
   const c = CASES[slug];
-  $('spinTitle').textContent = `🎰 ${c.name}`;
-  $('spinAgainBtn').className = 'spin-again-btn ' + c.cls;
-  $('spinResult').classList.remove('show');
-  $('spinAgainBtn').style.display = '';
-  $('spinAgainBtn').textContent = '🎰 Открыть кейс';
-  $('spinAgainBtn').disabled = false;
+  const titleEl = $('spinTitle');
+  const againBtn = $('spinAgainBtn');
+  const resultEl = $('spinResult');
+
+  if (titleEl) titleEl.textContent = `🎰 ${c.name}`;
+  if (againBtn) {
+    againBtn.className = 'spin-again-btn ' + c.cls;
+    againBtn.style.display = '';
+    againBtn.textContent = '🎰 Открыть кейс';
+    againBtn.disabled = false;
+  }
+  if (resultEl) resultEl.classList.remove('show');
+
   buildSpinTrack(slug);
   $('spinOverlay').classList.add('show');
   updateSpinCaseCount();
