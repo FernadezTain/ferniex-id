@@ -1187,54 +1187,74 @@ function showSpin10Results(results){
 async function doSpin() {
   if (spinIsSpinning) return;
   spinIsSpinning = true;
-  $('spinResult').classList.remove('show');
-  $('spinAgainBtn').disabled = true;
-  $('spinAgainBtn').textContent = fastOpenEnabled ? 'Открываем...' : 'Крутится...';
+  const resultEl = $('spinResult');
+  const againBtn = $('spinAgainBtn');
+  if(resultEl) resultEl.classList.remove('show');
+  if(againBtn) { againBtn.disabled = true; againBtn.textContent = fastOpenEnabled ? 'Открываем...' : 'Крутится...'; }
 
   let serverWinner = null;
   try {
     const res = await fetch(`${API}/api/cases/open`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug})});
     const data = await res.json();
-    if (!data.success) { showToast('❌ '+(data.error||'Ошибка открытия')); spinIsSpinning=false; $('spinAgainBtn').disabled=false; $('spinAgainBtn').textContent='🎰 Крутить ещё'; return; }
+    if (!data.success) {
+      showToast('❌ '+(data.error||'Ошибка открытия'));
+      spinIsSpinning=false;
+      if(againBtn){againBtn.disabled=false;againBtn.textContent='🎰 Крутить ещё';}
+      return;
+    }
     serverWinner = data.item;
-    if (typeof data.inventory_left === 'number') { $('spinAgainBtn').style.display = data.inventory_left > 0 ? '' : 'none'; }
-  } catch(e) { showToast('❌ Ошибка сети'); spinIsSpinning=false; $('spinAgainBtn').disabled=false; return; }
+    if (typeof data.inventory_left === 'number' && againBtn) {
+      againBtn.style.display = data.inventory_left > 0 ? '' : 'none';
+    }
+  } catch(e) {
+    showToast('❌ Ошибка сети');
+    spinIsSpinning=false;
+    if(againBtn){againBtn.disabled=false;}
+    return;
+  }
 
   const items = CASES[spinCaseSlug].items;
   const winItem = serverWinner;
   const rarityNames = {common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
 
   if (fastOpenEnabled) {
-    $('spinResultEmoji').textContent = winItem.emoji;
-    $('spinResultName').textContent = winItem.name;
-    $('spinResultRarity').textContent = rarityNames[winItem.rarity] || winItem.rarity;
-    $('spinResult').classList.add('show');
-    $('spinAgainBtn').disabled = false;
-    $('spinAgainBtn').textContent = '🎰 Крутить ещё';
-    spinIsSpinning = false;
+    const e1=$('spinResultEmoji'),e2=$('spinResultName'),e3=$('spinResultRarity');
+    if(e1)e1.textContent=winItem.emoji;
+    if(e2)e2.textContent=winItem.name;
+    if(e3)e3.textContent=rarityNames[winItem.rarity]||winItem.rarity;
+    if(resultEl)resultEl.classList.add('show');
+    if(againBtn){againBtn.disabled=false;againBtn.textContent='🎰 Крутить ещё';}
+    spinIsSpinning=false;
     loadSeeds();
     updateSpinCaseCount();
     return;
   }
 
-  const track = $('spinTrack');
-  track.style.transition = 'none'; track.style.transform = 'translateX(0)'; track.innerHTML = '';
-  for (let i = 0; i < 48; i++) {
-    const item = (i === 32) ? winItem : weightedRandom(items);
-    const div = document.createElement('div'); div.className = `spin-item rarity-${item.rarity}`;
-    if (i === 32) div.style.cssText = 'box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';
-    div.innerHTML = `<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;
+  const track=$('spinTrack');
+  if(!track){spinIsSpinning=false;return;}
+  track.style.transition='none';track.style.transform='translateX(0)';track.innerHTML='';
+  for(let i=0;i<48;i++){
+    const item=(i===32)?winItem:weightedRandom(items);
+    const div=document.createElement('div');div.className=`spin-item rarity-${item.rarity}`;
+    if(i===32)div.style.cssText='box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';
+    div.innerHTML=`<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;
     track.appendChild(div);
   }
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 80))));
-  const itemW = 96+8, wrapWidth = track.parentElement.offsetWidth, winCenter = 32*itemW+48, offset = winCenter-wrapWidth/2+itemW*2+(Math.random()*10-5);
-  requestAnimationFrame(() => { requestAnimationFrame(() => { track.style.transition = 'transform 5s cubic-bezier(.17,.67,.12,.99)'; track.style.transform = `translateX(-${offset}px)`; }); });
-  setTimeout(() => {
-    $('spinResultEmoji').textContent = winItem.emoji; $('spinResultName').textContent = winItem.name;
-    $('spinResultRarity').textContent = rarityNames[winItem.rarity] || winItem.rarity;
-    $('spinResult').classList.add('show'); $('spinAgainBtn').disabled=false; $('spinAgainBtn').textContent='🎰 Крутить ещё';
-    spinIsSpinning = false; loadSeeds(); updateSpinCaseCount();
-  }, 5200);
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,80))));
+  const itemW=96+8,wrapWidth=track.parentElement?.offsetWidth||300,winCenter=32*itemW+48,offset=winCenter-wrapWidth/2+itemW*2+(Math.random()*10-5);
+  requestAnimationFrame(()=>{requestAnimationFrame(()=>{track.style.transition='transform 5s cubic-bezier(.17,.67,.12,.99)';track.style.transform=`translateX(-${offset}px)`;});});
+
+  setTimeout(()=>{
+    const e1=$('spinResultEmoji'),e2=$('spinResultName'),e3=$('spinResultRarity'),r=$('spinResult'),b=$('spinAgainBtn');
+    if(e1)e1.textContent=winItem.emoji;
+    if(e2)e2.textContent=winItem.name;
+    if(e3)e3.textContent=rarityNames[winItem.rarity]||winItem.rarity;
+    if(r)r.classList.add('show');
+    if(b){b.disabled=false;b.textContent='🎰 Крутить ещё';}
+    spinIsSpinning=false;
+    loadSeeds();
+    updateSpinCaseCount();
+  },5200);
 }
 
 function showToast(msg){let t=document.getElementById('fernie-toast');if(!t){t=document.createElement('div');t.id='fernie-toast';t.style.cssText='position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:rgba(20,15,32,0.95);border:1px solid rgba(180,141,255,0.3);color:#fff;padding:10px 18px;border-radius:12px;font-size:.8rem;font-weight:500;z-index:9999;transition:opacity .3s;white-space:nowrap;backdrop-filter:blur(12px);';document.body.appendChild(t);}t.textContent=msg;t.style.opacity='1';clearTimeout(t._timer);t._timer=setTimeout(()=>{t.style.opacity='0';},2500);}
