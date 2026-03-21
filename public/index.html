@@ -1117,6 +1117,23 @@ function buildSpinTrack(slug){const track=$('spinTrack');track.style.transition=
 
 async function doSpin10(){
   if(spinIsSpinning)return;const btn=$('spinOpen10Btn');btn.disabled=true;$('spinAgainBtn').disabled=true;const results=[];const count=10;
+
+  if(fastOpenEnabled){
+    for(let i=0;i<count;i++){
+      let serverWinner=null;
+      try{const res=await fetch(`${API}/api/cases/open`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,skipNotify:true})});const data=await res.json();if(!data.success){showToast('❌ '+(data.error||'Ошибка'));break;}serverWinner=data.item;results.push(serverWinner);if(data.inventory_left===0&&i<count-1){showToast(`⚠️ Кейсы закончились после ${i+1} открытий`);break;}}catch(e){showToast('❌ Ошибка сети');break;}
+    }
+    if(results.length>0){
+      const last=results[results.length-1];
+      const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
+      $('spinResultEmoji').textContent=last.emoji;$('spinResultName').textContent=last.name;$('spinResultRarity').textContent=rarityNames[last.rarity]||last.rarity;$('spinResult').classList.add('show');
+      try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error(e);}
+      loadSeeds();updateSpinCaseCount();
+    }
+    btn.disabled=false;$('spinAgainBtn').disabled=false;
+    return;
+  }
+
   for(let i=0;i<count;i++){
     if(spinIsSpinning){await new Promise(r=>setTimeout(r,100));i--;continue;}
     spinIsSpinning=true;$('spinTitle').textContent=`🎰 ${CASES[spinCaseSlug].name} — ${i+1}/10`;$('spinResult').classList.remove('show');
@@ -1135,7 +1152,7 @@ async function doSpin10(){
   }
   if(results.length>0){try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error('batch notify error:',e);}loadSeeds();}
   updateSpinCaseCount();
-  btn.disabled=false; $('spinAgainBtn').disabled=false;
+  btn.disabled=false;$('spinAgainBtn').disabled=false;
 }
 
 async function doSpin() {
