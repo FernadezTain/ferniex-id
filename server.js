@@ -555,21 +555,18 @@ app.post("/api/cases/notify-batch", async (req, res) => {
     if (!telegram_id) return res.json({ success: false });
     const caseDef = CASE_DEFINITIONS[caseSlug];
 
-    // Начисляем награды через бота для каждого предмета
-    for (const item of results) {
-      await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
-        telegram_id,
-        type: "case_reward",
-        username: username || "—",
-        case_name: caseDef?.name || caseSlug,
-        item_name: item.name,
-        item_emoji: item.emoji,
-        item_rarity: item.rarity,
+    // Начисляем все награды одним батч-запросом — бот начислит без сообщений
+    await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
+      telegram_id,
+      type: "case_reward_batch",
+      username: username || "—",
+      case_name: caseDef?.name || caseSlug,
+      results: results.map(item => ({
         reward: item.reward
-      });
-    }
+      }))
+    });
 
-    // Одно итоговое сообщение со списком
+    // Одно итоговое сообщение
     const rarityLabels = {common:'🔘 Обычный', rare:'🔵 Редкий', epic:'🟣 Эпический', legendary:'🟡 Легендарный'};
     const itemsList = results.map((item, i) =>
       `${i+1}. ${item.emoji} <b>${item.name}</b> — ${rarityLabels[item.rarity] || item.rarity}`
