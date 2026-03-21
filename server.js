@@ -107,24 +107,21 @@ app.post("/api/login", async (req, res) => {
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
       let device = 'неизвестно';
       if (userAgent) {
-        const match = userAgent.match(/\(([^)]+)\)/);
-        if (match) {
-          const parts = match[1].split(';').map(s => s.trim());
-          if (/Android/.test(userAgent)) {
-            const model = parts[2] || parts[1] || 'Android';
-            const version = parts[1] || '';
-            device = `📱 ${model} (${version})`;
-          } else if (/iPhone/.test(userAgent)) {
-            device = `🍎 iPhone (iOS ${userAgent.match(/OS ([\d_]+)/)?.[1]?.replace(/_/g,'.') || ''})`;
-          } else if (/iPad/.test(userAgent)) {
-            device = `🍎 iPad`;
-          } else if (/Windows/.test(userAgent)) {
-            device = `🖥 Windows`;
-          } else if (/Mac/.test(userAgent)) {
-            device = `🖥 MacOS`;
-          } else if (/Linux/.test(userAgent)) {
-            device = `🖥 Linux`;
-          }
+        if (/Android/.test(userAgent)) {
+          const model = userAgent.match(/;\s*([^;)]+)\s*Build/)?.[1] || 'Android';
+          const ver = userAgent.match(/Android\s*([\d.]+)/)?.[1] || '';
+          device = `📱 ${model} (Android ${ver})`;
+        } else if (/iPhone/.test(userAgent)) {
+          const ver = userAgent.match(/OS\s*([\d_]+)/)?.[1]?.replace(/_/g,'.') || '';
+          device = `🍎 iPhone (iOS ${ver})`;
+        } else if (/iPad/.test(userAgent)) {
+          device = `🍎 iPad`;
+        } else if (/Windows/.test(userAgent)) {
+          device = `🖥 Windows`;
+        } else if (/Macintosh|Mac OS/.test(userAgent)) {
+          device = `🖥 MacOS`;
+        } else if (/Linux/.test(userAgent)) {
+          device = `🖥 Linux`;
         }
       }
 
@@ -135,7 +132,7 @@ app.post("/api/login", async (req, res) => {
         `🕒 Время: <b>${now} МСК</b>` +
         `</blockquote>\n\n` +
         `<blockquote>` +
-        `🌐 IP: <code>${clientIp || req.ip || 'неизвестен'}</code>\n` +
+        `🌐 IP: <code>${clientIp || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'неизвестен'}</code>\n` +
         `📱 Устройство: <b>${device}</b>` +
         `</blockquote>\n\n` +
         `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
