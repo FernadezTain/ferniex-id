@@ -1128,6 +1128,7 @@ async function doSpin10(){
       try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error(e);}
       loadSeeds();updateSpinCaseCount();
     }
+    spinIsSpinning=false;
     btn.disabled=false;$('spinAgainBtn').disabled=false;
     return;
   }
@@ -1136,7 +1137,14 @@ async function doSpin10(){
     if(spinIsSpinning){await new Promise(r=>setTimeout(r,100));i--;continue;}
     spinIsSpinning=true;$('spinTitle').textContent=`🎰 ${CASES[spinCaseSlug].name} — ${i+1}/10`;$('spinResult').classList.remove('show');
     let serverWinner=null;
-    try{const res=await fetch(`${API}/api/cases/open`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,skipNotify:true})});const data=await res.json();if(!data.success){showToast('❌ '+(data.error||'Ошибка'));spinIsSpinning=false;break;}serverWinner=data.item;results.push(serverWinner);if(data.inventory_left===0&&i<count-1){showToast(`⚠️ Кейсы закончились после ${i+1} открытий`);i=count;}}catch(e){showToast('❌ Ошибка сети');spinIsSpinning=false;break;}
+    try{
+      const res=await fetch(`${API}/api/cases/open`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,skipNotify:true})});
+      const data=await res.json();
+      if(!data.success){showToast('❌ '+(data.error||'Ошибка'));spinIsSpinning=false;break;}
+      serverWinner=data.item;results.push(serverWinner);
+      if(data.inventory_left===0&&i<count-1){showToast(`⚠️ Кейсы закончились после ${i+1} открытий`);spinIsSpinning=false;i=count;}
+    }catch(e){showToast('❌ Ошибка сети');spinIsSpinning=false;break;}
+    if(!serverWinner){spinIsSpinning=false;break;}
     const items=CASES[spinCaseSlug].items;const winItem=items.find(it=>it.name===serverWinner.name)||items.find(it=>it.emoji===serverWinner.emoji)||items[0];
     const track=$('spinTrack');const WIN_IDX=32;track.style.transition='none';track.style.transform='translateX(0)';track.innerHTML='';
     for(let j=0;j<48;j++){const item=(j===WIN_IDX)?winItem:weightedRandom(items);const div=document.createElement('div');div.className=`spin-item rarity-${item.rarity}`;if(j===WIN_IDX)div.style.cssText='box-shadow:0 0 0 2px var(--p1),0 0 16px rgba(180,141,255,0.4)!important;border-color:var(--p1)!important;';div.innerHTML=`<span class="spin-item-emoji">${item.emoji}</span><span class="spin-item-name">${item.name}</span>`;track.appendChild(div);}
@@ -1148,6 +1156,7 @@ async function doSpin10(){
     if(i<count-1)await new Promise(r=>setTimeout(r,600));
   }
 
+  spinIsSpinning=false;
   if(results.length>0){
     showSpin10Results(results);
     try{await fetch(`${API}/api/cases/notify-batch`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:spinCaseSlug,results})});}catch(e){console.error('batch notify error:',e);}
@@ -1159,7 +1168,6 @@ async function doSpin10(){
 }
 
 function showSpin10Results(results){
-  const rarityNames={common:'Обычный',rare:'Редкий',epic:'Эпический',legendary:'Легендарный'};
   const rarityColors={common:'rgba(180,180,200,0.15)',rare:'rgba(126,184,255,0.18)',epic:'rgba(180,141,255,0.2)',legendary:'rgba(255,200,60,0.2)'};
   const rarityBorder={common:'rgba(180,180,200,0.25)',rare:'rgba(126,184,255,0.35)',epic:'rgba(180,141,255,0.4)',legendary:'rgba(255,200,60,0.5)'};
   const spinResult=$('spinResult');
@@ -1176,7 +1184,6 @@ function showSpin10Results(results){
   `;
   spinResult.classList.add('show');
 }
-
 async function doSpin() {
   if (spinIsSpinning) return;
   spinIsSpinning = true;
