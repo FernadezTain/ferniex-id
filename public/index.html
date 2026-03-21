@@ -1089,25 +1089,36 @@ async function updateSpinCaseCount() {
 }
 
 function openSpinModal(slug, fromInventory, qty=0) {
-  spinCaseSlug = slug; spinFromInventory = fromInventory;
-  const c = CASES[slug];
-  const titleEl = $('spinTitle');
-  const againBtn = $('spinAgainBtn');
-  const resultEl = $('spinResult');
+  spinCaseSlug=slug;spinFromInventory=fromInventory;
+  const c=CASES[slug];
+  const titleEl=$('spinTitle');
+  const againBtn=$('spinAgainBtn');
+  const resultEl=$('spinResult');
 
-  if (titleEl) titleEl.textContent = `🎰 ${c.name}`;
-  if (againBtn) {
-    againBtn.className = 'spin-again-btn ' + c.cls;
-    againBtn.style.display = '';
-    againBtn.textContent = '🎰 Открыть кейс';
-    againBtn.disabled = false;
+  if(titleEl)titleEl.textContent=`🎰 ${c.name}`;
+
+  // Сбрасываем структуру результата
+  if(resultEl){
+    resultEl.classList.remove('show');
+    resultEl.innerHTML=`
+      <span class="spin-result-emoji" id="spinResultEmoji"></span>
+      <div class="spin-result-name" id="spinResultName"></div>
+      <div class="spin-result-rarity" id="spinResultRarity"></div>
+    `;
   }
-  if (resultEl) resultEl.classList.remove('show');
+
+  if(againBtn){
+    againBtn.className='spin-again-btn '+c.cls;
+    againBtn.style.display='';
+    againBtn.textContent='🎰 Открыть кейс';
+    againBtn.disabled=false;
+  }
 
   buildSpinTrack(slug);
   $('spinOverlay').classList.add('show');
   updateSpinCaseCount();
 }
+
 function closeSpinModal(){if(spinIsSpinning)return;$('spinOverlay').classList.remove('show');loadInventory();}
 $('spinOverlay').addEventListener('click',e=>{if(e.target===$('spinOverlay'))closeSpinModal();});
 
@@ -1187,10 +1198,20 @@ function showSpin10Results(results){
 async function doSpin() {
   if (spinIsSpinning) return;
   spinIsSpinning = true;
+
+  // Сбрасываем spinResult к оригинальной структуре
   const resultEl = $('spinResult');
+  if (resultEl) {
+    resultEl.classList.remove('show');
+    resultEl.innerHTML = `
+      <span class="spin-result-emoji" id="spinResultEmoji"></span>
+      <div class="spin-result-name" id="spinResultName"></div>
+      <div class="spin-result-rarity" id="spinResultRarity"></div>
+    `;
+  }
+
   const againBtn = $('spinAgainBtn');
-  if(resultEl) resultEl.classList.remove('show');
-  if(againBtn) { againBtn.disabled = true; againBtn.textContent = fastOpenEnabled ? 'Открываем...' : 'Крутится...'; }
+  if(againBtn){againBtn.disabled=true;againBtn.textContent=fastOpenEnabled?'Открываем...':'Крутится...';}
 
   let serverWinner = null;
   try {
