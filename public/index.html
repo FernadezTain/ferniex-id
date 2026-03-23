@@ -1565,7 +1565,7 @@ async function doTransferConfirm() {
   try {
     const res = await fetch(`${API}/api/transfer/confirm`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, userId: currentUser.id })
+      body: JSON.stringify({ code: String(getCodeValue()), userId: currentUser.id })
     });
     const data = await res.json();
 
