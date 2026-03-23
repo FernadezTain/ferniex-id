@@ -480,6 +480,27 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .um-session-date{font-size:.62rem;color:var(--muted);}
 @media(max-width:768px){.admin-stats-row{grid-template-columns:repeat(2,1fr);}.umanage-modal{max-width:100%;}}
 @media(max-width:400px){.admin-stats-row{grid-template-columns:1fr 1fr;}}
+
+.code-digit-input {
+  width: 44px; height: 54px; border-radius: 12px;
+  background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.13);
+  text-align: center; font-family: 'Syne', sans-serif; font-size: 1.5rem;
+  font-weight: 800; color: var(--text); outline: none;
+  transition: border-color .2s, background .2s, box-shadow .2s;
+  caret-color: var(--p1); -webkit-tap-highlight-color: transparent;
+}
+.code-digit-input:focus {
+  border-color: rgba(180,141,255,0.55);
+  background: rgba(180,141,255,0.09);
+  box-shadow: 0 0 0 3px rgba(180,141,255,0.12);
+}
+.code-digit-input.filled {
+  border-color: rgba(78,205,196,0.45);
+  background: rgba(78,205,196,0.07);
+}
+@media (max-width: 400px) {
+  .code-digit-input { width: 38px; height: 48px; font-size: 1.3rem; }
+}
 </style>
 </head>
 <body>
@@ -620,19 +641,32 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         </div>
       </div>
 
-      <!-- SECURITY -->
-      <div class="dash-section" id="section-security">
-        <div class="stats-page-header"><h2>🛡️ Безопасность</h2><p>Управление защитой твоего аккаунта</p></div>
-        <div class="sec-cards">
-          <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🛡️</div><div><div class="sec-card-name">Аккаунт защищён</div><div class="sec-card-desc">Базовая защита активна</div></div></div><div class="sec-card-right"><div class="sec-status sec-on">Активно</div></div></div>
-          <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🔑</div><div><div class="sec-card-name">Пароль задан</div><div class="sec-card-desc">Вход защищён паролем</div></div></div><div class="sec-card-right"><div class="sec-status sec-on">Да</div></div></div>
-          <div class="sec-card" id="secTgCard">
-            <div class="sec-card-left"><div class="sec-card-ico-wrap">✈️</div><div><div class="sec-card-name">Telegram</div><div class="sec-card-desc" id="secTgDesc">Не привязан</div></div></div>
-            <div class="sec-card-right"><div class="sec-status sec-off" id="secTgStatus">Не привязан</div><button class="unlink-btn" id="unlinkTgBtn" onclick="confirmUnlink()">🔗 Отвязать</button><button class="unlink-btn" id="linkTgBtn" style="background:rgba(78,205,196,0.07);border-color:rgba(78,205,196,0.22);color:var(--teal);" onclick="doLinkTelegram()">🔗 Привязать</button></div>
-          </div>
-          <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🌍</div><div><div class="sec-card-name">Последний вход</div><div class="sec-card-desc">Текущая сессия</div></div></div><div class="sec-card-right"><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div></div>
+<!-- SECURITY -->
+<div class="dash-section" id="section-security">
+  <div class="stats-page-header"><h2>🛡️ Безопасность</h2><p>Управление защитой твоего аккаунта</p></div>
+  <div class="sec-cards">
+    <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🛡️</div><div><div class="sec-card-name">Аккаунт защищён</div><div class="sec-card-desc">Базовая защита активна</div></div></div><div class="sec-card-right"><div class="sec-status sec-on">Активно</div></div></div>
+    <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🔑</div><div><div class="sec-card-name">Пароль задан</div><div class="sec-card-desc">Вход защищён паролем</div></div></div><div class="sec-card-right"><div class="sec-status sec-on">Да</div></div></div>
+    <div class="sec-card" id="secTgCard">
+      <div class="sec-card-left"><div class="sec-card-ico-wrap">✈️</div><div><div class="sec-card-name">Telegram</div><div class="sec-card-desc" id="secTgDesc">Не привязан</div></div></div>
+      <div class="sec-card-right"><div class="sec-status sec-off" id="secTgStatus">Не привязан</div><button class="unlink-btn" id="unlinkTgBtn" onclick="confirmUnlink()">🔗 Отвязать</button><button class="unlink-btn" id="linkTgBtn" style="background:rgba(78,205,196,0.07);border-color:rgba(78,205,196,0.22);color:var(--teal);" onclick="doLinkTelegram()">🔗 Привязать</button></div>
+    </div>
+    <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🌍</div><div><div class="sec-card-name">Последний вход</div><div class="sec-card-desc">Текущая сессия</div></div></div><div class="sec-card-right"><div class="sec-status sec-on" id="secLastLogin">Сейчас</div></div></div>
+    <div class="sec-card" style="cursor:pointer;" onclick="openTransferPage()">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">🔄</div>
+        <div>
+          <div class="sec-card-name">Перенос аккаунта</div>
+          <div class="sec-card-desc">Перенести данные на другой Telegram</div>
         </div>
       </div>
+      <div class="sec-card-right">
+        <div class="sec-status" style="background:rgba(126,184,255,0.1);border:1px solid rgba(126,184,255,0.2);color:var(--p2);">Действие</div>
+        <span style="color:var(--muted);font-size:.8rem;margin-left:4px;">›</span>
+      </div>
+    </div>
+  </div>
+</div>
 
       <!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
       <div class="dash-section" id="section-admin">
@@ -1421,6 +1455,243 @@ async function saveUmanage(){
 function checkAdminAccess(){
   if(currentUser?.role==='admin'){$('adminNavItem').style.display='';$('adminMobileBtn').style.display='';}
 }
+// ════ ПЕРЕНОС АККАУНТА ════
+function openTransferPage() {
+  $('transferOldId').value = currentUser?.telegram_id || '';
+  $('transferNewId').value = '';
+  $('transferMsg').textContent = '';
+  $('transferStep1').style.display = '';
+  $('transferStep2').style.display = 'none';
+  $('transferStep3').style.display = 'none';
+  $('transferOverlay').classList.add('show');
+  initCodeInputs();
+}
+
+function closeTransferPage() {
+  if ($('transferLoading').style.display !== 'none' && $('transferStep3').style.display !== 'none') return;
+  $('transferOverlay').classList.remove('show');
+}
+
+function backToTransferStep1() {
+  $('transferStep1').style.display = '';
+  $('transferStep2').style.display = 'none';
+  $('transferCodeMsg').textContent = '';
+  clearCodeInputs();
+}
+
+$('transferOverlay').addEventListener('click', e => {
+  if (e.target === $('transferOverlay')) closeTransferPage();
+});
+
+function initCodeInputs() {
+  const inputs = document.querySelectorAll('.code-digit-input');
+  inputs.forEach((inp, idx) => {
+    inp.value = '';
+    inp.classList.remove('filled');
+    inp.oninput = () => {
+      inp.value = inp.value.replace(/\D/g, '').slice(-1);
+      inp.classList.toggle('filled', inp.value !== '');
+      if (inp.value && idx < 5) inputs[idx + 1].focus();
+    };
+    inp.onkeydown = e => {
+      if (e.key === 'Backspace' && !inp.value && idx > 0) {
+        inputs[idx - 1].focus();
+        inputs[idx - 1].value = '';
+        inputs[idx - 1].classList.remove('filled');
+      }
+      if (e.key === 'Enter') doTransferConfirm();
+    };
+    inp.onpaste = e => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      paste.split('').forEach((ch, i) => {
+        if (inputs[i]) { inputs[i].value = ch; inputs[i].classList.add('filled'); }
+      });
+      if (inputs[Math.min(paste.length, 5)]) inputs[Math.min(paste.length, 5)].focus();
+    };
+  });
+}
+
+function clearCodeInputs() {
+  document.querySelectorAll('.code-digit-input').forEach(inp => { inp.value = ''; inp.classList.remove('filled'); });
+}
+
+function getCodeValue() {
+  return Array.from(document.querySelectorAll('.code-digit-input')).map(i => i.value).join('');
+}
+
+async function doTransferSendCode() {
+  const oldId = $('transferOldId').value.trim();
+  const newId = $('transferNewId').value.trim();
+  const msg = $('transferMsg');
+
+  if (!oldId || !newId) { msg.textContent = 'Заполни оба поля'; return; }
+  if (!/^\d{5,12}$/.test(oldId) || !/^\d{5,12}$/.test(newId)) { msg.textContent = 'Telegram ID должен быть числом'; return; }
+  if (oldId === newId) { msg.textContent = 'ID должны отличаться'; return; }
+
+  const btn = $('transferSendBtn');
+  btn.textContent = 'Отправляем...'; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
+  msg.textContent = '';
+
+  try {
+    const res = await fetch(`${API}/api/transfer/send-code`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, oldTgId: oldId, newTgId: newId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      $('transferStep1').style.display = 'none';
+      $('transferStep2').style.display = '';
+      initCodeInputs();
+      setTimeout(() => document.querySelector('.code-digit-input')?.focus(), 100);
+    } else {
+      msg.style.color = 'var(--red)';
+      msg.textContent = '❌ ' + (data.error || 'Ошибка');
+    }
+  } catch { msg.style.color = 'var(--red)'; msg.textContent = '❌ Ошибка сети'; }
+
+  btn.textContent = 'Получить код →'; btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
+
+async function doTransferConfirm() {
+  const code = getCodeValue();
+  const msg = $('transferCodeMsg');
+  if (code.length < 6) { msg.textContent = 'Введи все 6 цифр'; return; }
+
+  const btn = $('transferConfirmBtn');
+  btn.textContent = 'Проверяем...'; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
+  msg.textContent = '';
+
+  try {
+    const res = await fetch(`${API}/api/transfer/confirm`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, userId: currentUser.id })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      $('transferStep2').style.display = 'none';
+      $('transferStep3').style.display = '';
+      $('transferLoading').style.display = '';
+      $('transferSuccess').style.display = 'none';
+      setTimeout(() => {
+        $('transferLoading').style.display = 'none';
+        $('transferSuccess').style.display = '';
+        // Обновляем сессию
+        if (currentUser) {
+          currentUser.telegram_id = parseInt($('transferNewId').value.trim());
+          localStorage.setItem('fernieid_session', JSON.stringify(currentUser));
+          $('secTgStatus').textContent = 'Привязан ✓';
+          $('secTgStatus').className = 'sec-status sec-on';
+          $('secTgDesc').textContent = 'ID: ' + currentUser.telegram_id;
+          $('unlinkTgBtn').style.display = 'inline-flex';
+          $('linkTgBtn').style.display = 'none';
+        }
+      }, 1500);
+    } else {
+      msg.style.color = 'var(--red)';
+      msg.textContent = '❌ ' + (data.error || 'Неверный код');
+      clearCodeInputs();
+      document.querySelector('.code-digit-input')?.focus();
+    }
+  } catch {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ Ошибка сети';
+  }
+
+  btn.textContent = 'Подтвердить перенос'; btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
 </script>
+
+<!-- TRANSFER OVERLAY -->
+<div class="buy-overlay" id="transferOverlay" style="z-index:1000;align-items:flex-start;padding-top:5vh;">
+  <div class="buy-modal" style="max-width:460px;position:relative;">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:40px;height:40px;border-radius:12px;background:rgba(126,184,255,0.14);border:1px solid rgba(126,184,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🔄</div>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;">Перенос аккаунта</div>
+          <div style="font-size:.67rem;color:var(--muted);">Перенос данных в Telegram боте</div>
+        </div>
+      </div>
+      <button onclick="closeTransferPage()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;transition:color .2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    </div>
+
+    <!-- Step 1: Form -->
+    <div id="transferStep1">
+      <div style="padding:.7rem 1rem;border-radius:12px;background:rgba(255,184,122,0.08);border:1px solid rgba(255,184,122,0.2);margin-bottom:1.25rem;font-size:.75rem;color:var(--orange);line-height:1.6;">
+        ⚠️ <b>Внимание:</b> будут перенесены все данные бота (баланс, семена, DC, инвентарь). Данные блокировок и мутов не переносятся.
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:.67rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.5rem;">Старый Telegram ID <span style="color:rgba(255,107,107,0.7)">(текущий)</span></label>
+        <div style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:10px 13px;">
+          <span style="font-size:.85rem;">📤</span>
+          <input class="um-input" id="transferOldId" type="text" placeholder="Например: 7406372338" style="flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);">
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-size:.67rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.5rem;">Новый Telegram ID <span style="color:rgba(78,205,196,0.8)">(новый)</span></label>
+        <div style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:10px 13px;">
+          <span style="font-size:.85rem;">📥</span>
+          <input class="um-input" id="transferNewId" type="text" placeholder="Например: 1234567890" style="flex:1;background:none;border:none;outline:none;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);">
+        </div>
+      </div>
+
+      <div style="font-size:.72rem;color:var(--muted);margin-bottom:1.25rem;padding:.65rem .9rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);line-height:1.6;">
+        📨 Код подтверждения придёт в <b style="color:rgba(255,255,255,.7)">старый</b> Telegram. Убедись, что ты писал боту <b style="color:var(--p2)">@FernieXBot</b>.
+      </div>
+
+      <div class="msg" id="transferMsg" style="color:var(--red);min-height:18px;font-size:.78rem;margin-bottom:.75rem;"></div>
+
+      <div style="display:flex;gap:.6rem;">
+        <button onclick="closeTransferPage()" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;" onmouseover="this.style.background='rgba(255,255,255,0.11)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">Отмена</button>
+        <button id="transferSendBtn" onclick="doTransferSendCode()" style="flex:2;padding:11px;border-radius:11px;background:linear-gradient(135deg,rgba(126,184,255,0.28),rgba(180,141,255,0.2));border:1px solid rgba(126,184,255,0.4);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:rgba(255,255,255,.92);cursor:pointer;transition:all .18s;">Получить код →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Code input -->
+    <div id="transferStep2" style="display:none;">
+      <div style="text-align:center;margin-bottom:1.5rem;">
+        <div style="font-size:2.5rem;margin-bottom:.5rem;">📨</div>
+        <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.3rem;">Введи код из Telegram</div>
+        <div style="font-size:.75rem;color:var(--muted);line-height:1.6;">Мы отправили 6-значный код в <b style="color:rgba(255,255,255,.7)">старый</b> Telegram аккаунт</div>
+      </div>
+
+      <!-- 6-digit code input -->
+      <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1.5rem;" id="codeInputs">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="0">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="1">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="2">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="3">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="4">
+        <input type="text" maxlength="1" class="code-digit-input" data-idx="5">
+      </div>
+
+      <div class="msg" id="transferCodeMsg" style="color:var(--red);min-height:18px;font-size:.78rem;margin-bottom:.75rem;text-align:center;"></div>
+
+      <button id="transferConfirmBtn" onclick="doTransferConfirm()" style="width:100%;padding:13px;border-radius:11px;background:linear-gradient(135deg,rgba(78,205,196,0.28),rgba(126,184,255,0.2));border:1px solid rgba(78,205,196,0.4);font-family:'Inter',sans-serif;font-size:.87rem;font-weight:600;color:rgba(255,255,255,.95);cursor:pointer;transition:all .2s;margin-bottom:.6rem;">Подтвердить перенос</button>
+      <button onclick="backToTransferStep1()" style="width:100%;padding:10px;border-radius:11px;background:none;border:1px solid rgba(255,255,255,0.08);font-family:'Inter',sans-serif;font-size:.78rem;color:var(--muted);cursor:pointer;transition:all .18s;">← Назад</button>
+    </div>
+
+    <!-- Step 3: Loading / Success -->
+    <div id="transferStep3" style="display:none;text-align:center;padding:1rem 0;">
+      <div id="transferLoading">
+        <div class="spinner" style="margin:0 auto 1rem;"></div>
+        <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.4rem;">Переносим данные...</div>
+        <div style="font-size:.78rem;color:var(--muted);">Это займёт несколько секунд</div>
+      </div>
+      <div id="transferSuccess" style="display:none;">
+        <div style="font-size:3rem;margin-bottom:.75rem;">✅</div>
+        <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.4rem;color:var(--teal);">Готово!</div>
+        <div style="font-size:.8rem;color:var(--muted);line-height:1.7;margin-bottom:1.5rem;">Данные успешно перенесены на новый Telegram аккаунт. Уведомление отправлено в Telegram.</div>
+        <button onclick="closeTransferPage()" style="padding:11px 28px;border-radius:11px;background:rgba(78,205,196,0.18);border:1px solid rgba(78,205,196,0.32);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:var(--teal);cursor:pointer;">Закрыть</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 </body>
 </html>
