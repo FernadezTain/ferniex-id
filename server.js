@@ -347,8 +347,6 @@ app.post("/api/telegram/unlink", async (req, res) => {
 // ══════════════════════════════════════════
 //  Перенос аккаунта — шаг 1: отправить код
 // ══════════════════════════════════════════
-const transferCodes = new Map(); // token -> { oldTgId, newTgId, userId, expires }
-
 app.post("/api/transfer/send-code", async (req, res) => {
   const { userId, oldTgId, newTgId } = req.body;
   if (!userId || !oldTgId || !newTgId)
@@ -358,8 +356,31 @@ app.post("/api/transfer/send-code", async (req, res) => {
 
   try {
     const code = String(Math.floor(100000 + Math.random() * 900000));
-    const expires = Date.now() + 10 * 60 * 1000;
-    transferCodes.set(code, { oldTgId, newTgId, userId, expires });
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    // Удаляем старые коды этого юзера
+    await fetch(`${SB_URL}/rest/v1/transfer_codes?user_id=eq.${userId}`, {
+      method: "DELETE",
+      headers: sbHeaders
+    });
+
+    // Сохраняем новый код в Supabase
+    const insertRes = await fetch(`${SB_URL}/rest/v1/transfer_codes`, {
+      method: "POST",
+      headers: { ...sbHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: String(userId),
+        code,
+        old_tg_id: String(oldTgId),
+        new_tg_id: String(newTgId),
+        expires_at: expires
+      })
+    });
+
+    if (!insertRes.ok) {
+      console.error("insert transfer_code error:", await insertRes.text());
+      return res.json({ success: false, error: "Ошибка сохранения кода" });
+    }
 
     const sent = await sendTgMessage(oldTgId,
       `🔄 <b>Запрос на перенос аккаунта FernieID</b>\n\n` +
@@ -388,22 +409,38 @@ app.post("/api/transfer/confirm", async (req, res) => {
   const { code, userId } = req.body;
   if (!code || !userId) return res.json({ success: false, error: "Нет данных" });
 
-  const entry = transferCodes.get(code);
-  if (!entry) return res.json({ success: false, error: "Неверный или истёкший код" });
-  if (Date.now() > entry.expires) {
-    transferCodes.delete(code);
-    return res.json({ success: false, error: "Код истёк" });
-  }
-  if (String(entry.userId) !== String(userId))
-    return res.json({ success: false, error: "Код не принадлежит этому аккаунту" });
-
-  transferCodes.delete(code);
+  const codeStr = String(code).trim();
 
   try {
-    const result = await notifyBot(`${BOT_URL}/api/fernieid/transfer`, {
-      old_telegram_id: entry.oldTgId,
-      new_telegram_id: entry.newTgId,
+    const r = await fetch(
+      `${SB_URL}/rest/v1/transfer_codes?code=eq.${codeStr}&user_id=eq.${userId}`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+    console.log(">>> transfer confirm rows:", JSON.stringify(rows));
+
+    if (!rows.length) return res.json({ success: false, error: "Неверный код" });
+
+    const entry = rows[0];
+    if (new Date() > new Date(entry.expires_at)) {
+      await fetch(`${SB_URL}/rest/v1/transfer_codes?code=eq.${codeStr}`, {
+        method: "DELETE", headers: sbHeaders
+      });
+      return res.json({ success: false, error: "Код истёк" });
+    }
+
+    // Удаляем код сразу (одноразовый)
+    await fetch(`${SB_URL}/rest/v1/transfer_codes?code=eq.${codeStr}`, {
+      method: "DELETE", headers: sbHeaders
     });
+
+    // Вызываем бота для переноса данных
+    const result = await notifyBot(`${BOT_URL}/api/fernieid/transfer`, {
+      old_telegram_id: entry.old_tg_id,
+      new_telegram_id: entry.new_tg_id,
+    });
+
+    console.log(">>> transfer bot result:", JSON.stringify(result));
 
     if (!result?.success) {
       return res.json({ success: false, error: result?.error || "Ошибка переноса в боте" });
@@ -413,13 +450,13 @@ app.post("/api/transfer/confirm", async (req, res) => {
     await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
       method: "PATCH",
       headers: { ...sbHeaders, Prefer: "return=minimal" },
-      body: JSON.stringify({ telegram_id: parseInt(entry.newTgId) })
+      body: JSON.stringify({ telegram_id: parseInt(entry.new_tg_id) })
     });
 
     // Уведомляем новый аккаунт
-    await sendTgMessage(entry.newTgId,
+    await sendTgMessage(entry.new_tg_id,
       `✅ <b>Данные успешно перенесены!</b>\n\n` +
-      `<blockquote>Все ваши данные из Telegram <code>${entry.oldTgId}</code> перенесены на этот аккаунт.</blockquote>\n\n` +
+      `<blockquote>Все ваши данные из Telegram <code>${entry.old_tg_id}</code> перенесены на этот аккаунт.</blockquote>\n\n` +
       `🎉 <i>Добро пожаловать!</i>`
     );
 
@@ -429,6 +466,7 @@ app.post("/api/transfer/confirm", async (req, res) => {
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
+
 // ══════════════════════════════════════════
 //  Баланс семян из Telegram бота
 // ══════════════════════════════════════════
