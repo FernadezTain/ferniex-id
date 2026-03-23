@@ -357,15 +357,8 @@ app.post("/api/transfer/send-code", async (req, res) => {
     return res.json({ success: false, error: "ID совпадают" });
 
   try {
-    // Проверяем что старый TG реально привязан к аккаунту
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
-    const users = await userRes.json();
-    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
-    if (String(users[0].telegram_id) !== String(oldTgId))
-      return res.json({ success: false, error: "Старый Telegram ID не совпадает с привязанным аккаунтом" });
-
     const code = String(Math.floor(100000 + Math.random() * 900000));
-    const expires = Date.now() + 10 * 60 * 1000; // 10 минут
+    const expires = Date.now() + 10 * 60 * 1000;
     transferCodes.set(code, { oldTgId, newTgId, userId, expires });
 
     const sent = await sendTgMessage(oldTgId,
