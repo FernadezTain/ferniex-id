@@ -345,6 +345,98 @@ app.post("/api/telegram/unlink", async (req, res) => {
 });
 
 // ══════════════════════════════════════════
+//  Перенос аккаунта — шаг 1: отправить код
+// ══════════════════════════════════════════
+const transferCodes = new Map(); // token -> { oldTgId, newTgId, userId, expires }
+
+app.post("/api/transfer/send-code", async (req, res) => {
+  const { userId, oldTgId, newTgId } = req.body;
+  if (!userId || !oldTgId || !newTgId)
+    return res.json({ success: false, error: "Нет данных" });
+  if (String(oldTgId) === String(newTgId))
+    return res.json({ success: false, error: "ID совпадают" });
+
+  try {
+    // Проверяем что старый TG реально привязан к аккаунту
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    if (String(users[0].telegram_id) !== String(oldTgId))
+      return res.json({ success: false, error: "Старый Telegram ID не совпадает с привязанным аккаунтом" });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = Date.now() + 10 * 60 * 1000; // 10 минут
+    transferCodes.set(code, { oldTgId, newTgId, userId, expires });
+
+    const sent = await sendTgMessage(oldTgId,
+      `🔄 <b>Запрос на перенос аккаунта FernieID</b>\n\n` +
+      `<blockquote>` +
+      `📤 Откуда: <code>${oldTgId}</code>\n` +
+      `📥 Куда: <code>${newTgId}</code>` +
+      `</blockquote>\n\n` +
+      `🔑 Код подтверждения:\n` +
+      `<blockquote><b>${code}</b></blockquote>\n\n` +
+      `⏳ <i>Код действителен 10 минут.</i>\n` +
+      `⚠️ <i>Если это не ты — проигнорируй это сообщение.</i>`
+    );
+
+    if (!sent) return res.json({ success: false, error: "Не удалось отправить сообщение в Telegram. Убедись, что ты писал боту." });
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Перенос аккаунта — шаг 2: подтвердить
+// ══════════════════════════════════════════
+app.post("/api/transfer/confirm", async (req, res) => {
+  const { code, userId } = req.body;
+  if (!code || !userId) return res.json({ success: false, error: "Нет данных" });
+
+  const entry = transferCodes.get(code);
+  if (!entry) return res.json({ success: false, error: "Неверный или истёкший код" });
+  if (Date.now() > entry.expires) {
+    transferCodes.delete(code);
+    return res.json({ success: false, error: "Код истёк" });
+  }
+  if (String(entry.userId) !== String(userId))
+    return res.json({ success: false, error: "Код не принадлежит этому аккаунту" });
+
+  transferCodes.delete(code);
+
+  try {
+    const result = await notifyBot(`${BOT_URL}/api/fernieid/transfer`, {
+      old_telegram_id: entry.oldTgId,
+      new_telegram_id: entry.newTgId,
+    });
+
+    if (!result?.success) {
+      return res.json({ success: false, error: result?.error || "Ошибка переноса в боте" });
+    }
+
+    // Обновляем telegram_id в Supabase
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: "PATCH",
+      headers: { ...sbHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({ telegram_id: parseInt(entry.newTgId) })
+    });
+
+    // Уведомляем новый аккаунт
+    await sendTgMessage(entry.newTgId,
+      `✅ <b>Данные успешно перенесены!</b>\n\n` +
+      `<blockquote>Все ваши данные из Telegram <code>${entry.oldTgId}</code> перенесены на этот аккаунт.</blockquote>\n\n` +
+      `🎉 <i>Добро пожаловать!</i>`
+    );
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+// ══════════════════════════════════════════
 //  Баланс семян из Telegram бота
 // ══════════════════════════════════════════
 app.get("/api/seeds/:userId", async (req, res) => {
