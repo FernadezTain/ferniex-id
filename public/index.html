@@ -1698,6 +1698,23 @@ async function renderQuizResult() {
       body: JSON.stringify(payload)
     });
     saved = true;
+
+    // Уведомляем всех админов
+    try {
+      const admins = await sbFetch('users?role=eq.admin&select=telegram_id,username');
+      for (const admin of admins) {
+        if (!admin.telegram_id) continue;
+        await fetch(`${API}/api/telegram/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: String(admin.telegram_id),
+            text: `👑 <b>Новая заявка на Администратора!</b>\n\n<blockquote>👤 Пользователь: <b>${currentUser.username}</b>\n🆔 ID: <code>${currentUser.id}</code>\n✈️ Telegram: <code>${currentUser.telegram_id || '—'}</code>\n✅ Результат теста: <b>${quizScore}/${total}</b>\n📋 Статус: <b>${passed ? '✅ Тест пройден' : '❌ Тест не пройден'}</b></blockquote>\n\n<i>Открой админ панель на сайте для рассмотрения заявки.</i>`
+          })
+        });
+      }
+    } catch(e) { console.error('notify admins error:', e); }
+
   } catch(e) { console.error('save apply error:', e); }
 
   renderApplySection(`
@@ -1718,6 +1735,7 @@ async function renderQuizResult() {
     </div>
   `);
 }
+
 async function loadAdminApplies() {
   const section = $('adminApplySection');
   const list = $('adminApplyList');
