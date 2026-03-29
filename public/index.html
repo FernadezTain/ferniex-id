@@ -418,6 +418,57 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .spin-again-btn.gold{background:rgba(255,200,60,0.15);border:1px solid rgba(255,200,60,0.28);color:#ffd84d;}
 .spin-done-btn{flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;-webkit-tap-highlight-color:transparent;}
 @media(max-width:768px){.cases-grid{grid-template-columns:1fr 1fr;}.inv-grid{grid-template-columns:1fr 1fr;}.spin-modal{max-width:100%;}.spin-item{width:80px;height:80px;}.spin-item-emoji{font-size:1.5rem;}}
+/* ════ ADMIN APPLY ════ */
+.aapply-back{display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:500;color:var(--muted);cursor:pointer;padding:6px 12px;border-radius:100px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:color .2s,border-color .2s;margin-bottom:1.5rem;-webkit-tap-highlight-color:transparent;}
+.aapply-back:hover{color:var(--text);border-color:rgba(255,255,255,0.2);}
+.aapply-header{margin-bottom:1.75rem;}
+.aapply-header h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:-.5px;margin-bottom:.3rem;}
+.aapply-header p{color:var(--muted);font-size:.82rem;}
+.aapply-card{border-radius:var(--radius);padding:1.75rem;background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 20px rgba(0,0,0,0.38);max-width:560px;position:relative;}
+.aapply-card::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(255,200,60,0.5) 40%,rgba(255,255,255,0.8) 50%,rgba(255,200,60,0.5) 60%,transparent);}
+.aapply-field{margin-bottom:1rem;}
+.aapply-label{font-size:.67rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.45rem;}
+.aapply-input{width:100%;padding:11px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;font-family:'Inter',sans-serif;font-size:.87rem;color:var(--text);outline:none;transition:border-color .2s,background .2s;resize:none;}
+.aapply-input::placeholder{color:rgba(255,255,255,0.22);}
+.aapply-input:focus{border-color:rgba(255,200,60,0.45);background:rgba(255,200,60,0.05);box-shadow:0 0 0 3px rgba(255,200,60,0.08);}
+.aapply-btn{width:100%;padding:13px;border-radius:11px;background:linear-gradient(135deg,rgba(255,200,60,0.28),rgba(255,184,122,0.2));border:1px solid rgba(255,200,60,0.4);font-family:'Inter',sans-serif;font-size:.87rem;font-weight:600;color:rgba(255,255,255,.95);cursor:pointer;transition:all .2s;letter-spacing:.3px;-webkit-tap-highlight-color:transparent;}
+.aapply-btn:hover{box-shadow:0 6px 22px rgba(255,200,60,0.2);}
+.aapply-btn:active{transform:scale(0.98);}
+.quiz-progress-wrap{margin-bottom:1.5rem;}
+.quiz-progress-label{display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);margin-bottom:.45rem;}
+.quiz-bar{height:4px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden;}
+.quiz-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,#ffd84d,var(--orange));transition:width .5s cubic-bezier(.22,.68,0,1.3);}
+.quiz-q-num{font-size:.65rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,200,60,0.7);margin-bottom:.6rem;}
+.quiz-question{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;line-height:1.45;margin-bottom:1.25rem;color:rgba(255,255,255,.95);}
+.quiz-options{display:flex;flex-direction:column;gap:.55rem;}
+.quiz-opt{padding:12px 15px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);font-size:.84rem;color:rgba(255,255,255,.8);cursor:pointer;transition:all .22s;text-align:left;-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;}
+.quiz-opt:hover:not(.selected):not(.locked){background:rgba(255,200,60,0.08);border-color:rgba(255,200,60,0.25);color:rgba(255,255,255,.95);}
+.quiz-opt.selected.correct{background:rgba(78,205,196,0.14);border-color:rgba(78,205,196,0.4);color:var(--teal);}
+.quiz-opt.selected.wrong{background:rgba(255,107,107,0.12);border-color:rgba(255,107,107,0.35);color:var(--red);}
+.quiz-opt.is-answer:not(.selected){background:rgba(78,205,196,0.07);border-color:rgba(78,205,196,0.25);color:rgba(78,205,196,0.8);}
+.quiz-opt.locked{cursor:default;}
+.quiz-feedback{margin-top:1rem;padding:.75rem 1rem;border-radius:10px;font-size:.78rem;line-height:1.6;display:none;}
+.quiz-feedback.show{display:block;}
+.quiz-feedback.correct{background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.22);color:var(--teal);}
+.quiz-feedback.wrong{background:rgba(255,107,107,0.09);border:1px solid rgba(255,107,107,0.2);color:var(--red);}
+.quiz-next-btn{margin-top:1rem;width:100%;padding:12px;border-radius:11px;background:rgba(255,200,60,0.16);border:1px solid rgba(255,200,60,0.32);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:#ffd84d;cursor:pointer;transition:all .2s;display:none;-webkit-tap-highlight-color:transparent;}
+.quiz-next-btn.show{display:block;}
+.quiz-result-icon{font-size:3rem;text-align:center;display:block;margin-bottom:.75rem;}
+.quiz-result-score{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;text-align:center;margin-bottom:.3rem;}
+.quiz-result-label{font-size:.8rem;color:var(--muted);text-align:center;margin-bottom:1.5rem;line-height:1.7;}
+
+/* ════ ADMIN APPLY CARDS ════ */
+.apply-card{display:flex;align-items:center;gap:12px;padding:.85rem 1rem;border-radius:14px;background:rgba(20,15,32,0.6);border:1px solid rgba(255,200,60,0.15);margin-bottom:.5rem;cursor:pointer;transition:border-color .2s,background .2s;}
+.apply-card:hover{border-color:rgba(255,200,60,0.35);background:rgba(255,200,60,0.05);}
+.apply-card-ico{width:38px;height:38px;border-radius:10px;flex-shrink:0;background:rgba(255,200,60,0.12);border:1px solid rgba(255,200,60,0.22);display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.apply-card-info{flex:1;min-width:0;}
+.apply-card-id{font-size:.8rem;font-weight:600;margin-bottom:.18rem;}
+.apply-card-meta{font-size:.63rem;color:var(--muted);}
+.apply-card-status{font-size:.6rem;font-weight:700;padding:3px 9px;border-radius:100px;flex-shrink:0;}
+.apply-status-new{background:rgba(255,200,60,0.13);border:1px solid rgba(255,200,60,0.28);color:#ffd84d;}
+.apply-status-accepted{background:rgba(78,205,196,0.13);border:1px solid rgba(78,205,196,0.28);color:var(--teal);}
+.apply-status-rejected{background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.25);color:var(--red);}
+
 /* ════ ADMIN PANEL ════ */
 .admin-stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:1.5rem;}
 .admin-stat-card{border-radius:14px;padding:1rem;background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 16px rgba(0,0,0,0.38);display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center;}
@@ -665,10 +716,31 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         <span style="color:var(--muted);font-size:.8rem;margin-left:4px;">›</span>
       </div>
     </div>
+    <div class="sec-card" style="cursor:pointer;" onclick="openAdminApply()">
+      <div class="sec-card-left">
+        <div class="sec-card-ico-wrap">👑</div>
+        <div>
+          <div class="sec-card-name">Стать Администратором</div>
+          <div class="sec-card-desc">Подать заявку на вступление в команду</div>
+        </div>
+      </div>
+      <div class="sec-card-right">
+        <div class="sec-status" style="background:rgba(255,200,60,0.1);border:1px solid rgba(255,200,60,0.2);color:#ffd84d;">Заявка</div>
+        <span style="color:var(--muted);font-size:.8rem;margin-left:4px;">›</span>
+      </div>
+    </div>
   </div>
 </div>
+    <!-- ADMIN APPLY -->
+      <div class="dash-section" id="section-adminapply">
+        <div id="adminapply-content"></div>
+      </div>
 
-      <!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
+      <!-- ADMIN APPLY DETAIL -->
+      <div class="dash-section" id="section-applydetail">
+        <div id="applydetail-content"></div>
+      </div>
+<!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
       <div class="dash-section" id="section-admin">
         <div class="stats-page-header"><h2>👑 Панель Администратора</h2><p>Управление пользователями сайта</p></div>
         <div class="admin-stats-row" id="adminStatsRow">
@@ -679,6 +751,14 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
           <div class="admin-stat-card"><div class="asc-icon">🎮</div><div class="asc-val" id="asc-sessions">—</div><div class="asc-lbl">Всего игр</div></div>
           <div class="admin-stat-card"><div class="asc-icon">📅</div><div class="asc-val" id="asc-sessions-today">—</div><div class="asc-lbl">Игр сегодня</div></div>
         </div>
+        <div id="adminApplySection" style="margin-bottom:1.5rem;display:none;">
+          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;">
+            👑 Заявки на Администратора
+            <span class="nav-badge" id="applyBadge">0</span>
+          </div>
+          <div id="adminApplyList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+        </div>
+        <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;">👥 Пользователи</div>
         <div class="admin-search-wrap"><input class="admin-search-input" id="adminSearchInput" placeholder="🔍 Поиск по имени..." oninput="filterAdminUsers()"></div>
         <div id="adminUsersList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
       </div>
@@ -1364,7 +1444,13 @@ function showToast(msg){let t=document.getElementById('fernie-toast');if(!t){t=d
 // ════ ADMIN PANEL ════
 let adminUsers=[], adminLoaded=false, activeUmanageId=null;
 
-async function loadAdminPanel(){if(adminLoaded)return;await loadAdminStats();await loadAdminUsers();adminLoaded=true;}
+async function loadAdminPanel(){
+  if(adminLoaded)return;
+  await loadAdminStats();
+  await loadAdminApplies();
+  await loadAdminUsers();
+  adminLoaded=true;
+}
 
 async function loadAdminStats(){
   try{const r=await fetch(`${API}/api/admin/stats?adminId=${currentUser.id}`);const d=await r.json();if(!d.success)return;$('asc-total').textContent=d.total_users;$('asc-admin').textContent=d.admin_count;$('asc-tg').textContent=d.tg_linked;$('asc-new').textContent=d.new_today;$('asc-sessions').textContent=d.total_sessions;$('asc-sessions-today').textContent=d.sessions_today;}
@@ -1450,6 +1536,336 @@ async function saveUmanage(){
   const btn=document.querySelector('.um-btn-save');btn.textContent='Сохраняем...';btn.style.opacity='0.6';btn.style.pointerEvents='none';
   try{const r=await fetch(`${API}/api/admin/update-user`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminId:currentUser.id,userId:activeUmanageId,newPassword:$('umPassword').value||undefined,telegramId:$('umTelegram').value,role:$('umRole').value})});const d=await r.json();if(d.success){showToast('✅ Сохранено');closeUmanage();adminLoaded=false;loadAdminUsers();}else showToast('❌ '+(d.error||'Ошибка'));}
   catch{showToast('❌ Ошибка сети');}btn.textContent='Сохранить';btn.style.opacity='';btn.style.pointerEvents='';
+}
+// ════ ADMIN APPLY ════
+const ALL_QUESTIONS = [
+  {q:'Какое наказание грозит за оскорбления и угрозы (первое нарушение)?',opts:['Немедленный бан','Предупреждение → Мут 1 час → Бан','Мут 3 часа','Выговор'],ans:1,exp:'Правило 1.1: Предупреждение → Мут 1 час → Бан.'},
+  {q:'Что запрещено по правилу «доксинг» (1.2)?',opts:['Спам командами бота','Публикация личных данных человека без его согласия','Реклама сторонних ресурсов','Использование мультиаккаунтов'],ans:1,exp:'Правило 1.2 запрещает публикацию личной информации (имя, адрес, телефон и т.д.) без согласия.'},
+  {q:'Какой контент влечёт немедленный бан без предупреждения?',opts:['Спам в голосовом чате','Нелегальный контент (экстремизм, призывы к насилию и т.д.)','Флуд командами','Ссылки на непроверенные источники'],ans:1,exp:'Правило 2.1: нелегальный контент — немедленный бан без предупреждения.'},
+  {q:'Как решаются споры с решениями модераторов согласно правилам?',opts:['В общем чате публично','Через голосование участников','В личных сообщениях администрации','Через анонимную жалобу'],ans:2,exp:'Правило 3.1: спорные вопросы решаются в ЛС, публичное обсуждение запрещено.'},
+  {q:'Что грозит за использование мультиаккаунта для нарушения правил?',opts:['Мут 3 часа','Предупреждение','Бан всех связанных аккаунтов','Обнуление баланса'],ans:2,exp:'Правило 6.1: бан всех связанных аккаунтов.'},
+  {q:'Какое наказание за намеренную перегрузку бота (правило 7.1)?',opts:['Предупреждение','Обнуление баланса → Мут 5 часов → Бан 3 дня','Мут 30 минут','Немедленный бан'],ans:1,exp:'Правило 7.1: обнуление баланса → мут 5 часов → бан 3 дня.'},
+  {q:'За что администратору полагается выговор по правилу 8.3?',opts:['За опоздание на дежурство','За превышение полномочий и наказание без оснований','За оскорбление в голосовом чате','За разглашение информации'],ans:1,exp:'Правило 8.3: превышение полномочий — выговор.'},
+  {q:'Какой мут получает нарушитель за первичную клевету/ложные обвинения (3.2)?',opts:['1 час','3 часа','30 минут','5 часов'],ans:2,exp:'Правило 3.2: мут 30 минут при первичном нарушении.'},
+  {q:'Что запрещено публиковать согласно правилу 5.1?',opts:['Мемы без источника','Ссылки на вредоносное ПО и запрещённые сайты','Контент 18+ вне отведённых каналов','Рекламу без разрешения'],ans:1,exp:'Правило 5.1: ссылки на вредоносное ПО, пиратский контент, запрещённые сайты — немедленный бан.'},
+  {q:'Что происходит при систематических нарушениях со стороны администратора?',opts:['Только выговор','Снятие с должности или исключение из администрации','Мут 5 часов','Обнуление баланса'],ans:1,exp:'Примечание к разделу 8: систематические нарушения → снятие или исключение из администрации.'},
+  {q:'Какое наказание за оскорбления родственников участников (1.3)?',opts:['Предупреждение','Немедленный бан','Мут 1–3 часа → Бан 3–7 дней','Выговор'],ans:2,exp:'Правило 1.3: мут 1–3 часа → бан 3–7 дней.'},
+  {q:'Спам функционалом бота без практической цели — это нарушение…',opts:['Правила 2.2','Правила 7.2','Правила 4.2','Правила 5.2'],ans:1,exp:'Правило 7.2 запрещает спам функционалом бота.'},
+  {q:'Что происходит в голосовом чате при первом нарушении (4.1)?',opts:['Бан без предупреждения','Предупреждение в тексте','Мут в голосе 30 минут','Выговор'],ans:2,exp:'Правило 4.1: сначала мут в голосовом чате 30 минут.'},
+  {q:'Ссылки на непроверенные источники (5.2) при повторном нарушении влекут…',opts:['Немедленный бан','Мут 1 час → Бан','Обнуление баланса','Снятие с должности'],ans:1,exp:'Правило 5.2: предупреждение → мут 1 час → бан.'},
+  {q:'Администратор разгласил внутреннюю информацию. Максимальное наказание?',opts:['Мут 5 часов','Выговор / снятие / ЧС','Бан аккаунта','Предупреждение'],ans:1,exp:'Правило 8.5: выговор / снятие / занесение в чёрный список.'},
+  {q:'Реклама без разрешения администрации — нарушение какого раздела?',opts:['Раздел 1 — Безопасность','Раздел 2 — Запрещённый контент (2.2)','Раздел 3 — Модерация','Раздел 5 — Ссылки'],ans:1,exp:'Правило 2.2: реклама без разрешения — несогласованная реклама/спам.'},
+  {q:'Использование ботов для нарушений в голосе (4.2) влечёт…',opts:['Мут 30 минут','Предупреждение','Немедленный бан с проверкой','Выговор'],ans:2,exp:'Правило 4.2: немедленный бан с проверкой действий администрацией.'},
+  {q:'Что администрация вправе делать при злостных нарушениях?',opts:['Только выносить предупреждения','Применять наказания по усмотрению и ужесточать их','Снимать баланс без причины','Ничего сверх установленного'],ans:1,exp:'Примечание: администрация вправе применять и ужесточать наказания по усмотрению.'},
+  {q:'Что из перечисленного НЕ является нарушением правил?',opts:['Публичное обсуждение решений модератора','Реклама без разрешения','Вежливый тематический вопрос в общем чате','Угрозы участникам'],ans:2,exp:'Вежливый тематический вопрос — нормальное поведение, не нарушающее правила.'},
+  {q:'Что обязан сделать участник, несогласный с решением модератора?',opts:['Публично оспорить в чате','Написать в ЛС администрации','Игнорировать решение','Пожаловаться другим участникам'],ans:1,exp:'Правило 3.1: все спорные вопросы решаются в личных сообщениях.'},
+];
+
+let applyForm = {};
+let quizQuestions = [];
+let quizCurrent = 0;
+let quizScore = 0;
+let quizAnswered = false;
+
+function openAdminApply() {
+  if (!currentUser?.telegram_id) {
+    showToast('❌ Сначала привяжи Telegram аккаунт в разделе Безопасность');
+    return;
+  }
+  applyForm = {};
+  switchSection('adminapply');
+  renderApplyForm();
+}
+function renderApplySection(html) {
+  $('adminapply-content').innerHTML = html;
+}
+
+function renderApplyForm() {
+  renderApplySection(`
+    <div class="aapply-back" onclick="switchSection('security')">← Назад</div>
+    <div class="aapply-header">
+      <h2>👑 Заявка на Администратора</h2>
+      <p>Расскажи о себе, затем пройди небольшой тест на знание правил.</p>
+    </div>
+    <div class="aapply-card">
+      <div class="aapply-field"><label class="aapply-label">Имя</label><input class="aapply-input" id="af-name" placeholder="Как тебя зовут?" maxlength="60"></div>
+      <div class="aapply-field"><label class="aapply-label">Возраст</label><input class="aapply-input" id="af-age" type="number" placeholder="Твой возраст" min="10" max="99"></div>
+      <div class="aapply-field"><label class="aapply-label">Почему хочешь стать администратором?</label><textarea class="aapply-input" id="af-why" rows="3" placeholder="Опиши свою мотивацию..." maxlength="500"></textarea></div>
+      <div class="aapply-field"><label class="aapply-label">Почему именно ты?</label><textarea class="aapply-input" id="af-whyme" rows="3" placeholder="Чем ты лучше других кандидатов?" maxlength="500"></textarea></div>
+      <div class="aapply-field"><label class="aapply-label">Подробнее о себе</label><textarea class="aapply-input" id="af-about" rows="3" placeholder="Расскажи о себе..." maxlength="600"></textarea></div>
+      <div class="aapply-field"><label class="aapply-label">Чем занимаешься</label><input class="aapply-input" id="af-occupation" placeholder="Учёба, работа, хобби..." maxlength="200"></div>
+      <div class="aapply-field"><label class="aapply-label">Средний онлайн в Telegram</label><input class="aapply-input" id="af-online" placeholder="Например: 4–6 часов в день" maxlength="100"></div>
+      <div class="msg" id="af-msg" style="color:var(--red);font-size:.78rem;min-height:16px;margin-bottom:.5rem;"></div>
+      <button class="aapply-btn" onclick="submitApplyForm()">Далее — Тест на знание правил →</button>
+    </div>
+  `);
+}
+
+function submitApplyForm() {
+  const fields = ['af-name','af-age','af-why','af-whyme','af-about','af-occupation','af-online'];
+  const vals = fields.map(f => $(f)?.value?.trim() || '');
+  if (vals.some(v => !v)) { $('af-msg').textContent = 'Заполни все поля'; return; }
+  if (isNaN(vals[1]) || +vals[1] < 10 || +vals[1] > 99) { $('af-msg').textContent = 'Укажи корректный возраст'; return; }
+  applyForm = { name:vals[0], age:vals[1], why:vals[2], whyme:vals[3], about:vals[4], occupation:vals[5], online:vals[6] };
+  startQuiz();
+}
+
+function startQuiz() {
+  const shuffled = [...ALL_QUESTIONS].sort(() => Math.random() - 0.5);
+  quizQuestions = shuffled.slice(0, 5);
+  quizCurrent = 0;
+  quizScore = 0;
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const q = quizQuestions[quizCurrent];
+  const pct = Math.round((quizCurrent / quizQuestions.length) * 100);
+  quizAnswered = false;
+  renderApplySection(`
+    <div class="aapply-back" onclick="switchSection('security')">← Отмена</div>
+    <div class="aapply-header">
+      <h2>📋 Тест на знание правил</h2>
+      <p>Ответь на все вопросы правильно. Минимум 4 из 5 для прохождения.</p>
+    </div>
+    <div class="aapply-card" style="max-width:600px;">
+      <div class="quiz-progress-wrap">
+        <div class="quiz-progress-label"><span>Вопрос ${quizCurrent+1} из ${quizQuestions.length}</span><span>${quizScore} правильных</span></div>
+        <div class="quiz-bar"><div class="quiz-bar-fill" style="width:${pct}%"></div></div>
+      </div>
+      <div class="quiz-q-num">Вопрос ${quizCurrent+1}</div>
+      <div class="quiz-question">${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((opt,i) => `<button class="quiz-opt" onclick="selectQuizOpt(${i})">${opt}</button>`).join('')}
+      </div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+      <button class="quiz-next-btn" id="quizNextBtn" onclick="nextQuizQuestion()">${quizCurrent+1 < quizQuestions.length ? 'Следующий вопрос →' : 'Завершить тест'}</button>
+    </div>
+  `);
+}
+
+function selectQuizOpt(idx) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = quizQuestions[quizCurrent];
+  const isCorrect = idx === q.ans;
+  if (isCorrect) quizScore++;
+  document.querySelectorAll('.quiz-opt').forEach((opt, i) => {
+    opt.classList.add('locked');
+    if (i === idx) opt.classList.add('selected', isCorrect ? 'correct' : 'wrong');
+    if (i === q.ans && !isCorrect) opt.classList.add('is-answer');
+  });
+  const fb = $('quizFeedback');
+  if (fb) { fb.className = 'quiz-feedback show ' + (isCorrect ? 'correct' : 'wrong'); fb.textContent = (isCorrect ? '✅ Верно! ' : '❌ Неверно. ') + q.exp; }
+  const nb = $('quizNextBtn');
+  if (nb) nb.classList.add('show');
+}
+
+function nextQuizQuestion() {
+  quizCurrent++;
+  if (quizCurrent < quizQuestions.length) { renderQuizQuestion(); } else { renderQuizResult(); }
+}
+
+async function renderQuizResult() {
+  const total = quizQuestions.length;
+  const passed = quizScore >= 4;
+
+  // Сохраняем заявку в Supabase
+  let saved = false;
+  try {
+    const payload = {
+      user_id: String(currentUser.id),
+      username: currentUser.username,
+      telegram_id: String(currentUser.telegram_id || ''),
+      form: applyForm,
+      questions: quizQuestions.map((q, i) => ({
+        question: q.q,
+        options: q.opts,
+        correct: q.ans,
+        correctText: q.opts[q.ans],
+        exp: q.exp
+      })),
+      score: quizScore,
+      total,
+      passed,
+      status: 'new'
+    };
+    await sbFetch('admin_applications', {
+      method: 'POST',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+    saved = true;
+  } catch(e) { console.error('save apply error:', e); }
+
+  renderApplySection(`
+    <div class="aapply-back" onclick="switchSection('security')">← В безопасность</div>
+    <div class="aapply-header"><h2>👑 Результат заявки</h2></div>
+    <div class="aapply-card" style="max-width:480px;text-align:center;">
+      <span class="quiz-result-icon">${passed ? '🎉' : '😔'}</span>
+      <div class="quiz-result-score" style="color:${passed ? 'var(--teal)' : 'var(--red)'};">${quizScore}/${total}</div>
+      <div class="quiz-result-label">${passed
+        ? `Ты правильно ответил на <b>${quizScore} из ${total}</b> вопросов.<br>Твоя заявка отправлена администрации на рассмотрение.<br>Ожидай ответа в Telegram.`
+        : `Ты правильно ответил на <b>${quizScore} из ${total}</b> вопросов.<br>Для прохождения нужно минимум 4 правильных ответа.<br>Изучи правила и попробуй снова.`
+      }</div>
+      ${saved ? '' : '<div style="font-size:.7rem;color:var(--red);margin-bottom:.75rem;">⚠️ Ошибка сохранения заявки</div>'}
+      ${passed
+        ? `<button class="aapply-btn" onclick="switchSection('security')">Вернуться к безопасности</button>`
+        : `<button class="aapply-btn" onclick="openAdminApply()">Попробовать снова</button>`
+      }
+    </div>
+  `);
+}
+async function loadAdminApplies() {
+  const section = $('adminApplySection');
+  const list = $('adminApplyList');
+  if (!section || !list) return;
+  try {
+    const data = await sbFetch('admin_applications?order=created_at.desc&select=*');
+    if (!data.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    $('applyBadge').textContent = data.filter(a => a.status === 'new').length;
+    list.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    data.forEach(app => {
+      const dt = new Date(app.created_at).toLocaleString('ru-RU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const statusMap = { new: ['apply-status-new','Новая'], accepted: ['apply-status-accepted','Принят'], rejected: ['apply-status-rejected','Отклонён'] };
+      const [sc, sl] = statusMap[app.status] || statusMap.new;
+      const div = document.createElement('div');
+      div.className = 'apply-card';
+      div.innerHTML = `
+        <div class="apply-card-ico">👑</div>
+        <div class="apply-card-info">
+          <div class="apply-card-id">ID: ${String(app.user_id).slice(0,8)}… | TG: ${app.telegram_id || '—'}</div>
+          <div class="apply-card-meta">👤 ${app.username || '—'} · 📅 ${dt} · ✅ ${app.score}/${app.total}</div>
+        </div>
+        <span class="apply-card-status ${sc}">${sl}</span>
+      `;
+      div.addEventListener('click', () => openApplyDetail(app));
+      frag.appendChild(div);
+    });
+    list.appendChild(frag);
+  } catch(e) { console.error('loadAdminApplies:', e); section.style.display = 'none'; }
+}
+
+function openApplyDetail(app) {
+  switchSection('applydetail');
+  const dt = new Date(app.created_at).toLocaleString('ru-RU', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const f = app.form || {};
+  const qs = app.questions || [];
+  const passed = app.passed;
+  const statusMap = { new: ['#ffd84d','Новая'], accepted: ['var(--teal)','Принят ✓'], rejected: ['var(--red)','Отклонён ✗'] };
+  const [sc, sl] = statusMap[app.status] || statusMap.new;
+
+  const questionsHTML = qs.map((q, i) => {
+    const isCorrect = true; // вопросы хранятся уже с правильным ответом
+    return `
+      <div style="padding:.85rem 1rem;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:.5rem;">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.35rem;">Вопрос ${i+1}</div>
+        <div style="font-size:.84rem;font-weight:600;margin-bottom:.5rem;">${q.question}</div>
+        <div style="font-size:.75rem;color:rgba(78,205,196,0.9);">✅ Правильный ответ: <b>${q.correctText}</b></div>
+        <div style="font-size:.67rem;color:var(--muted);margin-top:.25rem;">${q.exp}</div>
+      </div>
+    `;
+  }).join('');
+
+  $('applydetail-content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;">👑 Заявка на Администратора</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem;">${dt}</div>
+      </div>
+      <button onclick="switchSection('admin');adminLoaded=false;loadAdminPanel();" style="display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:500;color:var(--muted);padding:7px 14px;border-radius:100px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:color .2s;">✕ Закрыть</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+      <div class="gl-card" style="padding:1.25rem;">
+        <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">📋 Анкета</div>
+        ${[
+          ['Имя', f.name],['Возраст', f.age+' лет'],['Занятие', f.occupation],
+          ['Онлайн в TG', f.online],['Почему хочет', f.why],
+          ['Почему он', f.whyme],['О себе', f.about]
+        ].map(([l,v])=>`<div style="margin-bottom:.6rem;"><div style="font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.2rem;">${l}</div><div style="font-size:.8rem;color:rgba(255,255,255,.85);line-height:1.5;">${v||'—'}</div></div>`).join('')}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="gl-card" style="padding:1.25rem;">
+          <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">📊 Результат теста</div>
+          <div style="text-align:center;padding:.75rem 0;">
+            <div style="font-family:'Syne',sans-serif;font-size:2.5rem;font-weight:800;color:${passed?'var(--teal)':'var(--red)'};">${app.score}/${app.total}</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:.3rem;">${passed?'✅ Тест пройден':'❌ Тест не пройден'}</div>
+          </div>
+          <div style="height:4px;border-radius:100px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:.5rem;">
+            <div style="height:100%;width:${Math.round((app.score/app.total)*100)}%;border-radius:100px;background:${passed?'var(--teal)':'var(--red)'};"></div>
+          </div>
+        </div>
+        <div class="gl-card" style="padding:1.25rem;">
+          <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">🤖 Мнение системы</div>
+          <div style="padding:.75rem 1rem;border-radius:10px;background:${passed?'rgba(78,205,196,0.08)':'rgba(255,107,107,0.08)'};border:1px solid ${passed?'rgba(78,205,196,0.2)':'rgba(255,107,107,0.2)'};font-size:.78rem;line-height:1.6;color:${passed?'var(--teal)':'var(--red)'};">
+            ${passed
+              ? '✅ Кандидат знает правила. Рекомендуем рассмотреть кандидатуру.'
+              : '❌ Кандидат не набрал минимальный балл. Рекомендуем отклонить.'}
+          </div>
+          <div style="margin-top:.75rem;padding:.6rem .85rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);font-size:.72rem;color:var(--muted);">
+            Текущий статус: <b style="color:${sc};">${sl}</b>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gl-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">📝 Вопросы теста</div>
+      ${questionsHTML || '<div style="color:var(--muted);font-size:.8rem;">Вопросы не сохранены</div>'}
+    </div>
+
+    ${app.status === 'new' ? `
+    <div style="display:flex;gap:.75rem;max-width:400px;">
+      <button onclick="reviewApply('${app.id}','rejected')" style="flex:1;padding:12px;border-radius:11px;background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.28);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:var(--red);cursor:pointer;transition:all .18s;">✗ Отклонить</button>
+      <button onclick="reviewApply('${app.id}','accepted')" style="flex:1;padding:12px;border-radius:11px;background:rgba(78,205,196,0.14);border:1px solid rgba(78,205,196,0.32);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:var(--teal);cursor:pointer;transition:all .18s;">✓ Принять</button>
+    </div>
+    ` : `<div style="font-size:.8rem;color:var(--muted);padding:.75rem 1rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);max-width:400px;">Заявка уже рассмотрена администратором.</div>`}
+  `;
+}
+
+async function reviewApply(applyId, verdict) {
+  const btn = event.currentTarget;
+  btn.textContent = 'Отправляем...'; btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none';
+  try {
+    // Получаем заявку
+    const apps = await sbFetch(`admin_applications?id=eq.${applyId}&select=*`);
+    const app = apps[0];
+    if (!app) { showToast('❌ Заявка не найдена'); return; }
+
+    // Обновляем статус
+    await sbFetch(`admin_applications?id=eq.${applyId}`, {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: verdict, reviewed_by: currentUser.username })
+    });
+
+    // Отправляем уведомление в Telegram через бот
+    if (app.telegram_id) {
+      const dt = new Date().toLocaleString('ru-RU', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      const verdictText = verdict === 'accepted' ? '✅ Принята' : '❌ Отклонена';
+      await fetch(`${API}/api/telegram/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: app.telegram_id,
+          text: `👑 <b>Ваша заявка на администратора рассмотрена</b>\n\n<blockquote>Администратор: <b>${currentUser.username}</b>\nВердикт: <b>${verdictText}</b>\nДата и время: <b>${dt}</b></blockquote>`
+        })
+      });
+    }
+
+    showToast(verdict === 'accepted' ? '✅ Заявка принята' : '❌ Заявка отклонена');
+    switchSection('admin');
+    adminLoaded = false;
+    loadAdminPanel();
+  } catch(e) {
+    console.error('reviewApply error:', e);
+    showToast('❌ Ошибка');
+    btn.textContent = verdict === 'accepted' ? '✓ Принять' : '✗ Отклонить';
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
+  }
 }
 
 function checkAdminAccess(){
