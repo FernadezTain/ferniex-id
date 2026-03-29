@@ -249,6 +249,20 @@ app.get("/api/leaderboard/:gameSlug", async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  Отправка TG сообщения (для заявок)
+// ══════════════════════════════════════════
+app.post("/api/telegram/send-message", async (req, res) => {
+  const { telegram_id, text } = req.body;
+  if (!telegram_id || !text) return res.json({ success: false });
+  try {
+    const sent = await sendTgMessage(telegram_id, text);
+    res.json({ success: sent });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 app.get("/api/test-bot", async (req, res) => {
   try {
     const result = await notifyBot(`${BOT_URL}/api/fernieid/notify`, {
