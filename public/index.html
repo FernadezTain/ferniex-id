@@ -1897,7 +1897,7 @@ function backToTransferStep1() {
   clearCodeInputs();
 }
 
-$('transferOverlay').addEventListener('click', e => {
+document.addEventListener('click', e => {
   if (e.target === $('transferOverlay')) closeTransferPage();
 });
 
