@@ -868,7 +868,9 @@ async function sbFetch(path, opts={}) {
     headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})}
   });
   if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  const text = await res.text();
+  if (!text) return {};
+  return JSON.parse(text);
 }
 
 function toggleVis(inputId, btn) {
