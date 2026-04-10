@@ -7,7 +7,8 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static("public"));
 app.use(cors({
   origin: [
@@ -979,7 +980,6 @@ app.get('/api/fernieplus/:userId', async (req, res) => {
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: 'Telegram не привязан' });
     const botRes = await fetch(`${BOT_URL}/api/fernieplus/status?telegram_id=${users[0].telegram_id}`);
-    console.log('[fernieplus] telegram_id:', users[0].telegram_id, 'botRes status:', botRes.status);
     const data = await botRes.json();
     res.json({ success: true, ...data });
   } catch (e) {
