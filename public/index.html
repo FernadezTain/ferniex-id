@@ -1031,7 +1031,7 @@ function switchSection(section) {
   if(section==='gamestats')loadGameStats();
   if(section==='admin')loadAdminPanel();
   if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
-  if(section==='fernieplus'){loadFerniePlus();const userId=localStorage.getItem('userId');loadFpInfo(userId);}
+  if(section==='fernieplus'){loadFerniePlus();loadFpInfo(currentUser?.id);}
   const mc=document.querySelector('.main-content');
   if(mc)mc.scrollTop=0;
 }
