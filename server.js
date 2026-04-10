@@ -1061,21 +1061,54 @@ app.post('/api/backgrounds/create', async (req, res) => {
   const { userId, name, description, imageUrl } = req.body;
   if (!userId || !name || !imageUrl) return res.json({ success: false, error: 'Нет данных' });
   const BAD_WORDS = ['хуй','пизд','блят','блядь','ебан','еблан','сука','пидор','мудак','залупа','ёбан','шлюх'];
-  const nameLower = name.toLowerCase();
-  if (BAD_WORDS.some(w => nameLower.includes(w))) return res.json({ success: false, error: 'Название содержит недопустимые слова' });
+  if (BAD_WORDS.some(w => name.toLowerCase().includes(w)))
+    return res.json({ success: false, error: 'Название содержит недопустимые слова' });
   try {
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=username`, { headers: sbHeaders });
     const users = await userRes.json();
     const username = users[0]?.username || 'Аноним';
+
+    // Загружаем картинку в Supabase Storage
+    let finalUrl = imageUrl;
+    if (imageUrl.startsWith('data:')) {
+      const matches = imageUrl.match(/^data:(.+);base64,(.+)$/);
+      if (!matches) return res.json({ success: false, error: 'Неверный формат изображения' });
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      const buffer = Buffer.from(base64Data, 'base64');
+      const ext = mimeType.includes('png') ? 'png' : 'jpg';
+      const fileName = `bg_${userId}_${Date.now()}.${ext}`;
+
+      const uploadRes = await fetch(`${SB_URL}/storage/v1/object/backgrounds/${fileName}`, {
+        method: 'POST',
+        headers: {
+          apikey: SB_KEY,
+          Authorization: `Bearer ${SB_KEY}`,
+          'Content-Type': mimeType,
+          'x-upsert': 'true'
+        },
+        body: buffer
+      });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        console.error('Storage upload error:', errText);
+        return res.json({ success: false, error: 'Ошибка загрузки изображения: ' + errText });
+      }
+      finalUrl = `${SB_URL}/storage/v1/object/public/backgrounds/${fileName}`;
+    }
+
     const r = await fetch(`${SB_URL}/rest/v1/backgrounds`, {
       method: 'POST', headers: { ...sbHeaders, Prefer: 'return=representation' },
-      body: JSON.stringify({ name, description: description || null, image_url: imageUrl, uploader_id: userId, author: username, type: 'custom' })
+      body: JSON.stringify({ name, description: description || null, image_url: finalUrl, uploader_id: parseInt(userId), author: username, type: 'custom' })
     });
     const data = await r.json();
+    if (!r.ok) return res.json({ success: false, error: JSON.stringify(data) });
     res.json({ success: true, background: data[0] });
-  } catch (e) { res.json({ success: false, error: e.message }); }
+  } catch (e) {
+    console.error('create bg error:', e);
+    res.json({ success: false, error: e.message });
+  }
 });
-
 // Удалить фон пользователя
 app.delete('/api/backgrounds/:id', async (req, res) => {
   const { userId } = req.body;
