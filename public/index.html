@@ -2141,7 +2141,7 @@ async function loadFpOverview(userId) {
     if (!r.success || !r.active) {
       el.innerHTML = `<div style="font-size:.82rem;color:var(--muted);padding:4px 0;">Подписка не активна. Fernie+ открывает кастомизацию и эксклюзивные фоны.</div>`;
     } else {
-      const ends = new Date(r.expires_at);
+      const ends = new Date(r.end_at_iso);
       const now = new Date();
       const days = Math.max(0, Math.ceil((ends - now) / 864e5));
       el.innerHTML = `
@@ -2177,11 +2177,10 @@ async function loadFpInfo(userId) {
           <div style="display:inline-flex;padding:8px 20px;border-radius:20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);color:#ff6b6b;font-size:.8rem;font-weight:600;">Не активна</div>
         </div>`;
     } else {
-      const ends = new Date(r.expires_at);
-      const start = r.started_at ? new Date(r.started_at) : null;
+      const ends = new Date(r.end_at_iso);
       const now = new Date();
       const days = Math.max(0, Math.ceil((ends - now) / 864e5));
-      const totalDays = start ? Math.round((ends - start) / 864e5) : '—';
+      const totalDays = r.remaining ? r.remaining.days : '—';
       el.innerHTML = `
         <div class="gl-card">
           <div class="section-head">
