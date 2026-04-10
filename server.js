@@ -979,9 +979,9 @@ app.get('/api/fernieplus/:userId', async (req, res) => {
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: 'Telegram не привязан' });
     const botRes = await fetch(`${BOT_URL}/api/fernieplus/status?telegram_id=${users[0].telegram_id}`);
-    if (!botRes.ok) return res.json({ success: false, active: false, error: 'Бот недоступен' });
+    console.log('[fernieplus] telegram_id:', users[0].telegram_id, 'botRes status:', botRes.status);
     const data = await botRes.json();
-    res.json({ success: true, active: data.active ?? false, ...data });
+    res.json({ success: true, ...data });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
@@ -1128,10 +1128,8 @@ app.get('/api/backgrounds/active/:userId', async (req, res) => {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${req.params.userId}&select=active_background_id`, { headers: sbHeaders });
     const users = await r.json();
-    // Если колонка не существует — Supabase вернёт объект с ошибкой, а не массив
-    if (!Array.isArray(users)) return res.json({ success: true, active_background_id: null });
     res.json({ success: true, active_background_id: users[0]?.active_background_id || null });
-  } catch (e) { res.json({ success: true, active_background_id: null }); }
+  } catch (e) { res.json({ success: false }); }
 });
 
 const port = process.env.PORT || 3000;
