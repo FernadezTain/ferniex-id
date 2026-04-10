@@ -968,5 +968,136 @@ app.post('/api/admin/delete-user', async (req, res) => {
   } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
 });
 
+// ══════════════════════════════════════════
+//  Fernie+ — подписка
+// ══════════════════════════════════════════
+app.get('/api/fernieplus/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, error: 'Telegram не привязан' });
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus?telegram_id=${users[0].telegram_id}`);
+    const data = await botRes.json();
+    res.json({ success: true, ...data });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Фоны — список
+// ══════════════════════════════════════════
+app.get('/api/backgrounds', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/backgrounds?select=*&order=created_at.desc`, { headers: sbHeaders });
+    const data = await r.json();
+    res.json({ success: true, backgrounds: data });
+  } catch (e) { res.json({ success: false, backgrounds: [] }); }
+});
+
+// Фоны конкретного пользователя
+app.get('/api/backgrounds/user/:userId', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/backgrounds?uploader_id=eq.${req.params.userId}&select=*&order=created_at.desc`, { headers: sbHeaders });
+    const data = await r.json();
+    res.json({ success: true, backgrounds: data });
+  } catch (e) { res.json({ success: false, backgrounds: [] }); }
+});
+
+// Понравившиеся
+app.get('/api/backgrounds/liked/:userId', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/background_likes?user_id=eq.${req.params.userId}&select=background_id,backgrounds(*)`, { headers: sbHeaders });
+    const data = await r.json();
+    res.json({ success: true, liked: data.map(x => x.backgrounds).filter(Boolean) });
+  } catch (e) { res.json({ success: false, liked: [] }); }
+});
+
+// Лайк / анлайк
+app.post('/api/backgrounds/like', async (req, res) => {
+  const { userId, backgroundId, action } = req.body;
+  try {
+    if (action === 'like') {
+      await fetch(`${SB_URL}/rest/v1/background_likes`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, background_id: backgroundId })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/background_likes?user_id=eq.${userId}&background_id=eq.${backgroundId}`, {
+        method: 'DELETE', headers: sbHeaders
+      });
+    }
+    res.json({ success: true });
+  } catch (e) { res.json({ success: false }); }
+});
+
+// Установить фон
+app.post('/api/backgrounds/set', async (req, res) => {
+  const { userId, backgroundId } = req.body;
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, error: 'Telegram не привязан' });
+    const bgRes = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${backgroundId}&select=*`, { headers: sbHeaders });
+    const bgs = await bgRes.json();
+    if (!bgs.length) return res.json({ success: false, error: 'Фон не найден' });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ active_background_id: backgroundId })
+    });
+    await notifyBot(`${BOT_URL}/api/fernieid/set-background`, {
+      telegram_id: users[0].telegram_id,
+      background_url: bgs[0].image_url
+    });
+    res.json({ success: true });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
+// Добавить фон (пользователь)
+app.post('/api/backgrounds/create', async (req, res) => {
+  const { userId, name, description, imageUrl } = req.body;
+  if (!userId || !name || !imageUrl) return res.json({ success: false, error: 'Нет данных' });
+  const BAD_WORDS = ['хуй','пизд','блят','блядь','ебан','еблан','сука','пидор','мудак','залупа','ёбан','шлюх'];
+  const nameLower = name.toLowerCase();
+  if (BAD_WORDS.some(w => nameLower.includes(w))) return res.json({ success: false, error: 'Название содержит недопустимые слова' });
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=username`, { headers: sbHeaders });
+    const users = await userRes.json();
+    const username = users[0]?.username || 'Аноним';
+    const r = await fetch(`${SB_URL}/rest/v1/backgrounds`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({ name, description: description || null, image_url: imageUrl, uploader_id: userId, author: username, type: 'custom' })
+    });
+    const data = await r.json();
+    res.json({ success: true, background: data[0] });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
+// Удалить фон пользователя
+app.delete('/api/backgrounds/:id', async (req, res) => {
+  const { userId } = req.body;
+  const { id } = req.params;
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}&uploader_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (!rows.length) return res.json({ success: false, error: 'Нет доступа' });
+    await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders });
+    res.json({ success: true });
+  } catch (e) { res.json({ success: false, error: e.message }); }
+});
+
+// Получить активный фон пользователя
+app.get('/api/backgrounds/active/:userId', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${req.params.userId}&select=active_background_id`, { headers: sbHeaders });
+    const users = await r.json();
+    res.json({ success: true, active_background_id: users[0]?.active_background_id || null });
+  } catch (e) { res.json({ success: false }); }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
