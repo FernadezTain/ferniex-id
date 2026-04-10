@@ -794,17 +794,31 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 </div>
 
 <!-- МОДАЛКА СОЗДАНИЯ ФОНА -->
-<div class="buy-overlay" id="createBgOverlay" onclick="(function(e){if(e.target===document.getElementById('createBgOverlay')){}})()">
-  <div class="buy-modal" style="max-width:460px;">
+<div class="buy-overlay" id="createBgOverlay">
+  <div class="buy-modal" style="max-width:480px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.07)">
       <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;">🖼 Создание фона</div>
-      <button onclick="closeCreateBgModal()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+      <button onclick="closeCreateBgModal()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;line-height:1;">✕</button>
     </div>
-    <div style="margin-bottom:1rem;">
-      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px;">Изображение (PNG/JPG)</label>
-      <input type="file" id="bgFileInput" accept="image/png,image/jpeg" style="width:100%;font-size:.82rem;color:var(--text);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;">
-      <div id="bgPreview" style="margin-top:10px;display:none;"><img id="bgPreviewImg" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;"></div>
+
+    <!-- DRAG & DROP зона -->
+    <div id="bgDropZone" style="position:relative;border:2px dashed rgba(180,141,255,0.35);border-radius:14px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:1rem;background:rgba(180,141,255,0.04);"
+      onclick="document.getElementById('bgFileInput').click()"
+      ondragover="event.preventDefault();this.style.borderColor='rgba(180,141,255,0.7)';this.style.background='rgba(180,141,255,0.09)';"
+      ondragleave="this.style.borderColor='rgba(180,141,255,0.35)';this.style.background='rgba(180,141,255,0.04)';"
+      ondrop="bgHandleDrop(event)">
+      <input type="file" id="bgFileInput" accept="image/png,image/jpeg,image/webp" style="display:none;">
+      <div id="bgDropContent">
+        <div style="font-size:2rem;margin-bottom:.5rem;">🖼️</div>
+        <div style="font-size:.88rem;font-weight:600;margin-bottom:.25rem;">Перетащи изображение сюда</div>
+        <div style="font-size:.72rem;color:var(--muted);">или нажми для выбора файла · PNG / JPG / WEBP</div>
+      </div>
+      <div id="bgPreview" style="display:none;">
+        <img id="bgPreviewImg" style="width:100%;max-height:180px;object-fit:cover;border-radius:10px;display:block;">
+        <div style="margin-top:.5rem;font-size:.72rem;color:var(--muted);" id="bgFileName"></div>
+      </div>
     </div>
+
     <div style="margin-bottom:.75rem;">
       <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Название фона <span style="color:#ff6b6b;">*</span></label>
       <input class="gl-input" id="bgNameInput" placeholder="Например: Закат над горами" maxlength="60">
@@ -1017,7 +1031,7 @@ function switchSection(section) {
   if(section==='gamestats')loadGameStats();
   if(section==='admin')loadAdminPanel();
   if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
-  if(section==='fernieplus'){loadFerniePlus();const userId=currentUser?.id;loadFpInfo(userId);}
+  if(section==='fernieplus'){loadFerniePlus();const userId=localStorage.getItem('userId');loadFpInfo(userId);}
   const mc=document.querySelector('.main-content');
   if(mc)mc.scrollTop=0;
 }
@@ -2124,7 +2138,7 @@ let fpActiveBgId = null;
 let fpLikedIds = new Set();
 
 async function loadFerniePlus() {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   if (!userId) return;
   // Активный фон
   const activeRes = await fetch(`/api/backgrounds/active/${userId}`).then(r=>r.json()).catch(()=>({success:false}));
@@ -2212,7 +2226,7 @@ async function loadFpInfo(userId) {
 }
 
 async function loadFpFeed() {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   const el = document.getElementById('bgFeedGrid');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2227,7 +2241,7 @@ async function loadFpFeed() {
 }
 
 async function loadFpMine() {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   const el = document.getElementById('bgMineGrid');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2238,7 +2252,7 @@ async function loadFpMine() {
 }
 
 async function loadFpLiked() {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   const el = document.getElementById('bgLikedList');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2286,7 +2300,7 @@ function renderBgCard(bg, isMine) {
 }
 
 async function setBg(bgId, btn) {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   btn.textContent = '⏳...';
   const r = await fetch('/api/backgrounds/set', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -2306,7 +2320,7 @@ async function setBg(bgId, btn) {
 }
 
 async function toggleLike(bgId, btn) {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   const isLiked = fpLikedIds.has(bgId);
   const action = isLiked ? 'unlike' : 'like';
   // анимация
@@ -2321,7 +2335,7 @@ async function toggleLike(bgId, btn) {
 }
 
 async function unlikeBg(bgId) {
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   await fetch('/api/backgrounds/like', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ userId, backgroundId: bgId, action: 'unlike' })
@@ -2332,7 +2346,7 @@ async function unlikeBg(bgId) {
 
 async function deleteBg(bgId) {
   if (!confirm('Удалить этот фон?')) return;
-  const userId = currentUser?.id;
+  const userId = localStorage.getItem('userId');
   await fetch(`/api/backgrounds/${bgId}`, {
     method:'DELETE', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ userId })
@@ -2347,46 +2361,64 @@ function openCreateBgModal() {
   document.getElementById('bgNameInput').value='';
   document.getElementById('bgDescInput').value='';
   document.getElementById('bgPreview').style.display='none';
+  document.getElementById('bgDropContent').style.display='block';
   document.getElementById('bgNameError').style.display='none';
+  document.getElementById('bgDropZone').style.borderColor='rgba(180,141,255,0.35)';
+  document.getElementById('bgDropZone').style.background='rgba(180,141,255,0.04)';
+  bgSelectedFile = null;
 }
 function closeCreateBgModal() {
   document.getElementById('createBgOverlay').classList.remove('show');
 }
 
+let bgSelectedFile = null;
+
+function bgShowPreview(file) {
+  if (!file) return;
+  bgSelectedFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('bgPreviewImg').src = e.target.result;
+    document.getElementById('bgPreview').style.display = 'block';
+    document.getElementById('bgDropContent').style.display = 'none';
+    document.getElementById('bgFileName').textContent = file.name + ' · ' + (file.size/1024).toFixed(0) + ' KB';
+    document.getElementById('bgDropZone').style.borderColor = 'rgba(78,205,196,0.5)';
+    document.getElementById('bgDropZone').style.background = 'rgba(78,205,196,0.05)';
+  };
+  reader.readAsDataURL(file);
+}
+
+function bgHandleDrop(event) {
+  event.preventDefault();
+  document.getElementById('bgDropZone').style.borderColor='rgba(180,141,255,0.35)';
+  document.getElementById('bgDropZone').style.background='rgba(180,141,255,0.04)';
+  const file = event.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) bgShowPreview(file);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bgFileInput')?.addEventListener('change', function() {
-    const file = this.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('bgPreviewImg').src = e.target.result;
-      document.getElementById('bgPreview').style.display = 'block';
-    };
-    reader.readAsDataURL(file);
+    if (this.files[0]) bgShowPreview(this.files[0]);
   });
 });
 
 async function submitCreateBg() {
   const name = document.getElementById('bgNameInput').value.trim();
   const desc = document.getElementById('bgDescInput').value.trim();
-  const fileInput = document.getElementById('bgFileInput');
   const errEl = document.getElementById('bgNameError');
   errEl.style.display = 'none';
   if (!name) { errEl.textContent='Введите название'; errEl.style.display='block'; return; }
-  if (!fileInput.files[0]) { alert('Выберите изображение'); return; }
+  if (!bgSelectedFile) { errEl.textContent='Выберите изображение'; errEl.style.display='block'; return; }
   const userId = currentUser?.id;
-  // Конвертим в base64 и шлём на Supabase Storage через бот или напрямую
-  // Простой вариант: конвертим в DataURL и сохраняем в поле image_url (base64 — только для демо)
-  // Для production нужно загрузить в Supabase Storage и сохранить URL
-  const file = fileInput.files[0];
+  const btn = document.querySelector('#createBgOverlay .gl-btn-primary');
+  btn.textContent = '⏳ Загрузка...'; btn.style.pointerEvents='none';
   const reader = new FileReader();
   reader.onload = async (e) => {
-    // Загрузка в Supabase Storage
-    const SB_URL_VAL = ''; // заполнится через server
     const r = await fetch('/api/backgrounds/create', {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ userId, name, description: desc, imageUrl: e.target.result })
-    }).then(x=>x.json()).catch(()=>({success:false}));
+    }).then(x=>x.json()).catch(()=>({success:false,error:'Ошибка сети'}));
+    btn.textContent = '✅ Создать'; btn.style.pointerEvents='';
     if (r.success) {
       closeCreateBgModal();
       loadFpMine();
@@ -2395,7 +2427,7 @@ async function submitCreateBg() {
       errEl.style.display = 'block';
     }
   };
-  reader.readAsDataURL(file);
+  reader.readAsDataURL(bgSelectedFile);
 }
 
 function esc(str) {
@@ -2410,7 +2442,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll('[data-fp]').forEach(t=>t.classList.remove('active'));
     fpTab.classList.add('active');
     document.querySelectorAll('#section-fernieplus .gp-panel').forEach(p=>{ if(p.id===`fp-${key}`) p.classList.add('active'); else if(p.id.startsWith('fp-')) p.classList.remove('active'); });
-    const userId = currentUser?.id;
+    const userId = localStorage.getItem('userId');
     if (key==='info') loadFpInfo(userId);
     if (key==='custom') { loadFpFeed(); loadFpMine(); loadFpLiked(); }
   }
