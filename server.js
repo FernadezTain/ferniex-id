@@ -1050,9 +1050,10 @@ app.post('/api/backgrounds/set', async (req, res) => {
       method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
       body: JSON.stringify({ active_background_id: backgroundId })
     });
-    await notifyBot(`${BOT_URL}/api/fernieid/set-background`, {
+    await notifyBot(`${BOT_URL}/api/fernieplus/background`, {
       telegram_id: users[0].telegram_id,
-      background_url: bgs[0].image_url
+      media_url: bgs[0].image_url,
+      media_type: 'photo'
     });
     res.json({ success: true });
   } catch (e) { res.json({ success: false, error: e.message }); }
