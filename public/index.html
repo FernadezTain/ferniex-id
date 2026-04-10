@@ -2138,7 +2138,7 @@ let fpActiveBgId = null;
 let fpLikedIds = new Set();
 
 async function loadFerniePlus() {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   if (!userId) return;
   // Активный фон
   const activeRes = await fetch(`/api/backgrounds/active/${userId}`).then(r=>r.json()).catch(()=>({success:false}));
@@ -2226,7 +2226,7 @@ async function loadFpInfo(userId) {
 }
 
 async function loadFpFeed() {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   const el = document.getElementById('bgFeedGrid');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2241,7 +2241,7 @@ async function loadFpFeed() {
 }
 
 async function loadFpMine() {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   const el = document.getElementById('bgMineGrid');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2252,7 +2252,7 @@ async function loadFpMine() {
 }
 
 async function loadFpLiked() {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   const el = document.getElementById('bgLikedList');
   if (!el) return;
   el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
@@ -2300,7 +2300,7 @@ function renderBgCard(bg, isMine) {
 }
 
 async function setBg(bgId, btn) {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   btn.textContent = '⏳...';
   const r = await fetch('/api/backgrounds/set', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -2320,7 +2320,7 @@ async function setBg(bgId, btn) {
 }
 
 async function toggleLike(bgId, btn) {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   const isLiked = fpLikedIds.has(bgId);
   const action = isLiked ? 'unlike' : 'like';
   // анимация
@@ -2335,7 +2335,7 @@ async function toggleLike(bgId, btn) {
 }
 
 async function unlikeBg(bgId) {
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   await fetch('/api/backgrounds/like', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ userId, backgroundId: bgId, action: 'unlike' })
@@ -2346,7 +2346,7 @@ async function unlikeBg(bgId) {
 
 async function deleteBg(bgId) {
   if (!confirm('Удалить этот фон?')) return;
-  const userId = localStorage.getItem('userId');
+  const userId = currentUser?.id;
   await fetch(`/api/backgrounds/${bgId}`, {
     method:'DELETE', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ userId })
@@ -2442,7 +2442,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll('[data-fp]').forEach(t=>t.classList.remove('active'));
     fpTab.classList.add('active');
     document.querySelectorAll('#section-fernieplus .gp-panel').forEach(p=>{ if(p.id===`fp-${key}`) p.classList.add('active'); else if(p.id.startsWith('fp-')) p.classList.remove('active'); });
-    const userId = localStorage.getItem('userId');
+    const userId = currentUser?.id;
     if (key==='info') loadFpInfo(userId);
     if (key==='custom') { loadFpFeed(); loadFpMine(); loadFpLiked(); }
   }
