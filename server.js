@@ -20,6 +20,7 @@ app.use(cors({
 
 const SB_URL    = process.env.SUPABASE_URL;
 const SB_KEY    = process.env.SUPABASE_KEY;
+const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || SB_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_URL   = process.env.BOT_URL || 'https://a37690-25aa.j.d-f.pw';
 
@@ -1083,8 +1084,8 @@ app.post('/api/backgrounds/create', async (req, res) => {
       const uploadRes = await fetch(`${SB_URL}/storage/v1/object/backgrounds/${fileName}`, {
         method: 'POST',
         headers: {
-          apikey: SB_KEY,
-          Authorization: `Bearer ${SB_KEY}`,
+          apikey: SB_SERVICE_KEY,
+          Authorization: `Bearer ${SB_SERVICE_KEY}`,
           'Content-Type': mimeType,
           'x-upsert': 'true'
         },
