@@ -552,6 +552,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 @media (max-width: 400px) {
   .code-digit-input { width: 38px; height: 48px; font-size: 1.3rem; }
 }
+.backgrounds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;}
+@media(max-width:600px){.backgrounds-grid{grid-template-columns:1fr 1fr;}}
+
 </style>
 </head>
 <body>
@@ -603,6 +606,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="sidebar-section-label" style="margin-top:16px;">Аккаунт</div>
       <div class="nav-item" data-section="thirdparty"><span class="nav-icon">🕹️</span><span class="nav-label">Сторонние игры</span></div>
       <div class="nav-item" data-section="security"><span class="nav-icon">🛡️</span><span class="nav-label">Безопасность</span></div>
+      <div class="nav-item" data-section="fernieplus"><span class="nav-icon">✨</span><span class="nav-label">Fernie+</span></div>
       <div class="nav-item admin-only" data-section="admin" id="adminNavItem" style="display:none"><span class="nav-icon">👑</span><span class="nav-label">Админ панель</span></div>
     </aside>
 
@@ -645,6 +649,15 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
             </div>
           </div>
         </div>
+
+      <!-- Fernie+ превью в обзоре -->
+      <div class="gl-card" id="overviewFerniePlus" style="margin-top:1rem;cursor:pointer;" onclick="switchSection('fernieplus')">
+        <div class="section-head">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px;">✨ Fernie+</div>
+          <div class="section-badge" style="background:linear-gradient(135deg,rgba(255,200,80,0.18),rgba(255,150,50,0.12));border-color:rgba(255,200,80,0.3);color:#ffd84d;">Подписка</div>
+        </div>
+        <div id="fpOverviewContent"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+      </div>
       </div>
 
       <!-- ИГРОВАЯ ПАНЕЛЬ -->
@@ -740,6 +753,73 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="dash-section" id="section-applydetail">
         <div id="applydetail-content"></div>
       </div>
+
+      <!-- FERNIE+ -->
+<div class="dash-section" id="section-fernieplus">
+  <div class="stats-page-header"><h2>✨ Fernie+</h2><p>Подписка и кастомизация профиля</p></div>
+  <div class="gp-tabs" id="fpMainTabs">
+    <button class="gp-tab active" data-fp="info">📋 Информация</button>
+    <button class="gp-tab" data-fp="custom">🎨 Кастомизация</button>
+  </div>
+
+  <!-- INFO -->
+  <div class="gp-panel active" id="fp-info">
+    <div id="fpInfoContent"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+  </div>
+
+  <!-- CUSTOM -->
+  <div class="gp-panel" id="fp-custom">
+    <div class="gp-tabs" style="margin-bottom:1rem;">
+      <button class="gp-tab active" data-fpsub="feed">🖼 Лента фонов</button>
+      <button class="gp-tab" data-fpsub="mine">📁 Мои фоны</button>
+      <button class="gp-tab" data-fpsub="liked">❤️ Понравившиеся</button>
+    </div>
+
+    <!-- ЛЕНТА -->
+    <div class="gp-panel active" id="fps-feed">
+      <div class="backgrounds-grid" id="bgFeedGrid"><div class="state-loading"><div class="spinner"></div><span>Загрузка фонов...</span></div></div>
+    </div>
+
+    <!-- МОИ ФОНЫ -->
+    <div class="gp-panel" id="fps-mine">
+      <button class="gl-btn gl-btn-primary" style="margin-bottom:1rem;padding:10px 20px;border-radius:12px;font-size:.85rem;cursor:pointer;" onclick="openCreateBgModal()">➕ Добавить фон</button>
+      <div class="backgrounds-grid" id="bgMineGrid"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+    </div>
+
+    <!-- ПОНРАВИВШИЕСЯ -->
+    <div class="gp-panel" id="fps-liked">
+      <div id="bgLikedList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА СОЗДАНИЯ ФОНА -->
+<div class="buy-overlay" id="createBgOverlay" onclick="(function(e){if(e.target===document.getElementById('createBgOverlay')){}})()">
+  <div class="buy-modal" style="max-width:460px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;">🖼 Создание фона</div>
+      <button onclick="closeCreateBgModal()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;">✕</button>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:6px;">Изображение (PNG/JPG)</label>
+      <input type="file" id="bgFileInput" accept="image/png,image/jpeg" style="width:100%;font-size:.82rem;color:var(--text);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px;">
+      <div id="bgPreview" style="margin-top:10px;display:none;"><img id="bgPreviewImg" style="width:100%;border-radius:10px;max-height:160px;object-fit:cover;"></div>
+    </div>
+    <div style="margin-bottom:.75rem;">
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Название фона <span style="color:#ff6b6b;">*</span></label>
+      <input class="gl-input" id="bgNameInput" placeholder="Например: Закат над горами" maxlength="60">
+      <div id="bgNameError" style="font-size:.72rem;color:#ff6b6b;margin-top:4px;display:none;"></div>
+    </div>
+    <div style="margin-bottom:1.25rem;">
+      <label style="font-size:.78rem;color:var(--muted);display:block;margin-bottom:5px;">Описание <span style="color:var(--muted);font-size:.7rem;">(необязательно)</span></label>
+      <input class="gl-input" id="bgDescInput" placeholder="Короткое описание..." maxlength="120">
+    </div>
+    <div style="display:flex;gap:.75rem;">
+      <button class="gl-btn gl-btn-primary" style="flex:1;padding:11px;border-radius:11px;cursor:pointer;font-size:.85rem;" onclick="submitCreateBg()">✅ Создать</button>
+      <button class="gl-btn" style="flex:1;padding:11px;border-radius:11px;cursor:pointer;font-size:.85rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);" onclick="closeCreateBgModal()">Отмена</button>
+    </div>
+  </div>
+</div>
 <!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
       <div class="dash-section" id="section-admin">
         <div class="stats-page-header"><h2>👑 Панель Администратора</h2><p>Управление пользователями сайта</p></div>
@@ -778,7 +858,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   <div class="mobile-nav-inner">
     <div class="mobile-nav-btn active" data-section="overview"><div class="mnav-icon-wrap"><span class="mnav-icon">🏠</span></div><span>Обзор</span></div>
     <div class="mobile-nav-btn" data-section="gamestats"><div class="mnav-icon-wrap"><span class="mnav-icon">🎮</span></div><span>Статистика</span></div>
-    <div class="mobile-nav-btn" data-section="security"><div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div><span>Безопасность</span></div>
+    <div class="mobile-nav-btn" data-section="security"><div class="mobile-nav-btn" data-section="fernieplus"><div class="mnav-icon-wrap"><span class="mnav-icon">✨</span></div><span>Fernie+</span></div><div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div><span>Безопасность</span></div>
     <div class="mobile-nav-btn admin-only" data-section="admin" id="adminMobileBtn" style="display:none"><div class="mnav-icon-wrap"><span class="mnav-icon">👑</span></div><span>Админ</span></div>
   </div>
 </nav>
@@ -937,6 +1017,7 @@ function switchSection(section) {
   if(section==='gamestats')loadGameStats();
   if(section==='admin')loadAdminPanel();
   if(section==='thirdparty' && !thirdPartyLoaded){thirdPartyLoaded=true;loadThirdPartyGames();}
+  if(section==='fernieplus'){loadFerniePlus();const userId=localStorage.getItem('userId');loadFpInfo(userId);}
   const mc=document.querySelector('.main-content');
   if(mc)mc.scrollTop=0;
 }
@@ -960,7 +1041,7 @@ function openDashboard(user){
   const diff=Math.max(1,Math.floor((Date.now()-rd)/86400000));
   $('statDays').textContent=diff;$('statRegDate').textContent='с '+fmtDateShort(rd);
   $('auth-page').classList.remove('active');$('dash-page').classList.add('active');
-  switchSection('overview');loadOverviewStats();checkAdminAccess();
+  switchSection('overview');loadOverviewStats();checkAdminAccess();loadFerniePlus();
   const tgS=$('secTgStatus'),tgD=$('secTgDesc');
   if(user.telegram_id){tgS.textContent='Привязан ✓';tgS.className='sec-status sec-on';tgD.textContent='ID: '+user.telegram_id;$('unlinkTgBtn').style.display='inline-flex';$('linkTgBtn').style.display='none';}
   else{tgS.textContent='Не привязан';tgS.className='sec-status sec-off';tgD.textContent='Привяжи через Telegram бота';$('unlinkTgBtn').style.display='none';$('linkTgBtn').style.display='inline-flex';}
@@ -2037,6 +2118,312 @@ async function doTransferConfirm() {
 
   btn.textContent = 'Подтвердить перенос'; btn.style.opacity = ''; btn.style.pointerEvents = '';
 }
+
+// ═══ FERNIE+ ═══
+let fpActiveBgId = null;
+let fpLikedIds = new Set();
+
+async function loadFerniePlus() {
+  const userId = localStorage.getItem('userId');
+  if (!userId) return;
+  // Активный фон
+  const activeRes = await fetch(`/api/backgrounds/active/${userId}`).then(r=>r.json()).catch(()=>({success:false}));
+  fpActiveBgId = activeRes.active_background_id || null;
+  // Подписка overview
+  loadFpOverview(userId);
+}
+
+async function loadFpOverview(userId) {
+  const el = document.getElementById('fpOverviewContent');
+  if (!el) return;
+  try {
+    const r = await fetch(`/api/fernieplus/${userId}`).then(x=>x.json());
+    if (!r.success || !r.active) {
+      el.innerHTML = `<div style="font-size:.82rem;color:var(--muted);padding:4px 0;">Подписка не активна. Fernie+ открывает кастомизацию и эксклюзивные фоны.</div>`;
+    } else {
+      const ends = new Date(r.expires_at);
+      const now = new Date();
+      const days = Math.max(0, Math.ceil((ends - now) / 864e5));
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:160px;">
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:3px;">Активна до</div>
+            <div style="font-size:.95rem;font-weight:600;color:#ffd84d;">${ends.toLocaleDateString('ru-RU')}</div>
+          </div>
+          <div style="flex:1;min-width:130px;">
+            <div style="font-size:.78rem;color:var(--muted);margin-bottom:3px;">Осталось</div>
+            <div style="font-size:.95rem;font-weight:600;color:var(--teal);">${days} ${days===1?'день':days<5?'дня':'дней'}</div>
+          </div>
+          <div style="padding:6px 14px;border-radius:20px;background:rgba(255,200,80,0.12);border:1px solid rgba(255,200,80,0.25);font-size:.72rem;font-weight:600;color:#ffd84d;">✨ Активна</div>
+        </div>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:.8rem;color:var(--muted);">Не удалось загрузить данные</div>`;
+  }
+}
+
+async function loadFpInfo(userId) {
+  const el = document.getElementById('fpInfoContent');
+  if (!el) return;
+  el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
+  try {
+    const r = await fetch(`/api/fernieplus/${userId}`).then(x=>x.json());
+    if (!r.success || !r.active) {
+      el.innerHTML = `
+        <div class="gl-card" style="text-align:center;padding:2rem;">
+          <div style="font-size:2.5rem;margin-bottom:1rem;">✨</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:.5rem;">Fernie+</div>
+          <div style="font-size:.85rem;color:var(--muted);max-width:360px;margin:0 auto 1.5rem;">Подписка даёт доступ к кастомизации профиля, эксклюзивным фонам и другим возможностям.</div>
+          <div style="display:inline-flex;padding:8px 20px;border-radius:20px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.2);color:#ff6b6b;font-size:.8rem;font-weight:600;">Не активна</div>
+        </div>`;
+    } else {
+      const ends = new Date(r.expires_at);
+      const start = r.started_at ? new Date(r.started_at) : null;
+      const now = new Date();
+      const days = Math.max(0, Math.ceil((ends - now) / 864e5));
+      const totalDays = start ? Math.round((ends - start) / 864e5) : '—';
+      el.innerHTML = `
+        <div class="gl-card">
+          <div class="section-head">
+            <div class="section-title" style="display:flex;align-items:center;gap:8px;">✨ Fernie+ <span style="font-size:.65rem;padding:2px 8px;border-radius:20px;background:rgba(255,200,80,0.12);border:1px solid rgba(255,200,80,0.25);color:#ffd84d;font-weight:700;">АКТИВНА</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.5rem;">
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;">
+              <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Дата окончания</div>
+              <div style="font-size:1rem;font-weight:600;color:#ffd84d;">${ends.toLocaleDateString('ru-RU')}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;">
+              <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Осталось дней</div>
+              <div style="font-size:1rem;font-weight:600;color:var(--teal);">${days}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;">
+              <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Тариф</div>
+              <div style="font-size:1rem;font-weight:600;">${totalDays} дней</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;">
+              <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px;">Статус</div>
+              <div style="font-size:1rem;font-weight:600;color:var(--teal);">✅ Активна</div>
+            </div>
+          </div>
+        </div>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:.85rem;padding:1rem;">Ошибка загрузки данных подписки.</div>`;
+  }
+}
+
+async function loadFpFeed() {
+  const userId = localStorage.getItem('userId');
+  const el = document.getElementById('bgFeedGrid');
+  if (!el) return;
+  el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
+  const [r, likedRes] = await Promise.all([
+    fetch('/api/backgrounds').then(x=>x.json()).catch(()=>({success:false,backgrounds:[]})),
+    fetch(`/api/backgrounds/liked/${userId}`).then(x=>x.json()).catch(()=>({success:false,liked:[]}))
+  ]);
+  fpLikedIds = new Set((likedRes.liked||[]).map(x=>x.id));
+  const bgs = r.backgrounds || [];
+  if (!bgs.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.85rem;padding:1rem;">Фонов пока нет.</div>`; return; }
+  el.innerHTML = bgs.map(bg => renderBgCard(bg, false)).join('');
+}
+
+async function loadFpMine() {
+  const userId = localStorage.getItem('userId');
+  const el = document.getElementById('bgMineGrid');
+  if (!el) return;
+  el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
+  const r = await fetch(`/api/backgrounds/user/${userId}`).then(x=>x.json()).catch(()=>({success:false,backgrounds:[]}));
+  const bgs = r.backgrounds || [];
+  if (!bgs.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.85rem;padding:1rem;">Вы ещё не добавляли фоны.</div>`; return; }
+  el.innerHTML = bgs.map(bg => renderBgCard(bg, true)).join('');
+}
+
+async function loadFpLiked() {
+  const userId = localStorage.getItem('userId');
+  const el = document.getElementById('bgLikedList');
+  if (!el) return;
+  el.innerHTML = `<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>`;
+  const r = await fetch(`/api/backgrounds/liked/${userId}`).then(x=>x.json()).catch(()=>({success:false,liked:[]}));
+  const bgs = r.liked || [];
+  if (!bgs.length) { el.innerHTML = `<div style="color:var(--muted);font-size:.85rem;padding:1rem;">Нет понравившихся фонов.</div>`; return; }
+  el.innerHTML = bgs.map(bg => `
+    <div class="gl-card" style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:.75rem;" id="liked-${bg.id}">
+      <img src="${bg.image_url}" style="width:90px;height:60px;object-fit:cover;border-radius:10px;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-weight:600;font-size:.9rem;">${esc(bg.name)}</span>
+          <span style="font-size:.65rem;padding:2px 7px;border-radius:20px;background:${bg.type==='custom'?'rgba(126,184,255,0.1)':'rgba(180,141,255,0.1)'};border:1px solid ${bg.type==='custom'?'rgba(126,184,255,0.2)':'rgba(180,141,255,0.2)'};color:${bg.type==='custom'?'var(--p2)':'var(--p1)'};">${bg.type==='custom'?'Пользовательский':'Системный'}</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--muted);">${esc(bg.author)} · ${new Date(bg.created_at).toLocaleString('ru-RU')}</div>
+        ${bg.description ? `<div style="font-size:.78rem;color:rgba(255,255,255,.55);margin-top:3px;">${esc(bg.description)}</div>` : ''}
+        <div style="display:flex;gap:.5rem;margin-top:.75rem;">
+          <button class="gl-btn gl-btn-primary" style="padding:7px 14px;border-radius:9px;font-size:.78rem;cursor:pointer;" onclick="setBg('${bg.id}',this)">${fpActiveBgId===bg.id?'✅ Установлен':'Установить'}</button>
+          <button class="gl-btn" style="padding:7px 14px;border-radius:9px;font-size:.78rem;cursor:pointer;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.18);color:#ff6b6b;" onclick="unlikeBg('${bg.id}')">🗑 Удалить из избранных</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderBgCard(bg, isMine) {
+  const liked = fpLikedIds.has(bg.id);
+  const isActive = fpActiveBgId === bg.id;
+  return `
+    <div class="gl-card" style="position:relative;overflow:hidden;" id="bgcard-${bg.id}">
+      <div style="position:relative;">
+        <img src="${bg.image_url}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;display:block;">
+        ${!isMine ? `<button onclick="toggleLike('${bg.id}',this)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.45);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:transform .2s;" title="${liked?'Убрать из понравившихся':'В понравившиеся'}">${liked?'❤️':'🤍'}</button>` : ''}
+        ${isMine ? `<button onclick="deleteBg('${bg.id}')" style="position:absolute;top:8px;right:8px;background:rgba(255,60,60,0.5);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;" title="Удалить">🗑</button>` : ''}
+      </div>
+      <div style="margin-top:.65rem;">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:2px;">
+          <span style="font-weight:600;font-size:.88rem;">${esc(bg.name)}</span>
+          <span style="font-size:.62rem;padding:2px 6px;border-radius:20px;background:${bg.type==='custom'?'rgba(126,184,255,0.1)':'rgba(180,141,255,0.1)'};border:1px solid ${bg.type==='custom'?'rgba(126,184,255,0.2)':'rgba(180,141,255,0.2)'};color:${bg.type==='custom'?'var(--p2)':'var(--p1)'};">${bg.type==='custom'?'Пользовательский':'Системный'}</span>
+        </div>
+        <div style="font-size:.7rem;color:var(--muted);">${esc(bg.author)} · ${new Date(bg.created_at).toLocaleString('ru-RU')}</div>
+        ${bg.description?`<div style="font-size:.75rem;color:rgba(255,255,255,.5);margin-top:3px;">${esc(bg.description)}</div>`:''}
+        <button class="gl-btn gl-btn-primary" style="margin-top:.65rem;width:100%;padding:8px;border-radius:9px;font-size:.8rem;cursor:pointer;" onclick="setBg('${bg.id}',this)">${isActive?'✅ Установлен':'Установить'}</button>
+      </div>
+    </div>`;
+}
+
+async function setBg(bgId, btn) {
+  const userId = localStorage.getItem('userId');
+  btn.textContent = '⏳...';
+  const r = await fetch('/api/backgrounds/set', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, backgroundId: bgId })
+  }).then(x=>x.json()).catch(()=>({success:false}));
+  if (r.success) {
+    fpActiveBgId = bgId;
+    // сбросить все кнопки "Установить"
+    document.querySelectorAll('[id^="bgcard-"] .gl-btn-primary, [id^="liked-"] .gl-btn-primary').forEach(b => {
+      if (b !== btn) b.textContent = 'Установить';
+    });
+    btn.textContent = '✅ Установлен';
+  } else {
+    btn.textContent = 'Установить';
+    alert(r.error || 'Ошибка');
+  }
+}
+
+async function toggleLike(bgId, btn) {
+  const userId = localStorage.getItem('userId');
+  const isLiked = fpLikedIds.has(bgId);
+  const action = isLiked ? 'unlike' : 'like';
+  // анимация
+  btn.style.transform = 'scale(1.4)';
+  setTimeout(() => btn.style.transform = 'scale(1)', 300);
+  await fetch('/api/backgrounds/like', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, backgroundId: bgId, action })
+  }).catch(()=>{});
+  if (isLiked) { fpLikedIds.delete(bgId); btn.textContent = '🤍'; }
+  else { fpLikedIds.add(bgId); btn.textContent = '❤️'; }
+}
+
+async function unlikeBg(bgId) {
+  const userId = localStorage.getItem('userId');
+  await fetch('/api/backgrounds/like', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userId, backgroundId: bgId, action: 'unlike' })
+  }).catch(()=>{});
+  const el = document.getElementById(`liked-${bgId}`);
+  if (el) el.remove();
+}
+
+async function deleteBg(bgId) {
+  if (!confirm('Удалить этот фон?')) return;
+  const userId = localStorage.getItem('userId');
+  await fetch(`/api/backgrounds/${bgId}`, {
+    method:'DELETE', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ userId })
+  }).catch(()=>{});
+  const el = document.getElementById(`bgcard-${bgId}`);
+  if (el) el.remove();
+}
+
+function openCreateBgModal() {
+  document.getElementById('createBgOverlay').classList.add('show');
+  document.getElementById('bgFileInput').value='';
+  document.getElementById('bgNameInput').value='';
+  document.getElementById('bgDescInput').value='';
+  document.getElementById('bgPreview').style.display='none';
+  document.getElementById('bgNameError').style.display='none';
+}
+function closeCreateBgModal() {
+  document.getElementById('createBgOverlay').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('bgFileInput')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('bgPreviewImg').src = e.target.result;
+      document.getElementById('bgPreview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+});
+
+async function submitCreateBg() {
+  const name = document.getElementById('bgNameInput').value.trim();
+  const desc = document.getElementById('bgDescInput').value.trim();
+  const fileInput = document.getElementById('bgFileInput');
+  const errEl = document.getElementById('bgNameError');
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent='Введите название'; errEl.style.display='block'; return; }
+  if (!fileInput.files[0]) { alert('Выберите изображение'); return; }
+  const userId = localStorage.getItem('userId');
+  // Конвертим в base64 и шлём на Supabase Storage через бот или напрямую
+  // Простой вариант: конвертим в DataURL и сохраняем в поле image_url (base64 — только для демо)
+  // Для production нужно загрузить в Supabase Storage и сохранить URL
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    // Загрузка в Supabase Storage
+    const SB_URL_VAL = ''; // заполнится через server
+    const r = await fetch('/api/backgrounds/create', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, name, description: desc, imageUrl: e.target.result })
+    }).then(x=>x.json()).catch(()=>({success:false}));
+    if (r.success) {
+      closeCreateBgModal();
+      loadFpMine();
+    } else {
+      errEl.textContent = r.error || 'Ошибка создания';
+      errEl.style.display = 'block';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Обработка вкладок Fernie+
+document.addEventListener('click', e => {
+  const fpTab = e.target.closest('[data-fp]');
+  if (fpTab) {
+    const key = fpTab.dataset.fp;
+    document.querySelectorAll('[data-fp]').forEach(t=>t.classList.remove('active'));
+    fpTab.classList.add('active');
+    document.querySelectorAll('#section-fernieplus .gp-panel').forEach(p=>{ if(p.id===`fp-${key}`) p.classList.add('active'); else if(p.id.startsWith('fp-')) p.classList.remove('active'); });
+    const userId = localStorage.getItem('userId');
+    if (key==='info') loadFpInfo(userId);
+    if (key==='custom') { loadFpFeed(); loadFpMine(); loadFpLiked(); }
+  }
+  const fpSubTab = e.target.closest('[data-fpsub]');
+  if (fpSubTab) {
+    const key = fpSubTab.dataset.fpsub;
+    document.querySelectorAll('[data-fpsub]').forEach(t=>t.classList.remove('active'));
+    fpSubTab.classList.add('active');
+    document.querySelectorAll('#fp-custom .gp-panel').forEach(p=>{ if(p.id===`fps-${key}`) p.classList.add('active'); else p.classList.remove('active'); });
+  }
+});
+
 </script>
 
 <!-- TRANSFER OVERLAY -->
