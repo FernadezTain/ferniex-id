@@ -778,7 +778,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 
     <!-- ЛЕНТА -->
     <div class="gp-panel active" id="fps-feed">
-      <div class="backgrounds-grid" id="bgFeedGrid" style="display:block;"><div class="state-loading" style="width:100%;"><div class="spinner"></div><span>Загрузка фонов...</span></div></div>
+      <div class="backgrounds-grid" id="bgFeedGrid"><div class="state-loading" style="width:100%;"><div class="spinner"></div><span>Загрузка фонов...</span></div></div>
     </div>
 
     <!-- МОИ ФОНЫ -->
@@ -2307,7 +2307,7 @@ function renderBgCard(bg, isMine) {
   return `
     <div class="gl-card" style="position:relative;overflow:hidden;" id="bgcard-${bg.id}">
       <div style="position:relative;">
-        <img src="${bg.image_url}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;display:block;">
+        <img src="${bg.image_url}" style="width:100%;height:110px;object-fit:cover;border-radius:10px;display:block;">
         ${!isMine ? `
   <button onclick="toggleLike('${bg.id}',this)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.45);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:transform .2s;" title="${liked?'Убрать из понравившихся':'В понравившиеся'}">${liked?'❤️':'🤍'}</button>
   ${currentUser?.role === 'admin' ? `<button onclick="openModPanel(${JSON.stringify(bg).replace(/"/g,'&quot;')})" style="position:absolute;top:8px;left:8px;background:rgba(255,200,60,0.25);border:1px solid rgba(255,200,60,0.5);border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .2s;" title="Панель модератора">👑</button>` : ''}
