@@ -220,7 +220,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .rank-silver{background:rgba(180,200,220,0.1);border:1px solid rgba(180,200,220,0.2);color:#b8d0e0;}
 .rank-bronze{background:rgba(200,140,80,0.1);border:1px solid rgba(200,140,80,0.2);color:#d4926a;}
 .rank-normal{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);}
-.state-loading,.state-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem;gap:.65rem;color:var(--muted);font-size:.82rem;}
+.state-loading,.state-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem;gap:.65rem;color:var(--muted);font-size:.82rem;width:100%;text-align:center;}
 .spinner{width:28px;height:28px;border-radius:50%;border:2px solid rgba(180,141,255,0.14);border-top-color:var(--p1);animation:spin .85s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
 .table-controls{display:flex;align-items:center;gap:.55rem;margin-bottom:.85rem;flex-wrap:wrap;position:relative;z-index:2;}
@@ -553,6 +553,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   .code-digit-input { width: 38px; height: 48px; font-size: 1.3rem; }
 }
 .backgrounds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;}
+.backgrounds-grid:has(.state-loading),.backgrounds-grid:has(.state-empty){display:flex;justify-content:center;}
 @media(max-width:600px){.backgrounds-grid{grid-template-columns:1fr 1fr;}}
 
 </style>
@@ -777,7 +778,7 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 
     <!-- ЛЕНТА -->
     <div class="gp-panel active" id="fps-feed">
-      <div class="backgrounds-grid" id="bgFeedGrid"><div class="state-loading"><div class="spinner"></div><span>Загрузка фонов...</span></div></div>
+      <div class="backgrounds-grid" id="bgFeedGrid" style="display:block;"><div class="state-loading" style="width:100%;"><div class="spinner"></div><span>Загрузка фонов...</span></div></div>
     </div>
 
     <!-- МОИ ФОНЫ -->
@@ -846,12 +847,13 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
           <div class="admin-stat-card"><div class="asc-icon">📅</div><div class="asc-val" id="asc-sessions-today">—</div><div class="asc-lbl">Игр сегодня</div></div>
         </div>
         <div id="adminApplySection" style="margin-bottom:1.5rem;display:none;">
-          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;display:flex;align-items:center;gap:8px;">
-            👑 Заявки на Администратора
-            <span class="nav-badge" id="applyBadge">0</span>
-          </div>
-          <div id="adminApplyList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
-        </div>
+  <button onclick="toggleAdminApplies()" style="display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;padding:10px 18px;border-radius:14px;background:rgba(180,141,255,0.1);border:1px solid rgba(180,141,255,0.25);color:var(--text);cursor:pointer;transition:all .2s;margin-bottom:.85rem;-webkit-tap-highlight-color:transparent;" id="adminApplyToggleBtn">
+    👑 Заявки на Администратора
+    <span class="nav-badge" id="applyBadge">0</span>
+    <span id="adminApplyArrow" style="margin-left:4px;color:var(--muted);font-size:.85rem;transition:transform .2s;">▼</span>
+  </button>
+  <div id="adminApplyList" style="display:none;"></div>
+</div>
         <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;">👥 Пользователи</div>
         <div class="admin-search-wrap"><input class="admin-search-input" id="adminSearchInput" placeholder="🔍 Поиск по имени..." oninput="filterAdminUsers()"></div>
         <div id="adminUsersList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
@@ -1841,27 +1843,48 @@ async function loadAdminApplies() {
     if (!data.length) { section.style.display = 'none'; return; }
     section.style.display = '';
     $('applyBadge').textContent = data.filter(a => a.status === 'new').length;
-    list.innerHTML = '';
-    const frag = document.createDocumentFragment();
-    data.forEach(app => {
-      const dt = new Date(app.created_at).toLocaleString('ru-RU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-      const statusMap = { new: ['apply-status-new','Новая'], accepted: ['apply-status-accepted','Принят'], rejected: ['apply-status-rejected','Отклонён'] };
-      const [sc, sl] = statusMap[app.status] || statusMap.new;
-      const div = document.createElement('div');
-      div.className = 'apply-card';
-      div.innerHTML = `
-        <div class="apply-card-ico">👑</div>
-        <div class="apply-card-info">
-          <div class="apply-card-id">ID: ${String(app.user_id).slice(0,8)}… | TG: ${app.telegram_id || '—'}</div>
-          <div class="apply-card-meta">👤 ${app.username || '—'} · 📅 ${dt} · ✅ ${app.score}/${app.total}</div>
-        </div>
-        <span class="apply-card-status ${sc}">${sl}</span>
-      `;
-      div.addEventListener('click', () => openApplyDetail(app));
-      frag.appendChild(div);
-    });
-    list.appendChild(frag);
+    // Сохраняем данные но не рендерим сразу
+    section._applyData = data;
   } catch(e) { console.error('loadAdminApplies:', e); section.style.display = 'none'; }
+}
+
+function toggleAdminApplies() {
+  const list = $('adminApplyList');
+  const arrow = $('adminApplyArrow');
+  const section = $('adminApplySection');
+  const data = section._applyData || [];
+  const isOpen = list.style.display !== 'none';
+  if (isOpen) {
+    list.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    list.style.display = '';
+    arrow.style.transform = 'rotate(180deg)';
+    // Рендерим только при открытии
+    if (!list.children.length) {
+      if (!data.length) { list.innerHTML = '<div class="state-empty"><span>📭</span><span>Заявок нет</span></div>'; return; }
+      const frag = document.createDocumentFragment();
+      data.forEach(app => {
+        const dt = new Date(app.created_at).toLocaleString('ru-RU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        const statusMap = { new: ['apply-status-new','Новая'], accepted: ['apply-status-accepted','Принят'], rejected: ['apply-status-rejected','Отклонён'] };
+        const [sc, sl] = statusMap[app.status] || statusMap.new;
+        const div = document.createElement('div');
+        div.className = 'apply-card';
+        div.innerHTML = `
+          <div class="apply-card-ico">👑</div>
+          <div class="apply-card-info">
+            <div class="apply-card-id">ID: ${String(app.user_id).slice(0,8)}… | TG: ${app.telegram_id || '—'}</div>
+            <div class="apply-card-meta">👤 ${app.username || '—'} · 📅 ${dt} · ✅ ${app.score}/${app.total}</div>
+          </div>
+          <span class="apply-card-status ${sc}">${sl}</span>
+        `;
+        div.addEventListener('click', () => openApplyDetail(app));
+        frag.appendChild(div);
+      });
+      list.innerHTML = '';
+      list.appendChild(frag);
+    }
+  }
 }
 
 function openApplyDetail(app) {
@@ -2285,7 +2308,10 @@ function renderBgCard(bg, isMine) {
     <div class="gl-card" style="position:relative;overflow:hidden;" id="bgcard-${bg.id}">
       <div style="position:relative;">
         <img src="${bg.image_url}" style="width:100%;height:140px;object-fit:cover;border-radius:10px;display:block;">
-        ${!isMine ? `<button onclick="toggleLike('${bg.id}',this)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.45);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:transform .2s;" title="${liked?'Убрать из понравившихся':'В понравившиеся'}">${liked?'❤️':'🤍'}</button>` : ''}
+        ${!isMine ? `
+  <button onclick="toggleLike('${bg.id}',this)" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.45);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:transform .2s;" title="${liked?'Убрать из понравившихся':'В понравившиеся'}">${liked?'❤️':'🤍'}</button>
+  ${currentUser?.role === 'admin' ? `<button onclick="openModPanel(${JSON.stringify(bg).replace(/"/g,'&quot;')})" style="position:absolute;top:8px;left:8px;background:rgba(255,200,60,0.25);border:1px solid rgba(255,200,60,0.5);border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:all .2s;" title="Панель модератора">👑</button>` : ''}
+` : ''}
         ${isMine ? `<button onclick="deleteBg('${bg.id}')" style="position:absolute;top:8px;right:8px;background:rgba(255,60,60,0.5);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;" title="Удалить">🗑</button>` : ''}
       </div>
       <div style="margin-top:.65rem;">
@@ -2455,7 +2481,80 @@ document.addEventListener('click', e => {
     document.querySelectorAll('#fp-custom .gp-panel').forEach(p=>{ if(p.id===`fps-${key}`) p.classList.add('active'); else p.classList.remove('active'); });
   }
 });
+// ═══ ПАНЕЛЬ МОДЕРАТОРА ═══
+let _modBg = null;
 
+function openModPanel(bg) {
+  _modBg = bg;
+  $('modBgImg').src = bg.image_url || '';
+  $('modBgName').textContent = bg.name || '—';
+  $('modBgAuthor').textContent = bg.author || '—';
+  $('modBgDesc').textContent = bg.description || '—';
+  $('modBgDate').textContent = new Date(bg.created_at).toLocaleString('ru-RU');
+  $('modReason').value = '';
+  $('modLoader').style.display = 'none';
+  $('modBtns').style.display = 'flex';
+  const ov = $('modOverlay');
+  ov.style.display = 'flex';
+}
+
+function closeModPanel() {
+  $('modOverlay').style.display = 'none';
+  _modBg = null;
+}
+
+async function doModAction() {
+  const reason = $('modReason').value.trim();
+  if (!reason) { $('modReason').focus(); $('modReason').style.borderColor = 'rgba(255,107,107,0.6)'; setTimeout(() => $('modReason').style.borderColor = '', 1500); return; }
+
+  // Блокируем UI
+  $('modLoader').style.display = 'flex';
+  $('modBtns').style.display = 'none';
+
+  try {
+    const bg = _modBg;
+
+    // 1. Удаляем фон через Supabase
+    await sbFetch(`backgrounds?id=eq.${bg.id}`, { method: 'DELETE' });
+
+    // 2. Получаем telegram_id владельца
+    let ownerTgId = null;
+    try {
+      const users = await sbFetch(`users?id=eq.${bg.uploader_id}&select=telegram_id`);
+      ownerTgId = users[0]?.telegram_id;
+    } catch(e) {}
+
+    // 3. Отправляем уведомление владельцу
+    if (ownerTgId) {
+      const modNick = `${currentUser.username} | ${currentUser.telegram_id || currentUser.id}`;
+      await fetch(`${API}/api/telegram/send-photo-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: String(ownerTgId),
+          photo_url: bg.image_url,
+          caption:
+            `🔴 <b>FernieID</b>\n` +
+            `Ваш фон был удален модератором.\n\n` +
+            `🖼 <b>Название фона:</b> ${bg.name}\n` +
+            `📝 <b>Описание фона:</b> ${bg.description || '—'}\n\n` +
+            `⚠️ <b>Причина удаления:</b> ${reason}\n` +
+            `👤 <b>Модератор:</b> ${modNick}`
+        })
+      }).catch(() => {});
+    }
+
+    showToast('✅ Фон удалён');
+    closeModPanel();
+    // Обновляем ленту
+    loadFpFeed();
+  } catch(e) {
+    console.error('modAction error:', e);
+    $('modLoader').style.display = 'none';
+    $('modBtns').style.display = 'flex';
+    showToast('❌ Ошибка удаления');
+  }
+}
 </script>
 
 <!-- TRANSFER OVERLAY -->
@@ -2546,6 +2645,48 @@ document.addEventListener('click', e => {
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- МОДЕРАТОР ОВЕРЛЕЙ -->
+<div id="modOverlay" style="position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.82);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:1rem;">
+  <div id="modModal" style="width:100%;max-width:480px;background:rgba(14,8,28,0.99);border:1px solid rgba(255,200,60,0.25);border-radius:24px;padding:1.75rem;box-shadow:0 36px 80px rgba(0,0,0,0.8);position:relative;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;display:flex;align-items:center;gap:8px;">👑 Панель модератора</div>
+      <button onclick="closeModPanel()" style="background:none;border:none;color:var(--muted);font-size:1.3rem;cursor:pointer;padding:4px 8px;transition:color .2s;line-height:1;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
+    </div>
+    <!-- Инфо о фоне -->
+    <div style="display:flex;gap:1rem;align-items:flex-start;margin-bottom:1.25rem;padding:1rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;">
+      <img id="modBgImg" src="" style="width:90px;height:60px;object-fit:cover;border-radius:10px;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem;">Фон</div>
+        <div style="margin-bottom:.3rem;"><span style="font-size:.65rem;color:var(--muted);">Название: </span><span id="modBgName" style="font-size:.82rem;font-weight:600;"></span></div>
+        <div style="margin-bottom:.3rem;"><span style="font-size:.65rem;color:var(--muted);">Автор: </span><span id="modBgAuthor" style="font-size:.82rem;"></span></div>
+        <div style="margin-bottom:.3rem;"><span style="font-size:.65rem;color:var(--muted);">Описание: </span><span id="modBgDesc" style="font-size:.82rem;color:rgba(255,255,255,.6);"></span></div>
+        <div><span style="font-size:.65rem;color:var(--muted);">Дата публикации: </span><span id="modBgDate" style="font-size:.75rem;color:var(--muted);"></span></div>
+      </div>
+    </div>
+    <!-- Действие -->
+    <div style="margin-bottom:1rem;">
+      <label style="font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:.5rem;">Выберите действие с объектом</label>
+      <select id="modAction" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:11px;font-family:'Inter',sans-serif;font-size:.85rem;color:var(--text);outline:none;cursor:pointer;">
+        <option value="delete">Удалить публикацию</option>
+      </select>
+    </div>
+    <div style="margin-bottom:1.25rem;">
+      <label style="font-size:.65rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:.5rem;">Причина удаления <span style="color:var(--red);">*</span></label>
+      <input id="modReason" class="gl-input" placeholder="Укажите причину..." maxlength="300">
+    </div>
+    <!-- Кнопки -->
+    <div style="display:flex;gap:.75rem;" id="modBtns">
+      <button onclick="closeModPanel()" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;">Отмена</button>
+      <button onclick="doModAction()" style="flex:2;padding:11px;border-radius:11px;background:linear-gradient(135deg,rgba(255,107,107,0.25),rgba(255,80,80,0.15));border:1px solid rgba(255,107,107,0.4);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:#ff8888;cursor:pointer;transition:all .18s;">Выполнить</button>
+    </div>
+    <!-- Лоадер (скрыт) -->
+    <div id="modLoader" style="display:none;position:absolute;inset:0;background:rgba(14,8,28,0.96);border-radius:24px;display:none;align-items:center;justify-content:center;flex-direction:column;gap:.75rem;">
+      <div style="width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,107,107,0.15);border-top-color:#ff6b6b;border-right-color:rgba(255,107,107,0.5);animation:spin .7s linear infinite;box-shadow:0 0 20px rgba(255,107,107,0.3);"></div>
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#ff8888;">Выполняем...</div>
+    </div>
   </div>
 </div>
 </body>
