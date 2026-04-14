@@ -1134,5 +1134,26 @@ app.get('/api/backgrounds/active/:userId', async (req, res) => {
   } catch (e) { res.json({ success: false }); }
 });
 
+// Отправить фото в Telegram (для уведомления об удалении фона)
+app.post('/api/telegram/send-photo-message', async (req, res) => {
+  const { telegram_id, photo_url, caption } = req.body;
+  if (!telegram_id || !photo_url) return res.json({ success: false });
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: telegram_id, photo: photo_url, caption, parse_mode: 'HTML' })
+    });
+    if (!r.ok) {
+      // Fallback: отправить без фото если фото недоступно
+      await sendTgMessage(telegram_id, caption);
+    }
+    res.json({ success: true });
+  } catch(e) {
+    console.error('send-photo-message error:', e);
+    res.json({ success: false });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
