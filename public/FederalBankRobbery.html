@@ -1051,7 +1051,12 @@ async function failGame(reason){
     });
     const d = await r.json();
     console.log('rob-fail ответ:', d);
-    setTimeout(() => loadBankData(_uid), 1500);
+    setTimeout(async () => {
+      const test = await fetch(`${API}/api/robbery-cooldown?userId=${_uid}`);
+      const testData = await test.json();
+      console.log('cooldown after fail:', testData);
+      loadBankData(_uid);
+    }, 1500);
   } catch(e){ console.error('rob-fail error:', e); }
 }
 
