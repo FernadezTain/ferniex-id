@@ -1051,7 +1051,7 @@ async function failGame(reason){
     });
     const d = await r.json();
     console.log('rob-fail ответ:', d);
-    loadBankData(_uid);
+    setTimeout(() => loadBankData(_uid), 1500);
   } catch(e){ console.error('rob-fail error:', e); }
 }
 
