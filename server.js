@@ -1155,5 +1155,164 @@ app.post('/api/telegram/send-photo-message', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  FEDERAL BANK ROBBERY — API ENDPOINTS
+// ══════════════════════════════════════════════════════════════════
+
+// ── Проверка привязки TG + информация для страницы ──────────────
+app.get('/api/bank-info', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    const user = users[0];
+    res.json({
+      success: true,
+      telegram_linked: !!user.telegram_id,
+      telegram_id: user.telegram_id,
+      username: user.username
+    });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ── Баланс административной казны (через бота) ──────────────────
+app.get('/api/treasury-balance', async (req, res) => {
+  try {
+    const r = await fetch(`${BOT_URL}/api/treasury/balance`);
+    if (!r.ok) throw new Error('Bot unreachable');
+    const d = await r.json();
+    res.json({ success: true, balance: d.balance ?? 0 });
+  } catch (e) {
+    // Fallback: вернуть 0 если бот недоступен
+    console.error('treasury-balance error:', e.message);
+    res.json({ success: true, balance: 0, error: e.message });
+  }
+});
+
+// ── Кулдаун ограбления ──────────────────────────────────────────
+app.get('/api/robbery-cooldown', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false });
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=last_robbery_at`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: true, on_cooldown: false });
+
+    const lastAt = new Date(rows[0].last_robbery_at);
+    const cooldownMs = 6 * 60 * 60 * 1000; // 6 часов
+    const diff = Date.now() - lastAt.getTime();
+    if (diff >= cooldownMs) return res.json({ success: true, on_cooldown: false });
+
+    const remaining = Math.ceil((cooldownMs - diff) / 1000);
+    res.json({ success: true, on_cooldown: true, remaining_seconds: remaining });
+  } catch (e) {
+    res.json({ success: true, on_cooldown: false });
+  }
+});
+
+// ── Выполнить ограбление ─────────────────────────────────────────
+app.post('/api/rob-bank', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+
+  try {
+    // 1. Получаем telegram_id юзера
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`,
+      { headers: sbHeaders }
+    );
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, error: 'Telegram не привязан' });
+    const { telegram_id, username } = users[0];
+
+    // 2. Проверяем кулдаун
+    const cdRes = await fetch(
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=last_robbery_at`,
+      { headers: sbHeaders }
+    );
+    const cdRows = await cdRes.json();
+    if (cdRows.length) {
+      const lastAt = new Date(cdRows[0].last_robbery_at);
+      const diff = Date.now() - lastAt.getTime();
+      if (diff < 6 * 60 * 60 * 1000)
+        return res.json({ success: false, error: 'Ещё на перезарядке' });
+    }
+
+    // 3. Получаем баланс казны через бота
+    let treasuryBalance = 0;
+    try {
+      const tbRes = await fetch(`${BOT_URL}/api/treasury/balance`);
+      const tbData = await tbRes.json();
+      treasuryBalance = Number(tbData.balance) || 0;
+    } catch (e) {
+      console.error('treasury fetch error:', e.message);
+    }
+
+    if (treasuryBalance <= 0)
+      return res.json({ success: false, error: 'Казна пуста, грабить нечего!' });
+
+    // 4. Рандомная сумма: 1-10% от баланса казны (минимум 100)
+    const maxSteal = Math.floor(treasuryBalance * 0.10);
+    const minSteal = Math.max(100, Math.floor(treasuryBalance * 0.01));
+    const amount = Math.floor(minSteal + Math.random() * (maxSteal - minSteal));
+
+    // 5. Списываем с казны и начисляем игроку через бота
+    const robRes = await notifyBot(`${BOT_URL}/api/treasury/rob`, {
+      telegram_id,
+      amount,
+      username
+    });
+
+    if (!robRes || !robRes.success)
+      return res.json({ success: false, error: robRes?.error || 'Ошибка транзакции' });
+
+    // 6. Записываем кулдаун
+    const now = new Date().toISOString();
+    const existCD = await fetch(
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=user_id`,
+      { headers: sbHeaders }
+    );
+    const existCDRows = await existCD.json();
+
+    if (existCDRows.length) {
+      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ last_robbery_at: now })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, last_robbery_at: now })
+      });
+    }
+
+    // 7. Уведомление в TG
+    await sendTgMessage(telegram_id,
+      `🏦 <b>Ограбление Федерального Банка</b>\n\n` +
+      `<blockquote>` +
+      `💰 Ты успешно ограбил Федеральный Банк!\n` +
+      `💵 Сумма: <b>${Number(amount).toLocaleString('ru-RU')} ₽</b>\n` +
+      `</blockquote>\n\n` +
+      `⏳ <i>Следующее ограбление доступно через 6 часов.</i>`
+    );
+
+    res.json({ success: true, amount });
+
+  } catch (e) {
+    console.error('rob-bank error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
