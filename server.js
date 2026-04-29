@@ -1304,9 +1304,9 @@ app.post('/api/rob-bank', async (req, res) => {
     if (treasuryBalance <= 0)
       return res.json({ success: false, error: 'Казна пуста, грабить нечего!' });
 
-    // 4. Рандомная сумма: 1-10% от баланса казны (минимум 100)
-    const maxSteal = Math.floor(treasuryBalance * 0.10);
-    const minSteal = Math.max(100, Math.floor(treasuryBalance * 0.01));
+    // 4. Рандомная сумма: 2-3% от баланса казны (минимум 100)
+    const maxSteal = Math.floor(treasuryBalance * 0.03);
+    const minSteal = Math.max(100, Math.floor(treasuryBalance * 0.02));
     const amount = Math.floor(minSteal + Math.random() * (maxSteal - minSteal));
 
     // 5. Списываем с казны и начисляем игроку через бота
