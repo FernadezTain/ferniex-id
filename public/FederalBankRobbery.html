@@ -917,7 +917,8 @@ async function init(){
       `<span class="user-badge">👤 ${username}</span>`;
   }
 
-  loadBankData();
+  const _uid = userId;
+    checkCooldown(_uid);
 }
 
 // ══════════════════════════════════════════════════════
@@ -942,9 +943,10 @@ async function loadBankData(){
   checkCooldown();
 }
 
-async function checkCooldown(){
+async function checkCooldown(uid){
+  uid = uid || userId;
   try{
-    const r = await fetch(`${API}/api/robbery-cooldown?userId=${userId}`);
+    const r = await fetch(`${API}/api/robbery-cooldown?userId=${uid}`);
     const d = await r.json();
     const cdText = document.getElementById('cd-status-text');
     const cdBar = document.getElementById('cd-bar');
