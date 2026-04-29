@@ -25,8 +25,8 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_URL   = process.env.BOT_URL || 'https://a37690-25aa.j.d-f.pw';
 
 const sbHeaders = {
-  apikey: SB_KEY,
-  Authorization: `Bearer ${SB_KEY}`,
+  apikey: SB_SERVICE_KEY,
+  Authorization: `Bearer ${SB_SERVICE_KEY}`,
   "Content-Type": "application/json"
 };
 
@@ -1231,17 +1231,23 @@ app.post('/api/rob-fail', async (req, res) => {
     const existRows = await existRes.json();
     console.log('rob-fail existRows:', existRows, 'uid:', uid);
     if (existRows.length) {
-      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}`, {
+      const updateRes = await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
         body: JSON.stringify({ last_robbery_at: fakeTime })
       });
+      if (!updateRes.ok) {
+        throw new Error(`rob-fail PATCH failed: ${updateRes.status} ${await updateRes.text()}`);
+      }
     } else {
-      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns`, {
+      const insertRes = await fetch(`${SB_URL}/rest/v1/robbery_cooldowns`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
         body: JSON.stringify({ user_id: uid, last_robbery_at: fakeTime })
       });
+      if (!insertRes.ok) {
+        throw new Error(`rob-fail POST failed: ${insertRes.status} ${await insertRes.text()}`);
+      }
     }
     // Проверяем что реально записалось
     const checkRes = await fetch(
