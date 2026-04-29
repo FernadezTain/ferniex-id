@@ -1197,9 +1197,10 @@ app.get('/api/treasury-balance', async (req, res) => {
 app.get('/api/robbery-cooldown', async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.json({ success: false });
+  const uid = parseInt(userId);
   try {
     const r = await fetch(
-      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=last_robbery_at`,
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}&select=last_robbery_at`,
       { headers: sbHeaders }
     );
     const rows = await r.json();
@@ -1220,15 +1221,17 @@ app.get('/api/robbery-cooldown', async (req, res) => {
 app.post('/api/rob-fail', async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false });
+  const uid = parseInt(userId);
   try {
     const fakeTime = new Date(Date.now() - (4 * 60 * 60 * 1000)).toISOString();
     const existRes = await fetch(
-      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=user_id`,
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}&select=user_id`,
       { headers: sbHeaders }
     );
     const existRows = await existRes.json();
+    console.log('rob-fail existRows:', existRows, 'uid:', uid);
     if (existRows.length) {
-      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}`, {
+      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
         body: JSON.stringify({ last_robbery_at: fakeTime })
@@ -1237,11 +1240,19 @@ app.post('/api/rob-fail', async (req, res) => {
       await fetch(`${SB_URL}/rest/v1/robbery_cooldowns`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, last_robbery_at: fakeTime })
+        body: JSON.stringify({ user_id: uid, last_robbery_at: fakeTime })
       });
     }
+    // Проверяем что реально записалось
+    const checkRes = await fetch(
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${uid}&select=last_robbery_at`,
+      { headers: sbHeaders }
+    );
+    const checkRows = await checkRes.json();
+    console.log('rob-fail after write:', checkRows);
     res.json({ success: true });
   } catch(e) {
+    console.error('rob-fail error:', e);
     res.json({ success: false, error: e.message });
   }
 });
