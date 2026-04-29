@@ -1040,19 +1040,17 @@ async function failGame(reason){
   document.getElementById('fail-title').textContent='🚨 Провал!';
   document.getElementById('fail-sub').textContent = (reason || 'Охрана тебя обнаружила.') + '\n\nНаложен кулдаун 2 часа.';
   document.getElementById('fail-overlay').classList.add('active');
-  // Ставим кулдаун на сервере
+  console.log('failGame вызван, userId:', userId);  // ← добавь
   try {
-    await fetch(`${API}/api/rob-fail`, {
+    const r = await fetch(`${API}/api/rob-fail`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({userId})
     });
+    const d = await r.json();
+    console.log('rob-fail ответ:', d);  // ← добавь
     loadBankData();
   } catch(e){ console.error('rob-fail error:', e); }
-}
-function closeFail(){
-  document.getElementById('fail-overlay').classList.remove('active');
-  currentGame=0;
 }
 
 // ══════════════════════════════════════════════════════
