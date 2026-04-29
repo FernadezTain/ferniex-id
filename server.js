@@ -1216,7 +1216,20 @@ app.get('/api/robbery-cooldown', async (req, res) => {
     res.json({ success: true, on_cooldown: false });
   }
 });
-
+app.post('/api/rob-fail', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false });
+  try {
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ last_robbery: new Date(Date.now() - (4 * 3600000)).toISOString() })
+    });
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
 // ── Выполнить ограбление ─────────────────────────────────────────
 app.post('/api/rob-bank', async (req, res) => {
   const { userId } = req.body;
