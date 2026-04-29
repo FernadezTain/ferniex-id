@@ -917,14 +917,13 @@ async function init(){
       `<span class="user-badge">👤 ${username}</span>`;
   }
 
-  const _uid = userId;
-    checkCooldown(_uid);
+    loadBankData(userId);
 }
 
 // ══════════════════════════════════════════════════════
 // LOAD BANK DATA
 // ══════════════════════════════════════════════════════
-async function loadBankData(){
+async function loadBankData(uid){
   // Баланс казны
   try{
     const r = await fetch(`${API}/api/treasury-balance`);
@@ -940,7 +939,7 @@ async function loadBankData(){
   }
 
   // Кулдаун
-  checkCooldown();
+  checkCooldown(uid || userId);
 }
 
 async function checkCooldown(uid){
@@ -1043,15 +1042,16 @@ async function failGame(reason){
   document.getElementById('fail-sub').textContent = (reason || 'Охрана тебя обнаружила.') + '\n\nНаложен кулдаун 2 часа.';
   document.getElementById('fail-overlay').classList.add('active');
   console.log('failGame вызван, userId:', userId);  // ← добавь
+  const _uid = userId;
   try {
     const r = await fetch(`${API}/api/rob-fail`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({userId})
+      body:JSON.stringify({userId: _uid})
     });
     const d = await r.json();
-    console.log('rob-fail ответ:', d);  // ← добавь
-    loadBankData();
+    console.log('rob-fail ответ:', d);
+    loadBankData(_uid);
   } catch(e){ console.error('rob-fail error:', e); }
 }
 
@@ -1525,7 +1525,12 @@ async function finishRobbery(){
 function closeSuccess(){
   document.getElementById('success-overlay').classList.remove('active');
   currentGame=0;
-  loadBankData();
+  loadBankData(userId);
+}
+
+function closeFail(){
+  document.getElementById('fail-overlay').classList.remove('active');
+  currentGame=0;
 }
 
 // ══════════════════════════════════════════════════════
