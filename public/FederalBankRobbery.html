@@ -1354,7 +1354,11 @@ function flipMemCard(card){
     if(a.dataset.sym===b.dataset.sym){
       a.classList.add('matched');b.classList.add('matched');
       memMatched++;
-      document.getElementById('mem-status').textContent=`Пары: ${memMatched}/8`;
+      memMistakes = Math.max(0, memMistakes - 1);
+      const livesLeft = 4 - memMistakes;
+      document.getElementById('mem-status').textContent=`Пары: ${memMatched}/8 | ❤️ ${livesLeft}`;
+      document.getElementById('mem-error').textContent=`+1 ❤️ за правильную пару!`;
+      setTimeout(()=>{ document.getElementById('mem-error').textContent=''; },1000);
       memFlipped=[];memLocked=false;
       if(memMatched===8){
         setTimeout(passGame,500);
