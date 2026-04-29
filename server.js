@@ -1216,15 +1216,30 @@ app.get('/api/robbery-cooldown', async (req, res) => {
     res.json({ success: true, on_cooldown: false });
   }
 });
+
 app.post('/api/rob-fail', async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false });
   try {
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ last_robbery: new Date(Date.now() - (4 * 3600000)).toISOString() })
-    });
+    const fakeTime = new Date(Date.now() - (4 * 60 * 60 * 1000)).toISOString();
+    const existRes = await fetch(
+      `${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}&select=user_id`,
+      { headers: sbHeaders }
+    );
+    const existRows = await existRes.json();
+    if (existRows.length) {
+      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ last_robbery_at: fakeTime })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/robbery_cooldowns`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, last_robbery_at: fakeTime })
+      });
+    }
     res.json({ success: true });
   } catch(e) {
     res.json({ success: false, error: e.message });
