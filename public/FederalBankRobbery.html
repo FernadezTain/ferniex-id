@@ -864,8 +864,12 @@ let cdInterval = null;
 // AUTH CHECK
 // ══════════════════════════════════════════════════════
 async function init(){
-  const uid = localStorage.getItem('userId');
-  const uname = localStorage.getItem('username');
+  let uid, uname;
+  try {
+    const session = JSON.parse(localStorage.getItem('fernieid_session'));
+    uid = session?.id;
+    uname = session?.username;
+  } catch(e) {}
   if(!uid){
     document.getElementById('auth-wall').style.display='flex';
     return;
@@ -1538,7 +1542,7 @@ function spawnConfetti(){
 // START
 // ══════════════════════════════════════════════════════
 init();
-  console.log('userId from storage:', localStorage.getItem('userId'));
+console.log('userId from storage:', localStorage.getItem('userId'));
 </script>
 </body>
 </html>
