@@ -922,9 +922,10 @@ function startMarketPolling() {
   stopMarketPolling();
   marketPollTimer = setInterval(() => {
     if (document.hidden) return;
-    if (document.getElementById('panel-market')?.classList.contains('active')) {
-      loadMarket(true);
-    }
+    if (!document.getElementById('panel-market')?.classList.contains('active')) return;
+    const inp = document.getElementById('marketOrderPrice');
+    if (document.activeElement === inp) return;
+    loadMarket(true);
   }, 1200);
 }
 
