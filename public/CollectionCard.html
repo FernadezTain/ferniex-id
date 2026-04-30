@@ -255,6 +255,70 @@ body{
 .empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--muted);}
 .empty-state p{font-size:.82rem;color:rgba(255,255,255,0.2);max-width:260px;line-height:1.6;}
 
+/* MARKET */
+.market-shell{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start;}
+.market-sidebar,.market-main{
+  background:rgba(15,10,28,0.58);border:1px solid rgba(255,255,255,0.06);
+  border-radius:18px;padding:14px;
+}
+.market-side-card{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;
+}
+.market-side-preview{
+  width:220px;height:330px;border-radius:20px;overflow:hidden;position:relative;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+  box-shadow:0 14px 40px rgba(0,0,0,0.35);
+}
+.market-side-preview .market-card-visual{position:absolute;inset:0;background-size:cover;background-position:center;}
+.market-side-name{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;}
+.market-side-price{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:900;color:#c084fc;}
+.market-side-actions{display:flex;flex-direction:column;gap:10px;width:100%;}
+.market-btn,.market-input{
+  width:100%;border-radius:14px;border:1px solid rgba(255,255,255,0.09);
+  background:rgba(255,255,255,0.05);color:var(--text);padding:12px 14px;font-size:.88rem;
+}
+.market-btn{cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s;}
+.market-btn.primary{background:linear-gradient(135deg,rgba(160,80,255,0.35),rgba(90,40,180,0.5));border-color:rgba(192,132,252,0.35);}
+.market-btn.secondary{background:rgba(255,255,255,0.04);}
+.market-btn.warn{background:rgba(255,110,200,0.12);border-color:rgba(255,110,200,0.24);}
+.market-btn:hover{transform:translateY(-1px);opacity:.95;}
+.market-meta-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.market-meta-block{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:12px;}
+.market-meta-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+.market-mini-list{display:flex;flex-direction:column;gap:8px;}
+.market-mini-item{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  background:rgba(255,255,255,0.03);border-radius:12px;padding:9px 10px;font-size:.78rem;
+}
+.market-mini-name{font-weight:600;color:rgba(255,255,255,0.86);}
+.market-mini-price{color:#c084fc;font-weight:700;}
+.market-mini-btn{
+  border:none;background:rgba(255,255,255,0.08);color:var(--text);border-radius:10px;
+  padding:6px 9px;font-size:.72rem;cursor:pointer;
+}
+.market-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.market-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;}
+.market-sub{font-size:.8rem;color:var(--muted);}
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;}
+.market-item{
+  position:relative;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:5/6;
+  border:1px solid rgba(255,255,255,0.06);background:rgba(18,12,32,0.9);
+  transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.market-item:hover{transform:translateY(-2px);border-color:rgba(192,132,252,0.22);}
+.market-item.active{border-color:rgba(192,132,252,0.45);box-shadow:0 12px 28px rgba(160,80,255,0.18);}
+.market-item-visual{height:68%;background-size:cover;background-position:center;}
+.market-item-body{padding:10px 11px 12px;}
+.market-item-name{font-size:.84rem;font-weight:700;line-height:1.25;min-height:2.1em;}
+.market-item-price{margin-top:8px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#c084fc;}
+.market-item-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px;font-size:.7rem;color:var(--muted);}
+.market-empty{
+  min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:10px;color:var(--muted);
+}
+.market-empty-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:rgba(255,255,255,0.82);}
+.market-empty-sub{font-size:.9rem;max-width:280px;line-height:1.55;}
+
 /* LOADING */
 .state-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;color:var(--muted);font-size:.88rem;}
 .spinner{width:22px;height:22px;border:2.5px solid rgba(160,80,255,0.2);border-top-color:#a855f7;border-radius:50%;animation:spin .7s linear infinite;}
@@ -320,6 +384,8 @@ body{
 @media(min-width:1100px){
   .cc-wrap{max-width:1180px;}
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px;}
+  .market-shell{grid-template-columns:360px 1fr;}
+  .market-side-preview{width:260px;height:390px;}
   .card-name{font-size:.92rem;}
   .card-rarity-badge{font-size:.7rem;padding:3px 9px;}
   .card-id{font-size:.66rem;padding:3px 8px;}
@@ -331,8 +397,16 @@ body{
   .modal-close{top:-16px;right:-16px;width:40px;height:40px;font-size:1.1rem;}
 }
 
+@media(max-width:900px){
+  .market-shell{grid-template-columns:1fr;}
+  .market-sidebar{order:2;}
+  .market-main{order:1;}
+  .market-side-preview{width:200px;height:300px;}
+}
+
 @media(max-width:480px){
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
+  .market-grid{grid-template-columns:1fr;}
   .cc-wrap{padding:16px 12px 80px;}
 }
 </style>
@@ -429,12 +503,10 @@ body{
       </div>
     </div>
 
-    <!-- MARKET (WIP) -->
+    <!-- MARKET -->
     <div class="cc-panel" id="panel-market">
-      <div class="wip-wrap">
-        <div class="wip-icon">🔧</div>
-        <div class="wip-title">В разработке...</div>
-        <div class="wip-sub">Маркет для торговли карточками находится в разработке. Совсем скоро!</div>
+      <div id="marketContent">
+        <div class="state-loading"><div class="spinner"></div><span>Загрузка маркета...</span></div>
       </div>
     </div>
   </div>
@@ -451,6 +523,7 @@ body{
       <div class="modal-card-name" id="modalCardName">—</div>
       <div class="modal-card-id" id="modalCardId">ID: —</div>
       <div id="modalRarityBadge"></div>
+      <button class="market-btn primary" id="modalSellBtn" onclick="sellCurrentCardFromModal()" style="margin-top:14px;">Продать на маркет</button>
     </div>
     <button class="modal-close" onclick="closeCardModal()">✕</button>
   </div>
@@ -471,6 +544,10 @@ let currentUser = null;
 let allCards = [];
 let catalogCards = {}; // cardName -> { name, rarity, image_url }
 let currentFilter = 'all';
+let currentModalCard = null;
+let marketState = { listings: [], my_listings: [], my_orders: [], history: [] };
+let marketSelectedListingId = null;
+let marketPollTimer = null;
 
 // ══════════════════════════════════════════
 //  PARTICLES
@@ -680,6 +757,234 @@ function filterRarity(rarity) {
 function switchTab(tab) {
   document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  if (tab === 'market') {
+    loadMarket();
+    startMarketPolling();
+  } else {
+    stopMarketPolling();
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[s]));
+}
+
+async function marketPost(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function loadMarket(silent = false) {
+  const container = document.getElementById('marketContent');
+  if (!silent) {
+    container.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка маркета...</span></div>';
+  }
+  try {
+    const data = await fetch(`/api/card-market/state/${currentUser.id}`).then(r=>r.json());
+    if (!data.success) {
+      container.innerHTML = `<div class="market-empty"><div class="market-empty-title">Ошибка маркета</div><div class="market-empty-sub">${escapeHtml(data.error || 'Не удалось загрузить маркет')}</div></div>`;
+      return;
+    }
+    marketState = data;
+    if (!marketState.listings?.length) {
+      marketSelectedListingId = null;
+      container.innerHTML = `<div class="market-empty"><div class="market-empty-title">Нет товаров...</div><div class="market-empty-sub">Возможно никто ничего не продает</div></div>`;
+      return;
+    }
+    if (!marketState.listings.some(x => String(x.id) === String(marketSelectedListingId))) {
+      marketSelectedListingId = marketState.listings[0].id;
+    }
+    renderMarket();
+  } catch (e) {
+    console.error('market load error', e);
+    container.innerHTML = '<div class="market-empty"><div class="market-empty-title">Маркет недоступен</div><div class="market-empty-sub">Попробуй обновить страницу чуть позже</div></div>';
+  }
+}
+
+function renderMarket() {
+  const container = document.getElementById('marketContent');
+  const listings = marketState.listings || [];
+  const selected = listings.find(x => String(x.id) === String(marketSelectedListingId)) || listings[0];
+  if (!selected) {
+    container.innerHTML = `<div class="market-empty"><div class="market-empty-title">Нет товаров...</div><div class="market-empty-sub">Возможно никто ничего не продает</div></div>`;
+    return;
+  }
+  marketSelectedListingId = selected.id;
+  const rarity = String(selected.rarity || 'Rare').toLowerCase();
+  const myListings = marketState.my_listings || [];
+  const myOrders = marketState.my_orders || [];
+  const recentSales = (marketState.history || []).slice(0, 5);
+  const canBuy = String(selected.seller_user_id) !== String(currentUser.telegram_id);
+
+  container.innerHTML = `
+    <div class="market-shell">
+      <div class="market-sidebar">
+        <div class="market-side-card">
+          <div class="market-side-preview modal-${rarity}">
+            <div class="market-card-visual" style="background-image:url('${selected.image_url || ''}')"></div>
+            <div class="modal-card-border"></div>
+          </div>
+          <div class="market-side-name">${escapeHtml(selected.name || 'Карточка')}</div>
+          <div class="market-side-price">${Number(selected.price || 0).toLocaleString('ru-RU')} DC</div>
+          <div class="card-rarity-badge badge-${rarity}">${getRarityIcon(rarity)} ${escapeHtml(selected.rarity || 'Rare')}</div>
+          <div class="market-side-actions">
+            ${canBuy
+              ? `<button class="market-btn primary" onclick="buyMarketListing(${selected.id})">Купить</button>`
+              : `<button class="market-btn secondary" onclick="cancelMyListing(${selected.id})">Снять с продажи</button>`}
+            <input class="market-input" id="marketOrderPrice" type="number" min="1" placeholder="Цена автозаказа в DC">
+            <button class="market-btn secondary" onclick="createMarketOrder('${String(selected.catalog_card_id || '').replace(/'/g, "\\'")}')">Заказать</button>
+          </div>
+          <div class="market-meta-list" style="width:100%;">
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои лоты</div>
+              <div class="market-mini-list">
+                ${myListings.length ? myListings.map(x => `
+                  <div class="market-mini-item">
+                    <div>
+                      <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+                      <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+                    </div>
+                    <button class="market-mini-btn" onclick="cancelMyListing(${x.id})">Снять</button>
+                  </div>
+                `).join('') : '<div class="market-sub">Пока нет активных лотов</div>'}
+              </div>
+            </div>
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои заказы</div>
+              <div class="market-mini-list">
+                ${myOrders.length ? myOrders.map(x => `
+                  <div class="market-mini-item">
+                    <div>
+                      <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+                      <div class="market-mini-price">До ${Number(x.max_price || 0).toLocaleString('ru-RU')} DC</div>
+                    </div>
+                    <button class="market-mini-btn" onclick="cancelMarketOrder(${x.id})">Отменить</button>
+                  </div>
+                `).join('') : '<div class="market-sub">Активных заявок нет</div>'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="market-main">
+        <div class="market-toolbar">
+          <div>
+            <div class="market-title">Площадка</div>
+            <div class="market-sub">Лоты обновляются автоматически почти мгновенно</div>
+          </div>
+          <div class="inv-count">${listings.length} лотов</div>
+        </div>
+        <div class="market-grid">
+          ${listings.map(x => {
+            const r = String(x.rarity || 'Rare').toLowerCase();
+            const active = String(x.id) === String(marketSelectedListingId) ? ' active' : '';
+            return `
+              <div class="market-item${active}" onclick="selectMarketListing(${x.id})">
+                <div class="market-item-visual" style="background-image:url('${x.image_url || ''}')"></div>
+                <div class="market-item-body">
+                  <div class="market-item-name">${escapeHtml(x.name || 'Карточка')}</div>
+                  <div class="market-item-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+                  <div class="market-item-foot">
+                    <span class="card-rarity-badge badge-${r}" style="margin-top:0;">${getRarityIcon(r)} ${escapeHtml(x.rarity || 'Rare')}</span>
+                    <span>#${x.id}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="market-meta-block" style="margin-top:14px;">
+          <div class="market-meta-title">Последние продажи</div>
+          <div class="market-mini-list">
+            ${recentSales.length ? recentSales.map(x => `
+              <div class="market-mini-item">
+                <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+                <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+              </div>
+            `).join('') : '<div class="market-sub">История пока пустая</div>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectMarketListing(id) {
+  marketSelectedListingId = id;
+  renderMarket();
+}
+
+function startMarketPolling() {
+  stopMarketPolling();
+  marketPollTimer = setInterval(() => {
+    if (document.hidden) return;
+    if (document.getElementById('panel-market')?.classList.contains('active')) {
+      loadMarket(true);
+    }
+  }, 1200);
+}
+
+function stopMarketPolling() {
+  if (marketPollTimer) clearInterval(marketPollTimer);
+  marketPollTimer = null;
+}
+
+async function buyMarketListing(listingId) {
+  const data = await marketPost('/api/card-market/buy', { userId: currentUser.id, listingId });
+  if (!data.success) {
+    showToast(data.error || 'Не удалось купить лот');
+    await loadMarket(true);
+    return;
+  }
+  showToast('Карточка куплена');
+  await Promise.all([loadInventory(), loadMarket(true), loadDC()]);
+}
+
+async function createMarketOrder(catalogCardId) {
+  const maxPrice = Number(document.getElementById('marketOrderPrice')?.value || 0);
+  if (!catalogCardId) return showToast('У товара нет catalog ID');
+  if (!maxPrice || maxPrice <= 0) return showToast('Укажи сумму для автозаказа');
+  const data = await marketPost('/api/card-market/order', { userId: currentUser.id, catalogCardId, maxPrice });
+  if (!data.success) {
+    showToast(data.error || 'Не удалось создать заявку');
+    await loadMarket(true);
+    return;
+  }
+  document.getElementById('marketOrderPrice').value = '';
+  showToast(data.instant_buy ? 'Лот куплен по заявке' : 'Заявка создана');
+  await Promise.all([loadInventory(), loadMarket(true), loadDC()]);
+}
+
+async function cancelMyListing(listingId) {
+  const data = await marketPost('/api/card-market/cancel-listing', { userId: currentUser.id, listingId });
+  if (!data.success) return showToast(data.error || 'Не удалось снять лот');
+  showToast('Лот снят с продажи');
+  await Promise.all([loadInventory(), loadMarket(true)]);
+}
+
+async function cancelMarketOrder(orderId) {
+  const data = await marketPost('/api/card-market/cancel-order', { userId: currentUser.id, orderId });
+  if (!data.success) return showToast(data.error || 'Не удалось отменить заявку');
+  showToast('Заявка отменена');
+  await Promise.all([loadMarket(true), loadDC()]);
+}
+
+async function sellCurrentCardFromModal() {
+  if (!currentModalCard?.card_id) return;
+  const priceRaw = prompt('Укажи цену продажи в DC');
+  if (!priceRaw) return;
+  const price = Number(priceRaw);
+  if (!price || price <= 0) return showToast('Некорректная цена');
+  const data = await marketPost('/api/card-market/sell', { userId: currentUser.id, cardId: currentModalCard.card_id, price });
+  if (!data.success) return showToast(data.error || 'Не удалось выставить карточку');
+  closeCardModal();
+  showToast(data.auto_matched ? 'Карточка сразу продана по заявке' : 'Карточка выставлена на маркет');
+  switchTab('market');
+  await Promise.all([loadInventory(), loadMarket(true), loadDC()]);
 }
 
 // ══════════════════════════════════════════
@@ -690,6 +995,7 @@ function openCardModal(card, catalogEntry, rarity, imageUrl) {
   const modal = document.getElementById('cardModal');
   const wrap = document.getElementById('modalCardWrap');
   const visual = document.getElementById('modalCardVisual');
+  currentModalCard = card;
 
   // Set image as CSS background
   visual.style.backgroundImage = `url('${imageUrl}')`;
@@ -699,6 +1005,7 @@ function openCardModal(card, catalogEntry, rarity, imageUrl) {
   const rarityLabel = {rare:'🔵 Rare',epic:'🟣 Epic',legend:'🩷 Legend',ultima:'🟡 Ultima'}[rarity] || rarity;
   document.getElementById('modalRarityBadge').innerHTML =
     `<div class="card-rarity-badge badge-${rarity}" style="font-size:.8rem;padding:4px 12px;">${rarityLabel}</div>`;
+  document.getElementById('modalSellBtn').style.display = 'block';
 
   // Reset classes
   modal.className = 'card-modal modal-' + rarity;
@@ -721,6 +1028,7 @@ function closeCardModal(e) {
   document.getElementById('cardOverlay').classList.remove('open');
   document.getElementById('modalCardWrap').onmousemove = null;
   document.getElementById('modalCardWrap').style.transform = '';
+  currentModalCard = null;
 }
 
 // ══════════════════════════════════════════
