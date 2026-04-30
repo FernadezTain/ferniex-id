@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Коллекционные карты — FernieID</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04010a;--text:#f0f0ff;--muted:rgba(255,255,255,0.38);
+  --p1:#b48dff;--p2:#7eb8ff;--pink:#ff6ec7;
+  --rare:#7eb8ff;--epic:#c084fc;--legend:#fbbf24;--ultima:#ff6ec7;
+  --card:rgba(15,10,28,0.85);--radius:18px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);
+  min-height:100vh;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+}
+
+/* ── BACKGROUND ── */
+.cards-bg{
+  position:fixed;inset:0;z-index:0;overflow:hidden;
+  background:radial-gradient(ellipse 90% 60% at 50% 20%, rgba(80,30,160,0.22) 0%, #04010a 65%);
+}
+.cards-bg::before{
+  content:'';position:absolute;inset:0;
+  background:
+    repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(160,80,255,0.025) 60px),
+    repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(160,80,255,0.025) 60px);
+}
+.bg-glow1{position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:800px;height:500px;background:radial-gradient(ellipse at top,rgba(160,80,255,0.14) 0%,transparent 60%);pointer-events:none;}
+.bg-glow2{position:absolute;bottom:0;right:0;width:500px;height:400px;background:radial-gradient(ellipse at bottom right,rgba(255,110,200,0.07) 0%,transparent 60%);pointer-events:none;}
+
+/* ── PARTICLES ── */
+.particles{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.particle{position:absolute;border-radius:50%;animation:float-p linear infinite;opacity:0;}
+@keyframes float-p{
+  0%{transform:translateY(100vh) scale(.6);opacity:0;}
+  10%{opacity:var(--op);}90%{opacity:var(--op);}
+  100%{transform:translateY(-80px) scale(1.1);opacity:0;}
+}
+
+/* ── HEADER ── */
+.cc-header{
+  position:relative;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px 14px;
+  border-bottom:1px solid rgba(160,80,255,0.12);
+  background:rgba(4,1,10,0.7);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+.cc-logo{display:flex;align-items:center;gap:10px;}
+.cc-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.cc-logo-text{font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;}
+.cc-back{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 16px;border-radius:30px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  font-size:.78rem;color:var(--muted);cursor:pointer;
+  transition:all .2s;text-decoration:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.cc-back:hover{background:rgba(255,255,255,0.1);color:var(--text);}
+
+/* ── MAIN WRAP ── */
+.cc-wrap{position:relative;z-index:5;max-width:860px;margin:0 auto;padding:24px 16px 100px;}
+
+/* ── AUTH GATE ── */
+.auth-gate{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;text-align:center;gap:1.5rem;
+}
+.auth-gate-icon{font-size:3.5rem;animation:pulse-icon 2s ease-in-out infinite;}
+@keyframes pulse-icon{0%,100%{transform:scale(1);}50%{transform:scale(1.08);};}
+.auth-gate h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;}
+.auth-gate p{color:var(--muted);font-size:.9rem;max-width:320px;line-height:1.6;}
+.auth-btn{
+  padding:12px 28px;border-radius:30px;border:none;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;
+  transition:opacity .2s,transform .15s;
+}
+.auth-btn:hover{opacity:.88;transform:translateY(-1px);}
+
+/* ── PROFILE BLOCK ── */
+.profile-card{
+  background:rgba(20,12,38,0.75);border:1px solid rgba(160,80,255,0.18);
+  border-radius:var(--radius);padding:1.25rem 1.5rem;
+  margin-bottom:1.5rem;
+  display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;
+}
+.profile-info{display:flex;flex-direction:column;gap:4px;}
+.profile-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
+.profile-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+.profile-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 12px;border-radius:20px;font-size:.74rem;
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);
+  color:var(--muted);
+}
+.profile-pill.tg{border-color:rgba(126,184,255,0.3);color:var(--rare);}
+.dc-block{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(160,80,255,0.12),rgba(251,191,36,0.08));
+  border:1px solid rgba(160,80,255,0.22);
+}
+.dc-val{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:900;color:#c084fc;}
+.dc-label{font-size:.72rem;color:var(--muted);}
+
+/* ── TABS ── */
+.cc-tabs{display:flex;gap:6px;margin-bottom:1.5rem;background:rgba(10,5,20,0.5);padding:5px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);}
+.cc-tab{
+  flex:1;padding:9px 10px;border-radius:10px;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  background:transparent;color:var(--muted);transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.cc-tab.active{background:rgba(160,80,255,0.16);color:#c084fc;border:1px solid rgba(160,80,255,0.25);}
+
+/* ── PANEL ── */
+.cc-panel{display:none;}
+.cc-panel.active{display:block;}
+
+/* ── WIP PANEL ── */
+.wip-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:40vh;text-align:center;gap:1rem;
+}
+.wip-title{
+  font-family:'Syne',sans-serif;font-size:2rem;font-weight:900;
+  background:linear-gradient(135deg,#c084fc,#7eb8ff,#ff6ec7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:wip-shimmer 3s ease-in-out infinite;
+}
+@keyframes wip-shimmer{
+  0%,100%{filter:brightness(1);}50%{filter:brightness(1.2);}
+}
+.wip-sub{color:var(--muted);font-size:.88rem;max-width:280px;line-height:1.6;}
+.wip-icon{font-size:3rem;animation:spin-slow 6s linear infinite;}
+@keyframes spin-slow{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);};}
+
+/* ── INVENTORY HEADER ── */
+.inv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem;}
+.inv-title{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;}
+.inv-count{font-size:.8rem;color:var(--muted);background:rgba(255,255,255,0.06);padding:4px 12px;border-radius:20px;}
+
+/* ── RARITY FILTER ── */
+.rarity-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem;}
+.rarity-btn{
+  padding:5px 14px;border-radius:20px;border:1px solid transparent;cursor:pointer;
+  font-size:.74rem;font-weight:600;background:rgba(255,255,255,0.05);color:var(--muted);
+  transition:all .2s;-webkit-tap-highlight-color:transparent;
+}
+.rarity-btn.active-rare{background:rgba(126,184,255,0.14);border-color:rgba(126,184,255,0.4);color:var(--rare);}
+.rarity-btn.active-epic{background:rgba(192,132,252,0.14);border-color:rgba(192,132,252,0.4);color:var(--epic);}
+.rarity-btn.active-legend{background:rgba(251,191,36,0.14);border-color:rgba(251,191,36,0.4);color:var(--legend);}
+.rarity-btn.active-ultima{background:rgba(255,110,200,0.14);border-color:rgba(255,110,200,0.4);color:var(--ultima);}
+.rarity-btn.active-all{background:rgba(160,80,255,0.14);border-color:rgba(160,80,255,0.4);color:#c084fc;}
+
+/* ── CARDS GRID ── */
+.cards-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(155px,1fr));
+  gap:16px;
+}
+
+/* ── CARD ITEM ── */
+.card-item{
+  position:relative;border-radius:16px;overflow:hidden;
+  cursor:pointer;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+  aspect-ratio:2/3;
+}
+.card-item:hover{transform:translateY(-6px) scale(1.03);}
+
+/* Редкость — рамки и свечение */
+.card-item.rare{box-shadow:0 4px 20px rgba(126,184,255,0.25);}
+.card-item.rare:hover{box-shadow:0 10px 35px rgba(126,184,255,0.45);}
+.card-item.epic{box-shadow:0 4px 20px rgba(192,132,252,0.3);}
+.card-item.epic:hover{box-shadow:0 10px 35px rgba(192,132,252,0.55);}
+.card-item.legend{box-shadow:0 4px 25px rgba(251,191,36,0.3);}
+.card-item.legend:hover{box-shadow:0 10px 38px rgba(251,191,36,0.55);}
+.card-item.ultima{box-shadow:0 4px 25px rgba(255,110,200,0.3);}
+.card-item.ultima:hover{box-shadow:0 10px 38px rgba(255,110,200,0.55);}
+
+/* CSS-объект карточки — НЕ img тег, CSS background */
+.card-visual{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;background-repeat:no-repeat;
+  border-radius:16px;
+  pointer-events:none;
+  /* Запрет контекстного меню с фото */
+  -webkit-user-drag:none;
+}
+
+/* Рамка редкости поверх */
+.card-border{
+  position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  border:2px solid transparent;
+}
+.card-item.rare .card-border{border-color:rgba(126,184,255,0.55);background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0)) padding-box, linear-gradient(180deg,rgba(126,184,255,0.7),rgba(126,184,255,0.15)) border-box;}
+.card-item.epic .card-border{border-color:rgba(192,132,252,0.6);background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0)) padding-box, linear-gradient(180deg,rgba(192,132,252,0.8),rgba(192,132,252,0.2)) border-box;}
+.card-item.legend .card-border{border-color:rgba(251,191,36,0.65);background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0)) padding-box, linear-gradient(180deg,rgba(251,191,36,0.85),rgba(251,191,36,0.2)) border-box;}
+.card-item.ultima .card-border{border-color:rgba(255,110,200,0.7);background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,0)) padding-box, linear-gradient(180deg,rgba(255,110,200,0.9),rgba(255,110,200,0.2)) border-box;}
+
+/* Шиммер для Ultima */
+.card-item.ultima::after{
+  content:'';position:absolute;inset:-2px;border-radius:17px;pointer-events:none;
+  background:linear-gradient(125deg,transparent 20%,rgba(255,110,200,0.18) 50%,transparent 80%);
+  animation:ultima-shine 3s ease-in-out infinite;
+}
+@keyframes ultima-shine{0%,100%{opacity:0;}50%{opacity:1;};}
+
+/* Нижняя инфо-полоса */
+.card-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:28px 10px 10px;
+  background:linear-gradient(transparent,rgba(4,1,10,0.88) 60%);
+  border-radius:0 0 16px 16px;
+  pointer-events:none;
+}
+.card-name{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;line-height:1.2;}
+.card-rarity-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:.64rem;font-weight:600;margin-top:3px;
+  padding:2px 7px;border-radius:10px;
+}
+.badge-rare{background:rgba(126,184,255,0.15);color:var(--rare);}
+.badge-epic{background:rgba(192,132,252,0.15);color:var(--epic);}
+.badge-legend{background:rgba(251,191,36,0.15);color:var(--legend);}
+.badge-ultima{background:rgba(255,110,200,0.15);color:var(--ultima);}
+
+/* Card ID badge */
+.card-id{
+  position:absolute;top:8px;right:8px;
+  font-size:.6rem;color:rgba(255,255,255,0.35);
+  background:rgba(0,0,0,0.45);padding:2px 7px;border-radius:8px;
+  font-family:'Inter',sans-serif;letter-spacing:.03em;
+  pointer-events:none;backdrop-filter:blur(4px);
+}
+
+/* EMPTY STATE */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:4rem 1rem;text-align:center;gap:1rem;
+}
+.empty-state-icon{font-size:3rem;opacity:.4;}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--muted);}
+.empty-state p{font-size:.82rem;color:rgba(255,255,255,0.2);max-width:260px;line-height:1.6;}
+
+/* LOADING */
+.state-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;color:var(--muted);font-size:.88rem;}
+.spinner{width:22px;height:22px;border:2.5px solid rgba(160,80,255,0.2);border-top-color:#a855f7;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);};}
+
+/* CARD MODAL */
+.card-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(0,0,0,0.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.card-overlay.open{opacity:1;pointer-events:all;}
+.card-modal{
+  position:relative;max-width:340px;width:100%;
+  display:flex;flex-direction:column;align-items:center;gap:1.25rem;
+  transform:scale(.92);transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.card-overlay.open .card-modal{transform:scale(1);}
+.modal-card-wrap{
+  position:relative;width:220px;height:330px;border-radius:20px;overflow:hidden;
+  /* 3D tilt on hover */
+  transform-style:preserve-3d;transition:transform .1s;
+}
+.modal-card-visual{
+  position:absolute;inset:0;
+  background-size:cover;background-position:center;
+  border-radius:20px;
+  pointer-events:none;-webkit-user-drag:none;
+}
+.modal-card-border{position:absolute;inset:0;border-radius:20px;pointer-events:none;border:2.5px solid transparent;}
+.modal-rare .modal-card-border{border-color:rgba(126,184,255,0.7);}
+.modal-epic .modal-card-border{border-color:rgba(192,132,252,0.75);}
+.modal-legend .modal-card-border{border-color:rgba(251,191,36,0.8);}
+.modal-ultima .modal-card-border{border-color:rgba(255,110,200,0.85);}
+.modal-rare .modal-card-wrap{box-shadow:0 12px 50px rgba(126,184,255,0.35);}
+.modal-epic .modal-card-wrap{box-shadow:0 12px 50px rgba(192,132,252,0.45);}
+.modal-legend .modal-card-wrap{box-shadow:0 12px 55px rgba(251,191,36,0.45);}
+.modal-ultima .modal-card-wrap{box-shadow:0 14px 60px rgba(255,110,200,0.5);}
+
+.modal-info{text-align:center;}
+.modal-card-name{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:.35rem;}
+.modal-card-id{font-size:.72rem;color:var(--muted);margin-bottom:.6rem;font-family:'Inter',sans-serif;}
+.modal-close{
+  position:absolute;top:-12px;right:-12px;width:34px;height:34px;
+  border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:1rem;color:var(--muted);transition:all .2s;z-index:10;
+}
+.modal-close:hover{background:rgba(255,255,255,0.18);color:var(--text);}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(20,12,38,0.95);border:1px solid rgba(160,80,255,0.3);
+  padding:10px 20px;border-radius:30px;font-size:.82rem;color:#c084fc;
+  opacity:0;transition:all .3s;z-index:9999;pointer-events:none;
+  backdrop-filter:blur(10px);white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* RESPONSIVE */
+@media(max-width:480px){
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
+  .cc-wrap{padding:16px 12px 80px;}
+}
+</style>
+</head>
+<body>
+<!-- BACKGROUND -->
+<div class="cards-bg">
+  <div class="bg-glow1"></div>
+  <div class="bg-glow2"></div>
+</div>
+<div class="particles" id="particles"></div>
+
+<!-- HEADER -->
+<header class="cc-header">
+  <div class="cc-logo">
+    <div class="cc-logo-icon">🃏</div>
+    <div>
+      <div class="cc-logo-text">Коллекционные карты</div>
+    </div>
+  </div>
+  <a class="cc-back" href="/">← FernieID</a>
+</header>
+
+<!-- MAIN -->
+<div class="cc-wrap">
+
+  <!-- AUTH GATE (shown while checking) -->
+  <div id="authGate" class="auth-gate" style="display:none;">
+    <div class="auth-gate-icon">🔐</div>
+    <h2>Требуется авторизация</h2>
+    <p>Войди в FernieID, чтобы получить доступ к своей коллекции карточек.</p>
+    <button class="auth-btn" onclick="window.location.href='/'">Войти в FernieID</button>
+  </div>
+
+  <!-- TG GATE (no telegram) -->
+  <div id="tgGate" class="auth-gate" style="display:none;">
+    <div class="auth-gate-icon">📱</div>
+    <h2>Привяжи Telegram</h2>
+    <p>Карточки хранятся в Telegram-боте. Привяжи аккаунт в настройках FernieID.</p>
+    <button class="auth-btn" onclick="window.location.href='/'">Привязать Telegram</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainContent" style="display:none;">
+    <!-- PROFILE BLOCK -->
+    <div class="profile-card">
+      <div class="profile-info">
+        <div class="profile-name" id="pcName">—</div>
+        <div class="profile-meta">
+          <span class="profile-pill">FernieID: <b id="pcFID" style="margin-left:4px;">—</b></span>
+          <span class="profile-pill tg">TG ID: <b id="pcTG" style="margin-left:4px;">—</b></span>
+        </div>
+      </div>
+      <div class="dc-block">
+        <span style="font-size:1.5rem;">💎</span>
+        <div>
+          <div class="dc-val" id="pcDC">—</div>
+          <div class="dc-label">Digital Coins</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="cc-tabs">
+      <button class="cc-tab active" data-tab="inventory" onclick="switchTab('inventory')">🃏 Инвентарь</button>
+      <button class="cc-tab" data-tab="cases" onclick="switchTab('cases')">📦 Кейсы</button>
+      <button class="cc-tab" data-tab="market" onclick="switchTab('market')">🏪 Маркет</button>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="cc-panel active" id="panel-inventory">
+      <div class="inv-header">
+        <div class="inv-title">Мои карточки</div>
+        <div class="inv-count" id="invCount">0 карт</div>
+      </div>
+      <div class="rarity-filter">
+        <button class="rarity-btn active-all" data-rarity="all" onclick="filterRarity('all')">Все</button>
+        <button class="rarity-btn" data-rarity="Rare" onclick="filterRarity('Rare')">🔵 Rare</button>
+        <button class="rarity-btn" data-rarity="Epic" onclick="filterRarity('Epic')">🟣 Epic</button>
+        <button class="rarity-btn" data-rarity="Legend" onclick="filterRarity('Legend')">🟡 Legend</button>
+        <button class="rarity-btn" data-rarity="Ultima" onclick="filterRarity('Ultima')">⚪ Ultima</button>
+      </div>
+      <div id="inventoryContent">
+        <div class="state-loading"><div class="spinner"></div><span>Загрузка карточек...</span></div>
+      </div>
+    </div>
+
+    <!-- CASES (WIP) -->
+    <div class="cc-panel" id="panel-cases">
+      <div class="wip-wrap">
+        <div class="wip-icon">🔧</div>
+        <div class="wip-title">В разработке...</div>
+        <div class="wip-sub">Кейсы с коллекционными карточками скоро появятся. Следи за обновлениями!</div>
+      </div>
+    </div>
+
+    <!-- MARKET (WIP) -->
+    <div class="cc-panel" id="panel-market">
+      <div class="wip-wrap">
+        <div class="wip-icon">🔧</div>
+        <div class="wip-title">В разработке...</div>
+        <div class="wip-sub">Маркет для торговли карточками находится в разработке. Совсем скоро!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CARD DETAIL MODAL -->
+<div class="card-overlay" id="cardOverlay" onclick="closeCardModal(event)">
+  <div class="card-modal" id="cardModal">
+    <div class="modal-card-wrap" id="modalCardWrap">
+      <div class="modal-card-visual" id="modalCardVisual"></div>
+      <div class="modal-card-border"></div>
+    </div>
+    <div class="modal-info">
+      <div class="modal-card-name" id="modalCardName">—</div>
+      <div class="modal-card-id" id="modalCardId">ID: —</div>
+      <div id="modalRarityBadge"></div>
+    </div>
+    <button class="modal-close" onclick="closeCardModal()">✕</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════════════
+const API = '';  // same origin
+const BOT_URL = 'https://a37690-25aa.j.d-f.pw';
+const SB_URL = ''; // не нужен напрямую — всё через /api/*
+
+let currentUser = null;
+let allCards = [];
+let catalogCards = {}; // cardName -> { name, rarity, image_url }
+let currentFilter = 'all';
+
+// ══════════════════════════════════════════
+//  PARTICLES
+// ══════════════════════════════════════════
+(function spawnParticles(){
+  const container = document.getElementById('particles');
+  const colors = ['rgba(192,132,252,', 'rgba(126,184,255,', 'rgba(255,110,200,', 'rgba(251,191,36,'];
+  for(let i=0;i<22;i++){
+    const el = document.createElement('div');
+    el.className = 'particle';
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const op = (.08 + Math.random()*.18).toFixed(2);
+    el.style.cssText = `
+      left:${Math.random()*100}%;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;
+      background:${c}0.7);--op:${op};
+      animation-duration:${10+Math.random()*18}s;animation-delay:${Math.random()*-20}s;
+    `;
+    container.appendChild(el);
+  }
+})();
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async () => {
+  // Читаем userId из localStorage (как в index.html)
+  const userId = localStorage.getItem('userId');
+  if (!userId) {
+    showGate('authGate');
+    return;
+  }
+
+  // Проверяем пользователя
+  try {
+    const res = await fetch(`/api/bank-info?userId=${userId}`).then(r=>r.json());
+    if (!res.success) { showGate('authGate'); return; }
+    if (!res.telegram_linked) { showGate('tgGate'); return; }
+
+    currentUser = {
+      id: userId,
+      username: res.username,
+      telegram_id: res.telegram_id
+    };
+
+    // Показываем контент
+    document.getElementById('mainContent').style.display = 'block';
+
+    // Профиль
+    document.getElementById('pcName').textContent = res.username;
+    document.getElementById('pcFID').textContent = userId;
+    document.getElementById('pcTG').textContent = res.telegram_id;
+
+    // Параллельно грузим DC и карточки
+    loadDC();
+    loadInventory();
+  } catch(e) {
+    console.error(e);
+    showGate('authGate');
+  }
+});
+
+function showGate(id) {
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('tgGate').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById(id).style.display = 'flex';
+}
+
+// ══════════════════════════════════════════
+//  DC BALANCE
+// ══════════════════════════════════════════
+async function loadDC() {
+  try {
+    const res = await fetch(`${BOT_URL}/api/dc?telegram_id=${currentUser.telegram_id}`).then(r=>r.json());
+    document.getElementById('pcDC').textContent = (res.dc ?? res.balance ?? 0).toLocaleString('ru-RU');
+  } catch(e) {
+    document.getElementById('pcDC').textContent = '—';
+  }
+}
+
+// ══════════════════════════════════════════
+//  LOAD CATALOG FROM SUPABASE (через /api/cards-catalog)
+// ══════════════════════════════════════════
+async function loadCatalog() {
+  try {
+    const res = await fetch('/api/cards-catalog').then(r=>r.json());
+    if (res.success && res.catalog) {
+      res.catalog.forEach(c => { catalogCards[c.name] = c; });
+    }
+  } catch(e) { console.error('catalog load error', e); }
+}
+
+// ══════════════════════════════════════════
+//  LOAD INVENTORY FROM BOT
+// ══════════════════════════════════════════
+async function loadInventory() {
+  const container = document.getElementById('inventoryContent');
+  container.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка карточек...</span></div>';
+
+  try {
+    // Грузим каталог и карточки юзера параллельно
+    const [, cardsRes] = await Promise.all([
+      loadCatalog(),
+      fetch(`/api/user-cards?userId=${currentUser.id}`).then(r=>r.json())
+    ]);
+
+    if (!cardsRes.success || !cardsRes.cards?.length) {
+      allCards = [];
+      renderCards([]);
+      return;
+    }
+    allCards = cardsRes.cards;
+    renderCards(allCards);
+  } catch(e) {
+    console.error(e);
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Ошибка загрузки</h3><p>${e.message}</p></div>`;
+  }
+}
+
+// ══════════════════════════════════════════
+//  RENDER CARDS
+// ══════════════════════════════════════════
+function renderCards(cards) {
+  const container = document.getElementById('inventoryContent');
+  document.getElementById('invCount').textContent = cards.length + ' карт';
+
+  if (!cards.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🃏</div>
+        <h3>Карточек пока нет</h3>
+        <p>Открывай кейсы или покупай на маркете, чтобы получить первые карточки</p>
+      </div>`;
+    return;
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'cards-grid';
+
+  cards.forEach(card => {
+    const catalogEntry = catalogCards[card.name] || {};
+    const rarity = (card.rarity || catalogEntry.rarity || 'Rare').toLowerCase();
+    const imageUrl = card.image_url || catalogEntry.image_url || '';
+
+    const rarityLabels = { rare:'Rare', epic:'Epic', legend:'Legend', ultima:'Ultima' };
+    const rarityLabel = rarityLabels[rarity] || rarity;
+
+    const el = document.createElement('div');
+    el.className = `card-item ${rarity}`;
+    el.dataset.cardId = card.card_id;
+    el.dataset.rarity = card.rarity || catalogEntry.rarity || 'Rare';
+
+    el.innerHTML = `
+      <div class="card-visual" style="background-image:url('${imageUrl}');"></div>
+      <div class="card-border"></div>
+      <div class="card-id">${card.card_id || ''}</div>
+      <div class="card-info">
+        <div class="card-name">${card.name || '—'}</div>
+        <div class="card-rarity-badge badge-${rarity}">${getRarityIcon(rarity)} ${rarityLabel}</div>
+      </div>
+    `;
+
+    // Запрещаем контекстное меню на мобиле (чтобы не открывалось "Сохранить изображение")
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    el.addEventListener('touchstart', e => { el._touchTimer = setTimeout(() => e.preventDefault(), 400); }, {passive:true});
+    el.addEventListener('touchend', () => clearTimeout(el._touchTimer));
+
+    el.addEventListener('click', () => openCardModal(card, catalogEntry, rarity, imageUrl));
+
+    grid.appendChild(el);
+  });
+
+  container.innerHTML = '';
+  container.appendChild(grid);
+}
+
+function getRarityIcon(rarity) {
+  return {rare:'🔵',epic:'🟣',legend:'🟡',ultima:'⚪'}[rarity] || '⚪';
+}
+
+// ══════════════════════════════════════════
+//  RARITY FILTER
+// ══════════════════════════════════════════
+function filterRarity(rarity) {
+  currentFilter = rarity;
+  // Update buttons
+  document.querySelectorAll('.rarity-btn').forEach(btn => {
+    const r = btn.dataset.rarity;
+    btn.className = 'rarity-btn';
+    if(r === rarity) btn.classList.add(`active-${r === 'all' ? 'all' : r.toLowerCase()}`);
+  });
+
+  if (rarity === 'all') {
+    renderCards(allCards);
+  } else {
+    renderCards(allCards.filter(c => (c.rarity || '').toLowerCase() === rarity.toLowerCase()));
+  }
+}
+
+// ══════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+}
+
+// ══════════════════════════════════════════
+//  CARD MODAL
+// ══════════════════════════════════════════
+function openCardModal(card, catalogEntry, rarity, imageUrl) {
+  const overlay = document.getElementById('cardOverlay');
+  const modal = document.getElementById('cardModal');
+  const wrap = document.getElementById('modalCardWrap');
+  const visual = document.getElementById('modalCardVisual');
+
+  // Set image as CSS background
+  visual.style.backgroundImage = `url('${imageUrl}')`;
+  document.getElementById('modalCardName').textContent = card.name || '—';
+  document.getElementById('modalCardId').textContent = `ID: ${card.card_id || '—'}`;
+
+  const rarityLabel = {rare:'🔵 Rare',epic:'🟣 Epic',legend:'🟡 Legend',ultima:'⚪ Ultima'}[rarity] || rarity;
+  document.getElementById('modalRarityBadge').innerHTML =
+    `<div class="card-rarity-badge badge-${rarity}" style="font-size:.8rem;padding:4px 12px;">${rarityLabel}</div>`;
+
+  // Reset classes
+  modal.className = 'card-modal modal-' + rarity;
+  wrap.className = 'modal-card-wrap';
+
+  overlay.classList.add('open');
+
+  // 3D tilt on mouse move
+  wrap.onmousemove = (e) => {
+    const rect = wrap.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    wrap.style.transform = `perspective(600px) rotateY(${x*16}deg) rotateX(${-y*16}deg) scale(1.04)`;
+  };
+  wrap.onmouseleave = () => { wrap.style.transform = ''; };
+}
+
+function closeCardModal(e) {
+  if (e && e.target !== document.getElementById('cardOverlay') && !e.target.classList.contains('modal-close')) return;
+  document.getElementById('cardOverlay').classList.remove('open');
+  document.getElementById('modalCardWrap').onmousemove = null;
+  document.getElementById('modalCardWrap').style.transform = '';
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
