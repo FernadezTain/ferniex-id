@@ -1359,5 +1359,64 @@ app.post('/api/rob-bank', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  COLLECTION CARDS
+// ══════════════════════════════════════════════════════════════════
+
+// ── Каталог карточек из Supabase ─────────────────────────────────
+app.get('/api/cards-catalog', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/cards_catalog?select=*&order=rarity.asc,name.asc`, { headers: sbHeaders });
+    const data = await r.json();
+    res.json({ success: true, catalog: data });
+  } catch (e) {
+    console.error('cards-catalog error:', e);
+    res.json({ success: false, catalog: [] });
+  }
+});
+
+// ── Карточки пользователя (через бота) ──────────────────────────
+app.get('/api/user-cards', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, cards: [], error: 'Telegram не привязан' });
+
+    const telegram_id = users[0].telegram_id;
+    const botRes = await fetch(`${BOT_URL}/api/cards?telegram_id=${telegram_id}`);
+    const botData = await botRes.json();
+    res.json({ success: true, cards: botData.cards || [] });
+  } catch (e) {
+    console.error('user-cards error:', e);
+    res.json({ success: false, cards: [], error: e.message });
+  }
+});
+
+// ── DC баланс пользователя (через бота) ─────────────────────────
+app.get('/api/dc/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, dc: 0, error: 'Telegram не привязан' });
+
+    const botRes = await fetch(`${BOT_URL}/api/dc?telegram_id=${users[0].telegram_id}`);
+    const botData = await botRes.json();
+    res.json({ success: true, dc: Number(botData.dc ?? botData.balance ?? 0) });
+  } catch (e) {
+    console.error('dc error:', e);
+    res.json({ success: false, dc: 0, error: e.message });
+  }
+});
+
+// ── Роут для CollectionCard без .html ────────────────────────────
+app.get('/CollectionCard', (req, res) => {
+  res.sendFile('CollectionCard.html', { root: 'public' });
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
