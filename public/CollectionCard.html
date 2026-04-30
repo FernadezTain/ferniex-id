@@ -542,7 +542,7 @@ function showGate(id) {
 // ══════════════════════════════════════════
 async function loadDC() {
   try {
-    const res = await fetch(`${BOT_URL}/api/dc?telegram_id=${currentUser.telegram_id}`).then(r=>r.json());
+    const res = await fetch(`/api/dc/${currentUser.id}`).then(r=>r.json());
     document.getElementById('pcDC').textContent = (res.dc ?? res.balance ?? 0).toLocaleString('ru-RU');
   } catch(e) {
     document.getElementById('pcDC').textContent = '—';
