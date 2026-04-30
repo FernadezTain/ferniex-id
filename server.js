@@ -1386,7 +1386,7 @@ app.get('/api/user-cards', async (req, res) => {
       return res.json({ success: false, cards: [], error: 'Telegram не привязан' });
 
     const telegram_id = users[0].telegram_id;
-    const botRes = await fetch(`${BOT_URL}/api/cards?telegram_id=${telegram_id}`);
+    const botRes = await fetch(`${BOT_URL}/api/cards?telegram_id=${telegram_id}&user_id=${userId}`);
     const botData = await botRes.json();
     res.json({ success: true, cards: botData.cards || [] });
   } catch (e) {
