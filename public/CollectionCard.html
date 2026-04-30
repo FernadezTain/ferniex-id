@@ -482,7 +482,11 @@ let currentFilter = 'all';
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
   // Читаем userId из localStorage (как в index.html)
-  const userId = localStorage.getItem('userId');
+  let savedSession = null;
+  try {
+    savedSession = JSON.parse(localStorage.getItem('fernieid_session'));
+  } catch(e) {}
+  const userId = savedSession?.id || localStorage.getItem('userId');
   if (!userId) {
     showGate('authGate');
     return;
@@ -496,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     currentUser = {
       id: userId,
-      username: res.username,
+      username: res.username || savedSession?.username || 'Пользователь',
       telegram_id: res.telegram_id
     };
 
@@ -504,7 +508,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('mainContent').style.display = 'block';
 
     // Профиль
-    document.getElementById('pcName').textContent = res.username;
+    document.getElementById('pcName').textContent = currentUser.username;
     document.getElementById('pcFID').textContent = userId;
     document.getElementById('pcTG').textContent = res.telegram_id;
 
