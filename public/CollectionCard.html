@@ -548,6 +548,7 @@ let currentModalCard = null;
 let marketState = { listings: [], my_listings: [], my_orders: [], history: [] };
 let marketSelectedListingId = null;
 let marketPollTimer = null;
+let dcPollTimer = null;
 
 // ══════════════════════════════════════════
 //  PARTICLES
@@ -607,6 +608,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Параллельно грузим DC и карточки
     loadDC();
     loadInventory();
+    startDcPolling();
   } catch(e) {
     console.error(e);
     showGate('authGate');
@@ -780,6 +782,7 @@ async function marketPost(path, body) {
 
 async function loadMarket(silent = false) {
   const container = document.getElementById('marketContent');
+  const savedOrderPrice = document.getElementById('marketOrderPrice')?.value || '';
   if (!silent) {
     container.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка маркета...</span></div>';
   }
@@ -799,6 +802,8 @@ async function loadMarket(silent = false) {
       marketSelectedListingId = marketState.listings[0].id;
     }
     renderMarket();
+    const inp = document.getElementById('marketOrderPrice');
+    if (inp && savedOrderPrice) inp.value = savedOrderPrice;
   } catch (e) {
     console.error('market load error', e);
     container.innerHTML = '<div class="market-empty"><div class="market-empty-title">Маркет недоступен</div><div class="market-empty-sub">Попробуй обновить страницу чуть позже</div></div>';
@@ -902,7 +907,12 @@ function renderMarket() {
           <div class="market-mini-list">
             ${recentSales.length ? recentSales.map(x => `
               <div class="market-mini-item">
-                <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+                <div class="market-mini-name">
+                  <span style="color:var(--p2)">${escapeHtml(x.buyer_username || x.buyer_user_id)}</span>
+                  купил у
+                  <span style="color:var(--p1)">${escapeHtml(x.seller_username || x.seller_user_id)}</span>
+                  | ${escapeHtml(x.name || 'Карточка')}
+                </div>
                 <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
               </div>
             `).join('') : '<div class="market-sub">История пока пустая</div>'}
@@ -916,6 +926,14 @@ function renderMarket() {
 function selectMarketListing(id) {
   marketSelectedListingId = id;
   renderMarket();
+}
+
+function startDcPolling() {
+  if (dcPollTimer) clearInterval(dcPollTimer);
+  dcPollTimer = setInterval(() => {
+    if (document.hidden) return;
+    loadDC();
+  }, 15000);
 }
 
 function startMarketPolling() {
