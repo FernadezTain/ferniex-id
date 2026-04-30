@@ -659,6 +659,25 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         </div>
         <div id="fpOverviewContent"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
       </div>
+
+      <!-- Коллекционные карты — превью в обзоре -->
+      <div class="gl-card" id="overviewCollectionCards" style="margin-top:1rem;cursor:pointer;position:relative;overflow:hidden;" onclick="window.location.href='/CollectionCard'">
+        <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(80,40,180,0.18) 0%,rgba(160,80,255,0.10) 50%,rgba(255,120,200,0.08) 100%);pointer-events:none;"></div>
+        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(160,80,255,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+        <div class="section-head" style="position:relative;z-index:1;">
+          <div class="section-title" style="display:flex;align-items:center;gap:8px;">🃏 Коллекционные карты</div>
+          <div class="section-badge" style="background:linear-gradient(135deg,rgba(160,80,255,0.18),rgba(120,60,200,0.12));border-color:rgba(160,80,255,0.35);color:#c084fc;">Коллекция</div>
+        </div>
+        <div style="position:relative;z-index:1;margin-top:.65rem;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:.82rem;color:var(--muted);">Инвентарь карточек, маркет и редкости</div>
+          <div style="display:flex;gap:6px;">
+            <span style="font-size:1.1rem;">🔵</span>
+            <span style="font-size:1.1rem;">🟣</span>
+            <span style="font-size:1.1rem;">🟡</span>
+            <span style="font-size:1.1rem;">⚪</span>
+          </div>
+        </div>
+      </div>
       </div>
 
       <!-- ИГРОВАЯ ПАНЕЛЬ -->
