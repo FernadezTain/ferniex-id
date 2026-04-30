@@ -172,22 +172,23 @@ body{
 .card-item{
   position:relative;border-radius:16px;overflow:hidden;
   cursor:pointer;
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s;
+  transition:transform .42s cubic-bezier(.22,.61,.36,1), box-shadow .42s ease, filter .42s ease;
   -webkit-tap-highlight-color:transparent;
   user-select:none;-webkit-user-select:none;
   aspect-ratio:2/3;
+  will-change:transform, box-shadow;
 }
-.card-item:hover{transform:translateY(-6px) scale(1.03);}
+.card-item:hover{transform:translateY(-3px) scale(1.02);}
 
 /* Редкость — рамки и свечение */
 .card-item.rare{box-shadow:0 4px 20px rgba(126,184,255,0.25);}
-.card-item.rare:hover{box-shadow:0 10px 35px rgba(126,184,255,0.45);}
+.card-item.rare:hover{box-shadow:0 12px 32px rgba(126,184,255,0.36);}
 .card-item.epic{box-shadow:0 4px 20px rgba(192,132,252,0.3);}
-.card-item.epic:hover{box-shadow:0 10px 35px rgba(192,132,252,0.55);}
+.card-item.epic:hover{box-shadow:0 12px 32px rgba(192,132,252,0.42);}
 .card-item.legend{box-shadow:0 4px 25px rgba(251,191,36,0.3);}
-.card-item.legend:hover{box-shadow:0 10px 38px rgba(251,191,36,0.55);}
+.card-item.legend:hover{box-shadow:0 12px 34px rgba(251,191,36,0.42);}
 .card-item.ultima{box-shadow:0 4px 25px rgba(255,110,200,0.3);}
-.card-item.ultima:hover{box-shadow:0 10px 38px rgba(255,110,200,0.55);}
+.card-item.ultima:hover{box-shadow:0 12px 34px rgba(255,110,200,0.42);}
 
 /* CSS-объект карточки — НЕ img тег, CSS background */
 .card-visual{
@@ -316,6 +317,14 @@ body{
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* RESPONSIVE */
+@media(min-width:1100px){
+  .cc-wrap{max-width:1180px;}
+  .cards-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:22px;}
+  .card-name{font-size:.92rem;}
+  .card-rarity-badge{font-size:.7rem;padding:3px 9px;}
+  .card-id{font-size:.66rem;padding:3px 8px;}
+}
+
 @media(max-width:480px){
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
   .cc-wrap{padding:16px 12px 80px;}
