@@ -70,6 +70,12 @@ async function sendTgMessage(chatId, text) {
   }
 }
 
+async function resolveTelegramId(userId) {
+  const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+  const users = await userRes.json();
+  return users[0]?.telegram_id || null;
+}
+
 // ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
@@ -1410,6 +1416,104 @@ app.get('/api/dc/:userId', async (req, res) => {
   } catch (e) {
     console.error('dc error:', e);
     res.json({ success: false, dc: 0, error: e.message });
+  }
+});
+
+app.get('/api/card-market/state/:userId', async (req, res) => {
+  try {
+    const telegramId = await resolveTelegramId(req.params.userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/state?telegram_id=${telegramId}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    console.error('card-market state error:', e);
+    res.json({ success: false, error: e.message, listings: [], my_listings: [], my_orders: [], history: [] });
+  }
+});
+
+app.post('/api/card-market/sell', async (req, res) => {
+  try {
+    const { userId, cardId, price } = req.body;
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/sell`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, fernie_user_id: userId, card_id: cardId, price })
+    });
+    res.json(await r.json());
+  } catch (e) {
+    console.error('card-market sell error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/card-market/buy', async (req, res) => {
+  try {
+    const { userId, listingId } = req.body;
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/buy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, listing_id: listingId })
+    });
+    res.json(await r.json());
+  } catch (e) {
+    console.error('card-market buy error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/card-market/order', async (req, res) => {
+  try {
+    const { userId, catalogCardId, maxPrice } = req.body;
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, catalog_card_id: catalogCardId, max_price: maxPrice })
+    });
+    res.json(await r.json());
+  } catch (e) {
+    console.error('card-market order error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/card-market/cancel-listing', async (req, res) => {
+  try {
+    const { userId, listingId } = req.body;
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/cancel-listing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, listing_id: listingId })
+    });
+    res.json(await r.json());
+  } catch (e) {
+    console.error('card-market cancel listing error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/card-market/cancel-order', async (req, res) => {
+  try {
+    const { userId, orderId } = req.body;
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const r = await fetch(`${BOT_URL}/api/market/cancel-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, order_id: orderId })
+    });
+    res.json(await r.json());
+  } catch (e) {
+    console.error('card-market cancel order error:', e);
+    res.json({ success: false, error: e.message });
   }
 });
 
