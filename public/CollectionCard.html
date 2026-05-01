@@ -418,7 +418,21 @@ body{
 .offer-row-id{font-size:.68rem;color:rgba(255,255,255,0.2);}
 .offer-row-price{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:#c084fc;flex-shrink:0;}
 
-/* META blocks below grid */
+/* Market sub-tabs */
+.market-subtabs{
+  display:flex;gap:5px;margin-bottom:14px;
+  background:rgba(10,5,20,0.5);padding:4px;border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.market-subtab{
+  flex:1;padding:8px 10px;border-radius:9px;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  background:transparent;color:var(--muted);transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.market-subtab.active{background:rgba(160,80,255,0.16);color:#c084fc;border:1px solid rgba(160,80,255,0.25);}
+.market-subpanel{display:none;}
+.market-subpanel.active{display:block;}
 .market-meta-list{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
 .market-meta-block{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:12px;}
 .market-meta-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
@@ -716,6 +730,7 @@ let marketState = { listings: [], my_listings: [], my_orders: [], history: [] };
 let marketSelectedListingId = null;
 let marketPollTimer = null;
 let dcPollTimer = null;
+let marketSubTab = 'listings'; // 'listings' | 'my'
 
 // ══════════════════════════════════════════
 //  PARTICLES
@@ -927,6 +942,7 @@ function switchTab(tab) {
   document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   if (tab === 'market') {
+    marketSubTab = 'listings';
     loadMarket();
     startMarketPolling();
   } else {
@@ -1117,34 +1133,55 @@ function renderMarket() {
     <div class="market-shell">
       ${actionBarHtml}
       <div class="market-right">
-        <div class="market-toolbar">
-          <div>
-            <div class="market-title">Площадка</div>
+
+        <!-- Sub-tabs -->
+        <div class="market-subtabs">
+          <button class="market-subtab ${marketSubTab==='listings'?'active':''}" onclick="switchMarketSubTab('listings')">🏪 Площадка</button>
+          <button class="market-subtab ${marketSubTab==='my'?'active':''}" onclick="switchMarketSubTab('my')">📋 Мои лоты</button>
+        </div>
+
+        <!-- Panel: Площадка -->
+        <div class="market-subpanel ${marketSubTab==='listings'?'active':''}">
+          <div class="market-toolbar">
             <div class="market-sub">Обновляется почти мгновенно</div>
+            <div class="inv-count">${listings.length} лотов · ${stackArr.length} карт</div>
           </div>
-          <div class="inv-count">${listings.length} лотов · ${stackArr.length} карт</div>
-        </div>
-        <div class="market-grid">${stacksHtml}</div>
-        <div class="market-meta-list" style="margin-top:16px;">
-          <div class="market-meta-block">
-            <div class="market-meta-title">Мои лоты</div>
-            <div class="market-mini-list">${myLotsHtml}</div>
-          </div>
-          <div class="market-meta-block">
-            <div class="market-meta-title">Мои заказы</div>
-            <div class="market-mini-list">${myOrdersHtml}</div>
-          </div>
-          <div class="market-meta-block">
-            <div class="market-meta-title">Последние продажи</div>
-            <div class="market-mini-list">${historyHtml}</div>
+          <div class="market-grid">${stacksHtml}</div>
+          <div class="market-meta-list" style="margin-top:16px;">
+            <div class="market-meta-block">
+              <div class="market-meta-title">Последние продажи</div>
+              <div class="market-mini-list">${historyHtml}</div>
+            </div>
           </div>
         </div>
+
+        <!-- Panel: Мои лоты -->
+        <div class="market-subpanel ${marketSubTab==='my'?'active':''}">
+          <div class="market-meta-list">
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои лоты на продажу</div>
+              <div class="market-mini-list">${myLotsHtml}</div>
+            </div>
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои заказы (автозакуп)</div>
+              <div class="market-mini-list">${myOrdersHtml}</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   `;
 
   const inp = document.getElementById('marketOrderPrice');
   if (inp && window._savedOrderPrice) inp.value = window._savedOrderPrice;
+}
+
+function switchMarketSubTab(tab) {
+  marketSubTab = tab;
+  // Just toggle visibility without full re-render
+  document.querySelectorAll('.market-subtab').forEach(b => b.classList.toggle('active', b.textContent.includes(tab === 'listings' ? 'Площадка' : 'Мои')));
+  document.querySelectorAll('.market-subpanel').forEach((p, i) => p.classList.toggle('active', tab === 'listings' ? i === 0 : i === 1));
 }
 
 // ─── STACKS ──────────────────────────────────
