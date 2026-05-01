@@ -1584,10 +1584,12 @@ app.post('/api/packs/buy', async (req, res) => {
         body: JSON.stringify({ amount: have + quantity })
       });
     } else {
-      await fetch(`${SB_URL}/rest/v1/user_packs`, {
-        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, pack_id: packId, amount: quantity })
+      const insertRes = await fetch(`${SB_URL}/rest/v1/user_packs`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify({ user_id: String(userId), pack_id: packId, amount: quantity })
       });
+      const insertData = await insertRes.json();
+      if (insertRes.status >= 300) return res.json({ success: false, error: JSON.stringify(insertData) });
     }
     res.json({ success: true });
   } catch (e) {
