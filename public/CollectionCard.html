@@ -255,34 +255,185 @@ body{
 .empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;color:var(--muted);}
 .empty-state p{font-size:.82rem;color:rgba(255,255,255,0.2);max-width:260px;line-height:1.6;}
 
-/* MARKET */
-.market-shell{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start;}
-.market-sidebar,.market-main{
-  background:rgba(15,10,28,0.58);border:1px solid rgba(255,255,255,0.06);
-  border-radius:18px;padding:14px;
+/* ══════════ MARKET — MOBILE-FIRST REDESIGN ══════════ */
+
+/* Wrapper: single column always, sidebar goes below on desktop */
+.market-shell{display:flex;flex-direction:column;gap:14px;}
+
+/* ACTION BAR — always on top */
+.market-action-bar{
+  background:rgba(15,10,28,0.82);border:1px solid rgba(160,80,255,0.18);
+  border-radius:18px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:10px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:20;
 }
-.market-side-card{
-  display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;
+.market-action-preview{
+  display:flex;align-items:center;gap:14px;
 }
-.market-side-preview{
-  width:220px;height:330px;border-radius:20px;overflow:hidden;position:relative;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
-  box-shadow:0 14px 40px rgba(0,0,0,0.35);
+.market-action-thumb{
+  width:52px;height:78px;border-radius:10px;overflow:hidden;flex-shrink:0;position:relative;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
 }
-.market-side-preview .market-card-visual{position:absolute;inset:0;background-size:cover;background-position:center;}
-.market-side-name{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;}
-.market-side-price{font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:900;color:#c084fc;}
-.market-side-actions{display:flex;flex-direction:column;gap:10px;width:100%;}
+.market-action-thumb .market-card-visual{position:absolute;inset:0;background-size:cover;background-position:center;border-radius:10px;}
+.market-action-info{flex:1;min-width:0;}
+.market-action-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.market-action-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
+.market-action-price{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:900;color:#c084fc;}
+.market-action-seller{font-size:.75rem;color:var(--muted);}
+.market-action-id{font-size:.7rem;color:rgba(255,255,255,0.22);background:rgba(255,255,255,0.04);padding:2px 7px;border-radius:8px;}
+.market-action-btns{display:flex;gap:8px;}
 .market-btn,.market-input{
-  width:100%;border-radius:14px;border:1px solid rgba(255,255,255,0.09);
-  background:rgba(255,255,255,0.05);color:var(--text);padding:12px 14px;font-size:.88rem;
+  border-radius:12px;border:1px solid rgba(255,255,255,0.09);
+  background:rgba(255,255,255,0.05);color:var(--text);padding:11px 14px;font-size:.88rem;
 }
-.market-btn{cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s;}
-.market-btn.primary{background:linear-gradient(135deg,rgba(160,80,255,0.35),rgba(90,40,180,0.5));border-color:rgba(192,132,252,0.35);}
-.market-btn.secondary{background:rgba(255,255,255,0.04);}
-.market-btn.warn{background:rgba(255,110,200,0.12);border-color:rgba(255,110,200,0.24);}
-.market-btn:hover{transform:translateY(-1px);opacity:.95;}
-.market-meta-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
+.market-btn{cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;transition:all .2s;-webkit-tap-highlight-color:transparent;}
+.market-btn.primary{flex:2;background:linear-gradient(135deg,rgba(160,80,255,0.4),rgba(90,40,180,0.55));border-color:rgba(192,132,252,0.35);}
+.market-btn.secondary{flex:1;background:rgba(255,255,255,0.04);}
+.market-btn.warn{flex:1;background:rgba(255,110,200,0.12);border-color:rgba(255,110,200,0.24);}
+.market-btn:hover{opacity:.9;}
+.market-btn:active{transform:scale(.97);}
+.market-input{width:100%;display:block;}
+.market-order-row{display:flex;gap:8px;align-items:center;}
+.market-order-row .market-input{flex:1;padding:10px 12px;}
+.market-order-row .market-btn{flex:none;padding:10px 16px;white-space:nowrap;}
+
+/* GRID of stacked cards */
+.market-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;
+}
+.market-stack{
+  position:relative;border-radius:16px;overflow:visible;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+/* Stack shadow layers for duplicates */
+.market-stack-bg{
+  position:absolute;inset:0;border-radius:16px;
+  background:rgba(18,12,32,0.9);border:1px solid rgba(255,255,255,0.05);
+  transform-origin:bottom center;
+  transition:transform .2s;
+}
+.market-stack-bg.layer1{transform:rotate(-2.5deg) translateY(4px) scale(.97);z-index:1;}
+.market-stack-bg.layer2{transform:rotate(1.8deg) translateY(7px) scale(.94);z-index:0;}
+.market-stack:hover .market-stack-bg.layer1{transform:rotate(-3.5deg) translateY(7px) scale(.96);}
+.market-stack:hover .market-stack-bg.layer2{transform:rotate(2.5deg) translateY(11px) scale(.93);}
+
+.market-item{
+  position:relative;z-index:2;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:5/6;
+  border:1px solid rgba(255,255,255,0.07);background:rgba(18,12,32,0.95);
+  transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.market-item:hover{transform:translateY(-2px);}
+.market-item.active{border-color:rgba(192,132,252,0.5);box-shadow:0 0 0 2px rgba(160,80,255,0.25),0 10px 28px rgba(160,80,255,0.2);}
+.market-item-visual{height:66%;background-size:cover;background-position:center;}
+.market-item-body{padding:9px 10px 11px;}
+.market-item-name{font-size:.82rem;font-weight:700;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.market-item-price{margin-top:6px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:#c084fc;}
+.market-item-foot{display:flex;align-items:center;justify-content:space-between;margin-top:5px;font-size:.68rem;color:var(--muted);}
+
+/* Stack count badge */
+.market-stack-count{
+  position:absolute;top:-7px;right:-7px;z-index:10;
+  width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  font-size:.65rem;font-weight:800;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid rgba(4,1,10,0.9);
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* ── OFFERS POPUP ── */
+.offers-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.offers-overlay.open{opacity:1;pointer-events:all;}
+.offers-sheet{
+  width:100%;max-width:520px;
+  background:rgba(12,7,24,0.98);border:1px solid rgba(160,80,255,0.18);
+  border-radius:24px;padding:0 0 4px;
+  transform:translateY(24px) scale(.97);transition:transform .3s cubic-bezier(.34,1.3,.64,1);
+  max-height:90vh;display:flex;flex-direction:column;
+}
+.offers-overlay.open .offers-sheet{transform:translateY(0) scale(1);}
+.offers-drag{width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,0.15);margin:10px auto 0;}
+.offers-header{padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.offers-card-row{display:flex;align-items:center;gap:14px;}
+.offers-card-thumb{
+  width:56px;height:84px;border-radius:12px;overflow:hidden;flex-shrink:0;position:relative;
+  background:rgba(255,255,255,0.04);
+}
+.offers-card-thumb-visual{position:absolute;inset:0;background-size:cover;background-position:center;}
+.offers-card-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;}
+.offers-close{
+  margin-left:auto;width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:.9rem;color:var(--muted);flex-shrink:0;-webkit-tap-highlight-color:transparent;
+}
+/* Selected info block */
+.offers-selected{
+  padding:12px 18px;background:rgba(160,80,255,0.07);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.offers-selected-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;}
+.offers-field{display:flex;flex-direction:column;gap:2px;}
+.offers-field-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.offers-field-val{font-size:.9rem;font-weight:700;}
+.offers-field-val.price{color:#c084fc;font-family:'Syne',sans-serif;font-size:1.1rem;}
+.offers-buy-btn{
+  padding:10px 22px;border-radius:12px;border:none;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;
+  background:linear-gradient(135deg,rgba(160,80,255,0.45),rgba(90,40,180,0.6));
+  border:1px solid rgba(192,132,252,0.35);color:#fff;
+  transition:all .18s;-webkit-tap-highlight-color:transparent;
+}
+.offers-buy-btn:active{transform:scale(.96);}
+.offers-buy-btn.cancel-btn{background:rgba(255,110,200,0.12);border-color:rgba(255,110,200,0.25);}
+/* Offers list */
+.offers-list{overflow-y:auto;padding:10px 12px 14px;display:flex;flex-direction:column;gap:8px;}
+.offer-row{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+  border-radius:13px;padding:10px 12px;cursor:pointer;
+  transition:border-color .18s, background .18s;-webkit-tap-highlight-color:transparent;
+}
+.offer-row:hover,.offer-row.selected{
+  background:rgba(160,80,255,0.1);border-color:rgba(192,132,252,0.35);
+}
+.offer-row-check{
+  width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;
+}
+.offer-row.selected .offer-row-check{background:#a855f7;border-color:#a855f7;color:#fff;}
+.offer-row-info{flex:1;min-width:0;}
+.offer-row-name{font-size:.82rem;font-weight:600;}
+.offer-row-seller{font-size:.72rem;color:var(--muted);}
+.offer-row-id{font-size:.68rem;color:rgba(255,255,255,0.2);}
+.offer-row-price{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:#c084fc;flex-shrink:0;}
+
+/* Market sub-tabs */
+.market-subtabs{
+  display:flex;gap:5px;margin-bottom:14px;
+  background:rgba(10,5,20,0.5);padding:4px;border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.market-subtab{
+  flex:1;padding:8px 10px;border-radius:9px;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  background:transparent;color:var(--muted);transition:all .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.market-subtab.active{background:rgba(160,80,255,0.16);color:#c084fc;border:1px solid rgba(160,80,255,0.25);}
+.market-subpanel{display:none;}
+.market-subpanel.active{display:block;}
+.market-meta-list{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
 .market-meta-block{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:12px;}
 .market-meta-title{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
 .market-mini-list{display:flex;flex-direction:column;gap:8px;}
@@ -294,30 +445,24 @@ body{
 .market-mini-price{color:#c084fc;font-weight:700;}
 .market-mini-btn{
   border:none;background:rgba(255,255,255,0.08);color:var(--text);border-radius:10px;
-  padding:6px 9px;font-size:.72rem;cursor:pointer;
+  padding:6px 9px;font-size:.72rem;cursor:pointer;-webkit-tap-highlight-color:transparent;
 }
 .market-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .market-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;}
 .market-sub{font-size:.8rem;color:var(--muted);}
-.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;}
-.market-item{
-  position:relative;border-radius:16px;overflow:hidden;cursor:pointer;aspect-ratio:5/6;
-  border:1px solid rgba(255,255,255,0.06);background:rgba(18,12,32,0.9);
-  transition:transform .22s ease, border-color .22s ease, box-shadow .22s ease;
-}
-.market-item:hover{transform:translateY(-2px);border-color:rgba(192,132,252,0.22);}
-.market-item.active{border-color:rgba(192,132,252,0.45);box-shadow:0 12px 28px rgba(160,80,255,0.18);}
-.market-item-visual{height:68%;background-size:cover;background-position:center;}
-.market-item-body{padding:10px 11px 12px;}
-.market-item-name{font-size:.84rem;font-weight:700;line-height:1.25;min-height:2.1em;}
-.market-item-price{margin-top:8px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#c084fc;}
-.market-item-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px;font-size:.7rem;color:var(--muted);}
 .market-empty{
-  min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;
   text-align:center;gap:10px;color:var(--muted);
 }
 .market-empty-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:rgba(255,255,255,0.82);}
 .market-empty-sub{font-size:.9rem;max-width:280px;line-height:1.55;}
+
+/* Desktop sidebar fallback */
+@media(min-width:860px){
+  .market-shell{flex-direction:row;align-items:start;}
+  .market-action-bar{position:sticky;top:10px;width:280px;flex-shrink:0;}
+  .market-right{flex:1;min-width:0;}
+}
 
 /* LOADING */
 .state-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;color:var(--muted);font-size:.88rem;}
@@ -397,16 +542,9 @@ body{
   .modal-close{top:-16px;right:-16px;width:40px;height:40px;font-size:1.1rem;}
 }
 
-@media(max-width:900px){
-  .market-shell{grid-template-columns:1fr;}
-  .market-sidebar{order:2;}
-  .market-main{order:1;}
-  .market-side-preview{width:200px;height:300px;}
-}
-
 @media(max-width:480px){
   .cards-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;}
-  .market-grid{grid-template-columns:1fr;}
+  .market-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
   .cc-wrap{padding:16px 12px 80px;}
 }
 </style>
@@ -529,6 +667,49 @@ body{
   </div>
 </div>
 
+<!-- OFFERS POPUP (sheet) -->
+<div class="offers-overlay" id="offersOverlay" onclick="closeOffersIfOutside(event)">
+  <div class="offers-sheet" id="offersSheet">
+    <div class="offers-drag"></div>
+    <div class="offers-header">
+      <div class="offers-card-row">
+        <div class="offers-card-thumb">
+          <div class="offers-card-thumb-visual" id="offersThumb"></div>
+        </div>
+        <div>
+          <div class="offers-card-name" id="offersCardName">—</div>
+          <div id="offersRarityBadge" style="margin-top:5px;"></div>
+        </div>
+        <button class="offers-close" onclick="closeOffers()">✕</button>
+      </div>
+    </div>
+    <!-- Selected offer details -->
+    <div class="offers-selected" id="offersSelectedBlock">
+      <div class="offers-selected-row">
+        <div class="offers-field">
+          <div class="offers-field-label">Карточка</div>
+          <div class="offers-field-val" id="osName">—</div>
+        </div>
+        <div class="offers-field">
+          <div class="offers-field-label">ID</div>
+          <div class="offers-field-val" id="osId">—</div>
+        </div>
+        <div class="offers-field">
+          <div class="offers-field-label">Продавец</div>
+          <div class="offers-field-val" id="osSeller">—</div>
+        </div>
+        <div class="offers-field">
+          <div class="offers-field-label">Цена</div>
+          <div class="offers-field-val price" id="osPrice">— DC</div>
+        </div>
+        <button class="offers-buy-btn" id="offersBuyBtn" onclick="buyFromOffers()">Купить</button>
+      </div>
+    </div>
+    <!-- All offers list -->
+    <div class="offers-list" id="offersList"></div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -549,6 +730,7 @@ let marketState = { listings: [], my_listings: [], my_orders: [], history: [] };
 let marketSelectedListingId = null;
 let marketPollTimer = null;
 let dcPollTimer = null;
+let marketSubTab = 'listings'; // 'listings' | 'my'
 
 // ══════════════════════════════════════════
 //  PARTICLES
@@ -760,6 +942,7 @@ function switchTab(tab) {
   document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   if (tab === 'market') {
+    marketSubTab = 'listings';
     loadMarket();
     startMarketPolling();
   } else {
@@ -783,6 +966,7 @@ async function marketPost(path, body) {
 async function loadMarket(silent = false) {
   const container = document.getElementById('marketContent');
   const savedOrderPrice = document.getElementById('marketOrderPrice')?.value || '';
+  window._savedOrderPrice = savedOrderPrice;
   if (!silent) {
     container.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка маркета...</span></div>';
   }
@@ -802,8 +986,6 @@ async function loadMarket(silent = false) {
       marketSelectedListingId = marketState.listings[0].id;
     }
     renderMarket();
-    const inp = document.getElementById('marketOrderPrice');
-    if (inp && savedOrderPrice) inp.value = savedOrderPrice;
   } catch (e) {
     console.error('market load error', e);
     container.innerHTML = '<div class="market-empty"><div class="market-empty-title">Маркет недоступен</div><div class="market-empty-sub">Попробуй обновить страницу чуть позже</div></div>';
@@ -813,114 +995,309 @@ async function loadMarket(silent = false) {
 function renderMarket() {
   const container = document.getElementById('marketContent');
   const listings = marketState.listings || [];
-  const selected = listings.find(x => String(x.id) === String(marketSelectedListingId)) || listings[0];
-  if (!selected) {
-    container.innerHTML = `<div class="market-empty"><div class="market-empty-title">Нет товаров...</div><div class="market-empty-sub">Возможно никто ничего не продает</div></div>`;
-    return;
-  }
-  marketSelectedListingId = selected.id;
-  const rarity = String(selected.rarity || 'Rare').toLowerCase();
   const myListings = marketState.my_listings || [];
   const myOrders = marketState.my_orders || [];
   const recentSales = (marketState.history || []).slice(0, 5);
+
+  if (!listings.length) {
+    container.innerHTML = `<div class="market-empty"><div class="market-empty-title">Нет товаров...</div><div class="market-empty-sub">Возможно никто ничего не продаёт</div></div>`;
+    return;
+  }
+
+  // ── Auto-select first if none or stale ──
+  if (!marketSelectedListingId || !listings.some(x => String(x.id) === String(marketSelectedListingId))) {
+    marketSelectedListingId = listings[0].id;
+  }
+  const selected = listings.find(x => String(x.id) === String(marketSelectedListingId)) || listings[0];
+  marketSelectedListingId = selected.id;
+
+  const rarity = String(selected.rarity || 'Rare').toLowerCase();
   const canBuy = String(selected.seller_user_id) !== String(currentUser.telegram_id);
 
-  container.innerHTML = `
-    <div class="market-shell">
-      <div class="market-sidebar">
-        <div class="market-side-card">
-          <div class="market-side-preview modal-${rarity}">
-            <div class="market-card-visual" style="background-image:url('${selected.image_url || ''}')"></div>
-            <div class="modal-card-border"></div>
+  // ── Stack listings by catalog_card_id (or name as fallback) ──
+  const stacks = {};
+  listings.forEach(x => {
+    const key = String(x.catalog_card_id || x.name || x.id);
+    if (!stacks[key]) stacks[key] = { key, items: [], lowest: x };
+    stacks[key].items.push(x);
+    if (Number(x.price) < Number(stacks[key].lowest.price)) stacks[key].lowest = x;
+  });
+  const stackArr = Object.values(stacks).sort((a,b) => Number(a.lowest.price) - Number(b.lowest.price));
+
+  // ── Build action bar HTML ──
+  const sellerName = selected.seller_username || `TG:${selected.seller_user_id}`;
+  const actionBarHtml = `
+    <div class="market-action-bar">
+      <div class="market-action-preview">
+        <div class="market-action-thumb">
+          <div class="market-card-visual" style="background-image:url('${selected.image_url || ''}')"></div>
+          <div class="modal-card-border" style="position:absolute;inset:0;border-radius:10px;border:1.5px solid rgba(192,132,252,0.4);pointer-events:none;"></div>
+        </div>
+        <div class="market-action-info">
+          <div class="market-action-name">${escapeHtml(selected.name || 'Карточка')}</div>
+          <div class="market-action-row">
+            <div class="market-action-price">${Number(selected.price || 0).toLocaleString('ru-RU')} DC</div>
+            <div class="card-rarity-badge badge-${rarity}" style="margin-top:0;">${getRarityIcon(rarity)} ${escapeHtml(selected.rarity || 'Rare')}</div>
           </div>
-          <div class="market-side-name">${escapeHtml(selected.name || 'Карточка')}</div>
-          <div class="market-side-price">${Number(selected.price || 0).toLocaleString('ru-RU')} DC</div>
-          <div class="card-rarity-badge badge-${rarity}">${getRarityIcon(rarity)} ${escapeHtml(selected.rarity || 'Rare')}</div>
-          <div class="market-side-actions">
-            ${canBuy
-              ? `<button class="market-btn primary" onclick="buyMarketListing(${selected.id})">Купить</button>`
-              : `<button class="market-btn secondary" onclick="cancelMyListing(${selected.id})">Снять с продажи</button>`}
-            <input class="market-input" id="marketOrderPrice" type="number" min="1" placeholder="Цена автозаказа в DC">
-            <button class="market-btn secondary" onclick="createMarketOrder('${String(selected.catalog_card_id || '').replace(/'/g, "\\'")}')">Заказать</button>
-          </div>
-          <div class="market-meta-list" style="width:100%;">
-            <div class="market-meta-block">
-              <div class="market-meta-title">Мои лоты</div>
-              <div class="market-mini-list">
-                ${myListings.length ? myListings.map(x => `
-                  <div class="market-mini-item">
-                    <div>
-                      <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
-                      <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
-                    </div>
-                    <button class="market-mini-btn" onclick="cancelMyListing(${x.id})">Снять</button>
-                  </div>
-                `).join('') : '<div class="market-sub">Пока нет активных лотов</div>'}
-              </div>
-            </div>
-            <div class="market-meta-block">
-              <div class="market-meta-title">Мои заказы</div>
-              <div class="market-mini-list">
-                ${myOrders.length ? myOrders.map(x => `
-                  <div class="market-mini-item">
-                    <div>
-                      <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
-                      <div class="market-mini-price">До ${Number(x.max_price || 0).toLocaleString('ru-RU')} DC</div>
-                    </div>
-                    <button class="market-mini-btn" onclick="cancelMarketOrder(${x.id})">Отменить</button>
-                  </div>
-                `).join('') : '<div class="market-sub">Активных заявок нет</div>'}
-              </div>
-            </div>
+          <div class="market-action-row" style="margin-top:4px;">
+            <div class="market-action-seller">Продавец: ${escapeHtml(sellerName)}</div>
+            <div class="market-action-id">#${selected.id}</div>
           </div>
         </div>
       </div>
-      <div class="market-main">
-        <div class="market-toolbar">
-          <div>
-            <div class="market-title">Площадка</div>
-            <div class="market-sub">Лоты обновляются автоматически почти мгновенно</div>
-          </div>
-          <div class="inv-count">${listings.length} лотов</div>
-        </div>
-        <div class="market-grid">
-          ${listings.map(x => {
-            const r = String(x.rarity || 'Rare').toLowerCase();
-            const active = String(x.id) === String(marketSelectedListingId) ? ' active' : '';
-            return `
-              <div class="market-item${active}" onclick="selectMarketListing(${x.id})">
-                <div class="market-item-visual" style="background-image:url('${x.image_url || ''}')"></div>
-                <div class="market-item-body">
-                  <div class="market-item-name">${escapeHtml(x.name || 'Карточка')}</div>
-                  <div class="market-item-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
-                  <div class="market-item-foot">
-                    <span class="card-rarity-badge badge-${r}" style="margin-top:0;">${getRarityIcon(r)} ${escapeHtml(x.rarity || 'Rare')}</span>
-                    <span>#${x.id}</span>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('')}
-        </div>
-        <div class="market-meta-block" style="margin-top:14px;">
-          <div class="market-meta-title">Последние продажи</div>
-          <div class="market-mini-list">
-            ${recentSales.length ? recentSales.map(x => `
-              <div class="market-mini-item">
-                <div class="market-mini-name">
-                  <span style="color:var(--p2)">${escapeHtml(x.buyer_username || x.buyer_user_id)}</span>
-                  купил у
-                  <span style="color:var(--p1)">${escapeHtml(x.seller_username || x.seller_user_id)}</span>
-                  | ${escapeHtml(x.name || 'Карточка')}
-                </div>
-                <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
-              </div>
-            `).join('') : '<div class="market-sub">История пока пустая</div>'}
-          </div>
-        </div>
+      <div class="market-action-btns">
+        ${canBuy
+          ? `<button class="market-btn primary" onclick="buyMarketListing(${selected.id})">💳 Купить</button>`
+          : `<button class="market-btn warn" onclick="cancelMyListing(${selected.id})">✕ Снять с продажи</button>`}
+      </div>
+      <div class="market-order-row">
+        <input class="market-input" id="marketOrderPrice" type="number" min="1" placeholder="Цена автозаказа DC">
+        <button class="market-btn secondary" onclick="createMarketOrder('${String(selected.catalog_card_id || '').replace(/'/g,"\\'")}')">Заказать</button>
       </div>
     </div>
   `;
+
+  // ── Build stacked grid ──
+  const stacksHtml = stackArr.map(stack => {
+    const card = stack.lowest;
+    const r = String(card.rarity || 'Rare').toLowerCase();
+    const count = stack.items.length;
+    const isSelectedStack = stack.items.some(x => String(x.id) === String(marketSelectedListingId));
+    const activeClass = isSelectedStack ? ' active' : '';
+
+    const layersBg = count >= 3
+      ? `<div class="market-stack-bg layer2"></div><div class="market-stack-bg layer1"></div>`
+      : count === 2
+      ? `<div class="market-stack-bg layer1"></div>`
+      : '';
+
+    return `
+      <div class="market-stack" onclick="openOffersStack('${stack.key}')">
+        ${layersBg}
+        <div class="market-item${activeClass}">
+          <div class="market-item-visual" style="background-image:url('${card.image_url || ''}')"></div>
+          <div class="market-item-body">
+            <div class="market-item-name">${escapeHtml(card.name || 'Карточка')}</div>
+            <div class="market-item-price">${Number(card.price || 0).toLocaleString('ru-RU')} DC</div>
+            <div class="market-item-foot">
+              <span class="card-rarity-badge badge-${r}" style="margin-top:0;">${getRarityIcon(r)} ${escapeHtml(card.rarity || 'Rare')}</span>
+              ${count > 1 ? '' : `<span>#${card.id}</span>`}
+            </div>
+          </div>
+        </div>
+        ${count > 1 ? `<div class="market-stack-count">${count}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // ── My lots & orders & history ──
+  const myLotsHtml = myListings.length
+    ? myListings.map(x => `
+      <div class="market-mini-item">
+        <div>
+          <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+          <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+        </div>
+        <button class="market-mini-btn" onclick="cancelMyListing(${x.id})">Снять</button>
+      </div>
+    `).join('')
+    : '<div class="market-sub">Нет активных лотов</div>';
+
+  const myOrdersHtml = myOrders.length
+    ? myOrders.map(x => `
+      <div class="market-mini-item">
+        <div>
+          <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+          <div class="market-mini-price">До ${Number(x.max_price || 0).toLocaleString('ru-RU')} DC</div>
+        </div>
+        <button class="market-mini-btn" onclick="cancelMarketOrder(${x.id})">Отменить</button>
+      </div>
+    `).join('')
+    : '<div class="market-sub">Активных заявок нет</div>';
+
+  const historyHtml = recentSales.length
+    ? recentSales.map(x => `
+      <div class="market-mini-item">
+        <div class="market-mini-name">
+          <span style="color:var(--p2)">${escapeHtml(x.buyer_username || x.buyer_user_id)}</span>
+          купил у
+          <span style="color:var(--p1)">${escapeHtml(x.seller_username || x.seller_user_id)}</span>
+          | ${escapeHtml(x.name || 'Карточка')}
+        </div>
+        <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+      </div>
+    `).join('')
+    : '<div class="market-sub">История пуста</div>';
+
+  container.innerHTML = `
+    <div class="market-shell">
+      ${actionBarHtml}
+      <div class="market-right">
+
+        <!-- Sub-tabs -->
+        <div class="market-subtabs">
+          <button class="market-subtab ${marketSubTab==='listings'?'active':''}" onclick="switchMarketSubTab('listings')">🏪 Площадка</button>
+          <button class="market-subtab ${marketSubTab==='my'?'active':''}" onclick="switchMarketSubTab('my')">📋 Мои лоты</button>
+        </div>
+
+        <!-- Panel: Площадка -->
+        <div class="market-subpanel ${marketSubTab==='listings'?'active':''}">
+          <div class="market-toolbar">
+            <div class="market-sub">Обновляется почти мгновенно</div>
+            <div class="inv-count">${listings.length} лотов · ${stackArr.length} карт</div>
+          </div>
+          <div class="market-grid">${stacksHtml}</div>
+          <div class="market-meta-list" style="margin-top:16px;">
+            <div class="market-meta-block">
+              <div class="market-meta-title">Последние продажи</div>
+              <div class="market-mini-list">${historyHtml}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Мои лоты -->
+        <div class="market-subpanel ${marketSubTab==='my'?'active':''}">
+          <div class="market-meta-list">
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои лоты на продажу</div>
+              <div class="market-mini-list">${myLotsHtml}</div>
+            </div>
+            <div class="market-meta-block">
+              <div class="market-meta-title">Мои заказы (автозакуп)</div>
+              <div class="market-mini-list">${myOrdersHtml}</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  const inp = document.getElementById('marketOrderPrice');
+  if (inp && window._savedOrderPrice) inp.value = window._savedOrderPrice;
+}
+
+function switchMarketSubTab(tab) {
+  marketSubTab = tab;
+  // Just toggle visibility without full re-render
+  document.querySelectorAll('.market-subtab').forEach(b => b.classList.toggle('active', b.textContent.includes(tab === 'listings' ? 'Площадка' : 'Мои')));
+  document.querySelectorAll('.market-subpanel').forEach((p, i) => p.classList.toggle('active', tab === 'listings' ? i === 0 : i === 1));
+}
+
+// ─── STACKS ──────────────────────────────────
+let currentStackKey = null;
+let currentOffersSelectedId = null;
+
+function openOffersStack(stackKey) {
+  const listings = marketState.listings || [];
+  const stacks = buildStacks(listings);
+  const stack = stacks[stackKey];
+  if (!stack) return;
+
+  currentStackKey = stackKey;
+  const items = stack.items.sort((a,b) => Number(a.price) - Number(b.price));
+  // Default select first / previously selected
+  const defItem = items.find(x => String(x.id) === String(marketSelectedListingId)) || items[0];
+  currentOffersSelectedId = defItem.id;
+  marketSelectedListingId = defItem.id;
+
+  const rarity = String(defItem.rarity || 'Rare').toLowerCase();
+
+  // Header
+  document.getElementById('offersThumb').style.backgroundImage = `url('${defItem.image_url || ''}')`;
+  document.getElementById('offersCardName').textContent = defItem.name || '—';
+  document.getElementById('offersRarityBadge').innerHTML =
+    `<div class="card-rarity-badge badge-${rarity}">${getRarityIcon(rarity)} ${escapeHtml(defItem.rarity || 'Rare')}</div>`;
+
+  renderOffersSelected(defItem);
+  renderOffersList(items, defItem.id);
+
+  document.getElementById('offersOverlay').classList.add('open');
+}
+
+function renderOffersSelected(item) {
+  const canBuy = String(item.seller_user_id) !== String(currentUser.telegram_id);
+  document.getElementById('osName').textContent = item.name || '—';
+  document.getElementById('osId').textContent = item.card_id ? `#${item.card_id}` : `лот #${item.id}`;
+  document.getElementById('osSeller').textContent = item.seller_username || `TG:${item.seller_user_id}`;
+  document.getElementById('osPrice').textContent = `${Number(item.price || 0).toLocaleString('ru-RU')} DC`;
+  const btn = document.getElementById('offersBuyBtn');
+  if (canBuy) {
+    btn.textContent = 'Купить';
+    btn.className = 'offers-buy-btn';
+  } else {
+    btn.textContent = 'Снять';
+    btn.className = 'offers-buy-btn cancel-btn';
+  }
+}
+
+function renderOffersList(items, selectedId) {
+  const list = document.getElementById('offersList');
+  list.innerHTML = items.map(x => {
+    const sel = String(x.id) === String(selectedId) ? ' selected' : '';
+    const sellerName = x.seller_username || `TG:${x.seller_user_id}`;
+    return `
+      <div class="offer-row${sel}" onclick="selectOffer(${x.id})">
+        <div class="offer-row-check">${sel ? '✓' : ''}</div>
+        <div class="offer-row-info">
+          <div class="offer-row-name">${escapeHtml(x.name || 'Карточка')}</div>
+          <div class="offer-row-seller">Продавец: ${escapeHtml(sellerName)}</div>
+          <div class="offer-row-id">${x.card_id ? `UID: ${x.card_id}` : `Лот #${x.id}`}</div>
+        </div>
+        <div class="offer-row-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function selectOffer(id) {
+  currentOffersSelectedId = id;
+  marketSelectedListingId = id;
+  const listings = marketState.listings || [];
+  const item = listings.find(x => String(x.id) === String(id));
+  if (!item) return;
+  renderOffersSelected(item);
+  // Update checked states
+  document.querySelectorAll('.offer-row').forEach(row => {
+    const rid = Number(row.getAttribute('onclick')?.match(/\d+/)?.[0]);
+    const sel = rid === id;
+    row.classList.toggle('selected', sel);
+    row.querySelector('.offer-row-check').textContent = sel ? '✓' : '';
+  });
+}
+
+async function buyFromOffers() {
+  const listings = marketState.listings || [];
+  const item = listings.find(x => String(x.id) === String(currentOffersSelectedId));
+  if (!item) return;
+  const canBuy = String(item.seller_user_id) !== String(currentUser.telegram_id);
+  if (canBuy) {
+    closeOffers();
+    await buyMarketListing(item.id);
+  } else {
+    closeOffers();
+    await cancelMyListing(item.id);
+  }
+}
+
+function buildStacks(listings) {
+  const stacks = {};
+  listings.forEach(x => {
+    const key = String(x.catalog_card_id || x.name || x.id);
+    if (!stacks[key]) stacks[key] = { key, items: [], lowest: x };
+    stacks[key].items.push(x);
+    if (Number(x.price) < Number(stacks[key].lowest.price)) stacks[key].lowest = x;
+  });
+  return stacks;
+}
+
+function closeOffers() {
+  document.getElementById('offersOverlay').classList.remove('open');
+  currentStackKey = null;
+}
+
+function closeOffersIfOutside(e) {
+  if (e.target === document.getElementById('offersOverlay')) closeOffers();
 }
 
 function selectMarketListing(id) {
