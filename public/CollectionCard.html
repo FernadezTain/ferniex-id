@@ -348,18 +348,19 @@ body{
 .offers-overlay{
   position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,0.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  display:flex;align-items:flex-end;justify-content:center;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;
   opacity:0;pointer-events:none;transition:opacity .25s;
 }
 .offers-overlay.open{opacity:1;pointer-events:all;}
 .offers-sheet{
   width:100%;max-width:520px;
   background:rgba(12,7,24,0.98);border:1px solid rgba(160,80,255,0.18);
-  border-radius:24px 24px 0 0;padding:0 0 env(safe-area-inset-bottom,0);
-  transform:translateY(60px);transition:transform .3s cubic-bezier(.34,1.3,.64,1);
-  max-height:88vh;display:flex;flex-direction:column;
+  border-radius:24px;padding:0 0 4px;
+  transform:translateY(24px) scale(.97);transition:transform .3s cubic-bezier(.34,1.3,.64,1);
+  max-height:90vh;display:flex;flex-direction:column;
 }
-.offers-overlay.open .offers-sheet{transform:translateY(0);}
+.offers-overlay.open .offers-sheet{transform:translateY(0) scale(1);}
 .offers-drag{width:36px;height:4px;border-radius:4px;background:rgba(255,255,255,0.15);margin:10px auto 0;}
 .offers-header{padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.06);}
 .offers-card-row{display:flex;align-items:center;gap:14px;}
@@ -1180,7 +1181,7 @@ function openOffersStack(stackKey) {
 function renderOffersSelected(item) {
   const canBuy = String(item.seller_user_id) !== String(currentUser.telegram_id);
   document.getElementById('osName').textContent = item.name || '—';
-  document.getElementById('osId').textContent = `#${item.id}`;
+  document.getElementById('osId').textContent = item.card_id ? `#${item.card_id}` : `лот #${item.id}`;
   document.getElementById('osSeller').textContent = item.seller_username || `TG:${item.seller_user_id}`;
   document.getElementById('osPrice').textContent = `${Number(item.price || 0).toLocaleString('ru-RU')} DC`;
   const btn = document.getElementById('offersBuyBtn');
@@ -1204,7 +1205,7 @@ function renderOffersList(items, selectedId) {
         <div class="offer-row-info">
           <div class="offer-row-name">${escapeHtml(x.name || 'Карточка')}</div>
           <div class="offer-row-seller">Продавец: ${escapeHtml(sellerName)}</div>
-          <div class="offer-row-id">ID: ${x.id}</div>
+          <div class="offer-row-id">${x.card_id ? `UID: ${x.card_id}` : `Лот #${x.id}`}</div>
         </div>
         <div class="offer-row-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
       </div>
