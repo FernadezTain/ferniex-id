@@ -907,7 +907,12 @@ function renderMarket() {
           <div class="market-mini-list">
             ${recentSales.length ? recentSales.map(x => `
               <div class="market-mini-item">
-                <div class="market-mini-name">${escapeHtml(x.name || 'Карточка')}</div>
+                <div class="market-mini-name">
+                  <span style="color:var(--p2)">${escapeHtml(x.buyer_username || x.buyer_user_id)}</span>
+                  купил у
+                  <span style="color:var(--p1)">${escapeHtml(x.seller_username || x.seller_user_id)}</span>
+                  | ${escapeHtml(x.name || 'Карточка')}
+                </div>
                 <div class="market-mini-price">${Number(x.price || 0).toLocaleString('ru-RU')} DC</div>
               </div>
             `).join('') : '<div class="market-sub">История пока пустая</div>'}
