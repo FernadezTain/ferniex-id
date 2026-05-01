@@ -1630,11 +1630,24 @@ app.post('/api/packs/open', async (req, res) => {
     const card = (await cardR.json())[0];
     if (!card) return res.json({ success: false, error: 'Карточка не найдена' });
 
-    // Добавляем карточку в инвентарь
-    await fetch(`${SB_URL}/rest/v1/user_cards`, {
-      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ user_id: userId, card_id: cardId })
-    });
+    // Получаем telegram_id для записи в бота
+    const tgR = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const tgUser = (await tgR.json())[0];
+    if (!tgUser?.telegram_id) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    // Добавляем карточку через бота
+    const cardInsert = await fetch(`${BOT_URL}/api/cards/give`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: tgUser.telegram_id,
+        catalog_card_id: card.id,
+        card_id: cardId,
+        name: card.name,
+        rarity: card.rarity,
+        image_url: card.image_url
+      })
+    }).then(r => r.json());
+    if (!cardInsert.success) return res.json({ success: false, error: cardInsert.error || 'Ошибка выдачи карточки' });
 
     // Уменьшаем количество паков
     const newAmount = userPacks[0].amount - 1;
