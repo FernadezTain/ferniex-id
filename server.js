@@ -1,18 +1,3 @@
-// ══════════════════════════════════════════
-//  PACKS (CASES) API
-// ══════════════════════════════════════════
-
-// Получить каталог паков
-app.get('/api/packs-catalog', async (req, res) => {
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/packs_catalog`, { headers: sbHeaders });
-    const packs = await r.json();
-    res.json({ success: true, packs });
-  } catch (e) {
-    res.json({ success: false, error: e.message });
-  }
-});
-
 // Получить паки пользователя
 app.get('/api/user-packs', async (req, res) => {
   const userId = req.query.userId;
@@ -152,6 +137,21 @@ const sbHeaders = {
   Authorization: `Bearer ${SB_SERVICE_KEY}`,
   "Content-Type": "application/json"
 };
+
+// ══════════════════════════════════════════
+//  PACKS (CASES) API
+// ══════════════════════════════════════════
+
+// Получить каталог паков
+app.get('/api/packs-catalog', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/packs_catalog`, { headers: sbHeaders });
+    const packs = await r.json();
+    res.json({ success: true, packs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
 
 // ====== Хелпер: notifyBot с retry ======
 async function notifyBot(url, body, retries = 2) {
