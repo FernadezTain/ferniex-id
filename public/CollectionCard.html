@@ -632,13 +632,13 @@ body{
       </div>
     </div>
 
-    <!-- CASES (WIP) -->
     <div class="cc-panel" id="panel-cases">
-      <div class="wip-wrap">
-        <div class="wip-icon">🔧</div>
-        <div class="wip-title">В разработке...</div>
-        <div class="wip-sub">Кейсы с коллекционными карточками скоро появятся. Следи за обновлениями!</div>
+      <div class="cc-tabs" style="margin-bottom:18px;">
+        <button class="cc-tab active" id="packs-my-tab" onclick="switchPacksTab('my')">📦 Мои Паки</button>
+        <button class="cc-tab" id="packs-buy-tab" onclick="switchPacksTab('buy')">🛒 Купить Паки</button>
       </div>
+      <div id="packs-my-panel"></div>
+      <div id="packs-buy-panel" style="display:none;"></div>
     </div>
 
     <!-- MARKET -->
@@ -941,6 +941,9 @@ function filterRarity(rarity) {
 function switchTab(tab) {
   document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
+  if (tab === 'cases') {
+    switchPacksTab('my');
+  }
   if (tab === 'market') {
     marketSubTab = 'listings';
     loadMarket();
@@ -1427,6 +1430,258 @@ function closeCardModal(e) {
   currentModalCard = null;
 }
 
+// ══════════════════════════════════════════
+//  PACKS
+// ══════════════════════════════════════════
+let packsCatalog = [];
+let myPacks = [];
+
+function switchPacksTab(tab) {
+  document.getElementById('packs-my-tab').classList.toggle('active', tab === 'my');
+  document.getElementById('packs-buy-tab').classList.toggle('active', tab === 'buy');
+  document.getElementById('packs-my-panel').style.display = tab === 'my' ? '' : 'none';
+  document.getElementById('packs-buy-panel').style.display = tab === 'buy' ? '' : 'none';
+  if (tab === 'my') loadMyPacks();
+  else loadPacksBuy();
+}
+
+async function loadPacksCatalog() {
+  try {
+    const res = await fetch('/api/packs-catalog').then(r => r.json());
+    if (res.success && Array.isArray(res.packs)) packsCatalog = res.packs;
+  } catch(e) { packsCatalog = []; }
+}
+
+async function loadMyPacks() {
+  const cont = document.getElementById('packs-my-panel');
+  cont.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    await loadPacksCatalog();
+    const res = await fetch(`/api/user-packs?userId=${currentUser.id}`).then(r => r.json());
+    if (!res.success || !res.packs?.length) {
+      myPacks = [];
+      cont.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><h3>Паков нет</h3><p>Купи паки во вкладке "Купить Паки"</p></div>`;
+      return;
+    }
+    myPacks = res.packs;
+    cont.innerHTML = `<div class="cards-grid">${myPacks.map(p => renderPackCard(p, true)).join('')}</div>`;
+  } catch(e) {
+    cont.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Ошибка</h3><p>${e.message}</p></div>`;
+  }
+}
+
+async function loadPacksBuy() {
+  const cont = document.getElementById('packs-buy-panel');
+  cont.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    await loadPacksCatalog();
+    if (!packsCatalog.length) {
+      cont.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div><h3>Паков нет в продаже</h3></div>`;
+      return;
+    }
+    cont.innerHTML = `<div class="cards-grid">${packsCatalog.map(p => renderPackCard(p, false)).join('')}</div>`;
+  } catch(e) {
+    cont.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Ошибка</h3><p>${e.message}</p></div>`;
+  }
+}
+
+function renderPackCard(pack, isMy) {
+  const img = pack.image_url || '';
+  const name = pack.name || 'Пак';
+  const price = pack.price || 0;
+  const amount = pack.amount || 0;
+  return `
+    <div class="card-item epic" style="cursor:pointer;" onclick="${isMy ? `openPackOpenModal(${pack.id})` : `openPackBuyModal(${pack.id})`}">
+      <div class="card-visual" style="background-image:url('${img}');"></div>
+      <div class="card-border"></div>
+      <div class="card-info">
+        <div class="card-name">${name}</div>
+        <div class="card-rarity-badge badge-epic">📦 Пак</div>
+        ${isMy
+          ? `<div style="margin-top:6px;font-size:.8rem;color:rgba(255,255,255,0.7);">В наличии: <b>${amount}</b></div>`
+          : `<div style="margin-top:6px;font-size:.8rem;color:#c084fc;font-weight:700;">${price} DC</div>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+// ── Покупка пака ──────────────────────────
+function openPackBuyModal(packId) {
+  const pack = packsCatalog.find(x => x.id === packId);
+  if (!pack) return;
+  const existing = myPacks.find(x => x.id === packId);
+  const have = existing?.amount || 0;
+  const maxBuy = Math.max(0, 20 - have);
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="card-overlay open" id="packBuyModal" style="z-index:2000;">
+      <div class="card-modal" style="max-width:480px;width:100%;flex-direction:row;gap:24px;align-items:flex-start;background:rgba(15,10,28,0.97);border:1px solid rgba(160,80,255,0.25);border-radius:24px;padding:28px;">
+        <div style="width:160px;min-width:160px;height:240px;border-radius:18px;overflow:hidden;box-shadow:0 0 40px rgba(160,80,255,0.35);flex-shrink:0;">
+          <div style="width:100%;height:100%;background-image:url('${pack.image_url}');background-size:cover;background-position:center;"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;">${pack.name}</div>
+          <div style="color:var(--muted);font-size:.85rem;">Цена за 1 шт: <b style="color:#c084fc;">${pack.price} DC</b></div>
+          <div style="color:var(--muted);font-size:.85rem;">В инвентаре: <b style="color:#fff;">${have} / 20</b></div>
+          <div style="font-size:.85rem;color:var(--muted);">Количество:</div>
+          <input id="packBuySlider" type="range" min="1" max="${maxBuy}" value="1"
+            style="width:100%;accent-color:#a855f7;cursor:pointer;"
+            oninput="packBuySliderUpdate(${pack.price})">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.85rem;color:var(--muted);">Кол-во: <b id="packBuyQtyLabel" style="color:#fff;">1</b></span>
+            <span style="font-size:.85rem;color:var(--muted);">Итого: <b id="packBuyTotal" style="color:#c084fc;">${pack.price} DC</b></span>
+          </div>
+          ${maxBuy === 0 ? `<div style="color:#ff6ec7;font-size:.82rem;">Инвентарь заполнен (макс. 20)</div>` : ''}
+          <div style="display:flex;gap:10px;margin-top:8px;">
+            <button class="market-btn secondary" style="flex:1;" onclick="closePackBuyModal()">Отмена</button>
+            <button class="market-btn primary" style="flex:1;" onclick="buyPack(${pack.id},${pack.price})" ${maxBuy === 0 ? 'disabled style="opacity:.4;"' : ''}>Купить</button>
+          </div>
+        </div>
+        <button class="modal-close" style="top:12px;right:12px;" onclick="closePackBuyModal()">✕</button>
+      </div>
+    </div>
+  `);
+}
+
+function packBuySliderUpdate(pricePerPack) {
+  const qty = Number(document.getElementById('packBuySlider')?.value || 1);
+  document.getElementById('packBuyQtyLabel').textContent = qty;
+  document.getElementById('packBuyTotal').textContent = (pricePerPack * qty) + ' DC';
+}
+
+function closePackBuyModal() {
+  document.getElementById('packBuyModal')?.remove();
+}
+
+async function buyPack(packId, pricePerPack) {
+  const qty = Number(document.getElementById('packBuySlider')?.value || 1);
+  const res = await fetch('/api/packs/buy', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: currentUser.id, packId, quantity: qty })
+  }).then(r => r.json());
+  if (res.success) {
+    showToast(`✅ Куплено ${qty} пак(а)!`);
+    closePackBuyModal();
+    await loadPacksCatalog();
+    loadMyPacks();
+    loadDC();
+  } else {
+    showToast(res.error || 'Ошибка покупки');
+  }
+}
+
+// ── Открытие пака ──────────────────────────
+function openPackOpenModal(packId) {
+  const pack = myPacks.find(x => x.id === packId) || packsCatalog.find(x => x.id === packId);
+  if (!pack) return;
+
+  // Определяем цвета по картам в паке (из cards_drop берём редкости)
+  const glowColor = 'rgba(160,80,255,0.8)';
+
+  document.body.insertAdjacentHTML('beforeend', `
+    <div class="card-overlay open" id="packOpenModal" style="z-index:2000;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:20px;position:relative;">
+        <div id="packOpenCardWrap" style="
+          width:220px;height:330px;border-radius:20px;overflow:hidden;position:relative;
+          box-shadow:0 0 60px ${glowColor};
+          animation:packGlow 1.5s ease-in-out infinite alternate;
+          cursor:pointer;
+        " onclick="doOpenPack(${pack.id})">
+          <div style="position:absolute;inset:0;background-image:url('${pack.image_url}');background-size:cover;background-position:center;border-radius:20px;"></div>
+          <div style="position:absolute;inset:0;border-radius:20px;border:2px solid rgba(192,132,252,0.6);"></div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;">${pack.name}</div>
+          <div id="packOpenHint" style="margin-top:8px;font-size:.9rem;color:#c084fc;animation:packBlink 1.4s ease-in-out infinite;">✨ Нажмите чтобы открыть пак</div>
+        </div>
+        <button class="modal-close" style="position:absolute;top:-16px;right:-16px;" onclick="closePackOpenModal()">✕</button>
+      </div>
+    </div>
+    <style>
+      @keyframes packGlow{0%{box-shadow:0 0 40px ${glowColor};}100%{box-shadow:0 0 80px ${glowColor},0 0 120px ${glowColor};}}
+      @keyframes packBlink{0%,100%{opacity:1;}50%{opacity:.3;}}
+      @keyframes smokeExpand{0%{transform:scale(0);opacity:1;}100%{transform:scale(4);opacity:0;}}
+    </style>
+  `);
+}
+
+function closePackOpenModal() {
+  document.getElementById('packOpenModal')?.remove();
+}
+
+async function doOpenPack(packId) {
+  const hint = document.getElementById('packOpenHint');
+  const wrap = document.getElementById('packOpenCardWrap');
+  if (!hint || !wrap) return;
+  hint.textContent = 'Открывается...';
+  hint.style.animation = 'none';
+  wrap.onclick = null;
+  wrap.style.animation = 'packGlow .3s ease-in-out infinite alternate';
+
+  const res = await fetch('/api/packs/open', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: currentUser.id, packId })
+  }).then(r => r.json());
+
+  if (!res.success) {
+    showToast(res.error || 'Ошибка открытия');
+    closePackOpenModal();
+    return;
+  }
+
+  const card = res.card;
+  const rarity = (card.rarity || 'rare').toLowerCase();
+  const smokeColors = {
+    rare: '#7eb8ff',
+    epic: '#c084fc',
+    legend: '#ff6ec7',
+    ultima: '#fbbf24'
+  };
+  const smokeColor = smokeColors[rarity] || '#c084fc';
+
+  // Дым на весь экран
+  const smoke = document.createElement('div');
+  smoke.style.cssText = `
+    position:fixed;inset:0;z-index:3000;pointer-events:none;
+    background:radial-gradient(circle at center, ${smokeColor} 0%, transparent 70%);
+    animation:smokeExpand .8s ease-out forwards;
+  `;
+  document.body.appendChild(smoke);
+
+  setTimeout(() => {
+    smoke.remove();
+    closePackOpenModal();
+
+    // Показываем выпавшую карточку
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="card-overlay open" id="packResultModal" style="z-index:2000;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:20px;position:relative;">
+          <div style="
+            width:220px;height:330px;border-radius:20px;overflow:hidden;position:relative;
+            box-shadow:0 0 80px ${smokeColor};
+            animation:packGlow .8s ease-in-out infinite alternate;
+          ">
+            <div style="position:absolute;inset:0;background-image:url('${card.image_url}');background-size:cover;background-position:center;border-radius:20px;"></div>
+            <div style="position:absolute;inset:0;border-radius:20px;border:2.5px solid ${smokeColor};"></div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:4px;">Выпала карточка!</div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;">${card.name}</div>
+            <div class="card-rarity-badge badge-${rarity}" style="margin-top:8px;display:inline-flex;">${getRarityIcon(rarity)} ${card.rarity}</div>
+          </div>
+          <button class="modal-close" style="position:absolute;top:-16px;right:-16px;" onclick="document.getElementById('packResultModal').remove();loadMyPacks();loadInventory();">✕</button>
+        </div>
+      </div>
+    `);
+    loadMyPacks();
+    loadInventory();
+    loadDC();
+  }, 900);
+}
+
+// При переключении на вкладку кейсов — грузим мои паки
+const _origSwitchTab = switchTab;
 // ══════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════
