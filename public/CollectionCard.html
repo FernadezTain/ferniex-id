@@ -610,7 +610,7 @@ body{
     <!-- TABS -->
     <div class="cc-tabs">
       <button class="cc-tab active" data-tab="inventory" onclick="switchTab('inventory')">🃏 Инвентарь</button>
-      <button class="cc-tab" data-tab="cases" onclick="switchTab('cases')">📦 Кейсы</button>
+      <button class="cc-tab" data-tab="cases" onclick="switchTab('cases')">📦 Паки</button>
       <button class="cc-tab" data-tab="market" onclick="switchTab('market')">🏪 Маркет</button>
     </div>
 
@@ -1677,7 +1677,7 @@ async function doOpenPack(packId) {
     loadMyPacks();
     loadInventory();
     loadDC();
-  }, 750);
+  }, 500);
 }
 
 // При переключении на вкладку кейсов — грузим мои паки
