@@ -1566,15 +1566,17 @@ app.post('/api/packs/buy', async (req, res) => {
     if (have + quantity > 20) return res.json({ success: false, error: `Превышен лимит (у тебя ${have}, макс. 20)` });
 
     const total = pack.price * quantity;
-    const userR = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=balance`, { headers: sbHeaders });
+    // Получаем telegram_id пользователя
+    const userR = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
     const user = (await userR.json())[0];
-    if (!user) return res.json({ success: false, error: 'Пользователь не найден' });
-    if ((user.balance || 0) < total) return res.json({ success: false, error: 'Недостаточно DC' });
+    if (!user || !user.telegram_id) return res.json({ success: false, error: 'Telegram не привязан' });
 
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
-      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ balance: user.balance - total })
-    });
+    // Списываем DC через бота
+    const spendRes = await fetch(`${BOT_URL}/api/dc/spend`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: user.telegram_id, amount: total })
+    }).then(r => r.json());
+    if (!spendRes.success) return res.json({ success: false, error: spendRes.error || 'Недостаточно DC' });
 
     if (userPacks.length) {
       await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
