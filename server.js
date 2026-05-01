@@ -1,3 +1,126 @@
+// ══════════════════════════════════════════
+//  PACKS (CASES) API
+// ══════════════════════════════════════════
+
+// Получить каталог паков
+app.get('/api/packs-catalog', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/packs_catalog`, { headers: sbHeaders });
+    const packs = await r.json();
+    res.json({ success: true, packs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Получить паки пользователя
+app.get('/api/user-packs', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}`, { headers: sbHeaders });
+    let packs = await r.json();
+    // Добавить инфу из каталога
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog`, { headers: sbHeaders });
+    const catalog = await catR.json();
+    packs = packs.map(p => {
+      const cat = catalog.find(c => c.id === p.pack_id) || {};
+      return { ...cat, amount: p.amount };
+    });
+    res.json({ success: true, packs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Купить пак
+app.post('/api/packs/buy', async (req, res) => {
+  const { userId, packId, quantity } = req.body;
+  if (!userId || !packId || !quantity) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    // Получить текущие паки пользователя
+    const r = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}&pack_id=eq.${packId}`, { headers: sbHeaders });
+    const userPacks = await r.json();
+    const current = userPacks[0]?.amount || 0;
+    if (current + quantity > 20) return res.json({ success: false, error: 'Максимум 20 паков в инвентаре' });
+    // Получить цену пака
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog?id=eq.${packId}`, { headers: sbHeaders });
+    const pack = (await catR.json())[0];
+    if (!pack) return res.json({ success: false, error: 'Пак не найден' });
+    const total = pack.price * quantity;
+    // Проверить баланс пользователя
+    const userR = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, { headers: sbHeaders });
+    const user = (await userR.json())[0];
+    if (!user) return res.json({ success: false, error: 'Пользователь не найден' });
+    if ((user.balance || 0) < total) return res.json({ success: false, error: 'Недостаточно DC' });
+    // Списать DC
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ balance: (user.balance - total) })
+    });
+    // Добавить паки
+    if (userPacks.length) {
+      await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ amount: current + quantity })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/user_packs`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, pack_id: packId, amount: quantity })
+      });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Открыть пак
+app.post('/api/packs/open', async (req, res) => {
+  const { userId, packId } = req.body;
+  if (!userId || !packId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    // Проверить наличие пака
+    const r = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}&pack_id=eq.${packId}`, { headers: sbHeaders });
+    const userPacks = await r.json();
+    if (!userPacks.length || userPacks[0].amount < 1) return res.json({ success: false, error: 'Пак не найден' });
+    // Получить инфу о паке
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog?id=eq.${packId}`, { headers: sbHeaders });
+    const pack = (await catR.json())[0];
+    if (!pack) return res.json({ success: false, error: 'Пак не найден' });
+    // Парсить шансы выпадения
+    const drops = (pack.cards_drop||'').split(';').map(x=>{
+      const [id, chance] = x.split('=');
+      return { id: Number(id), chance: Number(chance) };
+    }).filter(x=>x.id && x.chance);
+    const total = drops.reduce((s,x)=>s+x.chance,0);
+    let rnd = Math.random()*total;
+    let cardId = null;
+    for(const d of drops){
+      if(rnd < d.chance){ cardId = d.id; break; }
+      rnd -= d.chance;
+    }
+    if(!cardId) return res.json({ success: false, error: 'Ошибка выпадения' });
+    // Получить инфу о карточке
+    const cardR = await fetch(`${SB_URL}/rest/v1/cards_catalog?id=eq.${cardId}`, { headers: sbHeaders });
+    const card = (await cardR.json())[0];
+    if (!card) return res.json({ success: false, error: 'Карточка не найдена' });
+    // Добавить карточку в user_cards
+    await fetch(`${SB_URL}/rest/v1/user_cards`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: userId, card_id: cardId })
+    });
+    // Уменьшить количество паков
+    await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ amount: userPacks[0].amount - 1 })
+    });
+    res.json({ success: true, card });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
 import express from "express";
 import fetch from "node-fetch";
 import bcrypt from "bcrypt";
