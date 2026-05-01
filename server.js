@@ -1517,6 +1517,140 @@ app.post('/api/card-market/cancel-order', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  PACKS API
+// ══════════════════════════════════════════
+
+// Каталог паков
+app.get('/api/packs-catalog', async (req, res) => {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/packs_catalog?select=*`, { headers: sbHeaders });
+    const packs = await r.json();
+    res.json({ success: true, packs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Паки пользователя
+app.get('/api/user-packs', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}&select=*`, { headers: sbHeaders });
+    let userPacks = await r.json();
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog?select=*`, { headers: sbHeaders });
+    const catalog = await catR.json();
+    const packs = userPacks.map(p => {
+      const cat = catalog.find(c => c.id === p.pack_id) || {};
+      return { ...cat, amount: p.amount };
+    });
+    res.json({ success: true, packs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Купить пак
+app.post('/api/packs/buy', async (req, res) => {
+  const { userId, packId, quantity } = req.body;
+  if (!userId || !packId || !quantity) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog?id=eq.${packId}&select=*`, { headers: sbHeaders });
+    const pack = (await catR.json())[0];
+    if (!pack) return res.json({ success: false, error: 'Пак не найден' });
+
+    const upR = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}&pack_id=eq.${packId}&select=*`, { headers: sbHeaders });
+    const userPacks = await upR.json();
+    const have = userPacks[0]?.amount || 0;
+    if (have + quantity > 20) return res.json({ success: false, error: `Превышен лимит (у тебя ${have}, макс. 20)` });
+
+    const total = pack.price * quantity;
+    const userR = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=balance`, { headers: sbHeaders });
+    const user = (await userR.json())[0];
+    if (!user) return res.json({ success: false, error: 'Пользователь не найден' });
+    if ((user.balance || 0) < total) return res.json({ success: false, error: 'Недостаточно DC' });
+
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ balance: user.balance - total })
+    });
+
+    if (userPacks.length) {
+      await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ amount: have + quantity })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/user_packs`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, pack_id: packId, amount: quantity })
+      });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Открыть пак
+app.post('/api/packs/open', async (req, res) => {
+  const { userId, packId } = req.body;
+  if (!userId || !packId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const upR = await fetch(`${SB_URL}/rest/v1/user_packs?user_id=eq.${userId}&pack_id=eq.${packId}&select=*`, { headers: sbHeaders });
+    const userPacks = await upR.json();
+    if (!userPacks.length || userPacks[0].amount < 1) return res.json({ success: false, error: 'Пак не найден в инвентаре' });
+
+    const catR = await fetch(`${SB_URL}/rest/v1/packs_catalog?id=eq.${packId}&select=*`, { headers: sbHeaders });
+    const pack = (await catR.json())[0];
+    if (!pack) return res.json({ success: false, error: 'Пак не найден' });
+
+    // Парсим шансы: "1=50;2=25;3=25"
+    const drops = (pack.cards_drop || '').split(';').map(x => {
+      const [id, chance] = x.split('=');
+      return { id: Number(id), chance: Number(chance) };
+    }).filter(x => x.id && x.chance);
+    if (!drops.length) return res.json({ success: false, error: 'Нет карточек в паке' });
+
+    const totalChance = drops.reduce((s, x) => s + x.chance, 0);
+    let rnd = Math.random() * totalChance;
+    let cardId = null;
+    for (const d of drops) {
+      if (rnd < d.chance) { cardId = d.id; break; }
+      rnd -= d.chance;
+    }
+    if (!cardId) cardId = drops[0].id;
+
+    const cardR = await fetch(`${SB_URL}/rest/v1/cards_catalog?id=eq.${cardId}&select=*`, { headers: sbHeaders });
+    const card = (await cardR.json())[0];
+    if (!card) return res.json({ success: false, error: 'Карточка не найдена' });
+
+    // Добавляем карточку в инвентарь
+    await fetch(`${SB_URL}/rest/v1/user_cards`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: userId, card_id: cardId })
+    });
+
+    // Уменьшаем количество паков
+    const newAmount = userPacks[0].amount - 1;
+    if (newAmount > 0) {
+      await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ amount: newAmount })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/user_packs?id=eq.${userPacks[0].id}`, {
+        method: 'DELETE', headers: sbHeaders
+      });
+    }
+
+    res.json({ success: true, card });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ── Роут для CollectionCard без .html ────────────────────────────
 app.get('/CollectionCard', (req, res) => {
   res.sendFile('CollectionCard.html', { root: 'public' });
