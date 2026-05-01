@@ -1515,9 +1515,9 @@ function openPackBuyModal(packId) {
   const maxBuy = Math.max(0, 20 - have);
 
   document.body.insertAdjacentHTML('beforeend', `
-    <div class="card-overlay open" id="packBuyModal" style="z-index:2000;">
-      <div class="card-modal" style="max-width:480px;width:100%;flex-direction:row;gap:24px;align-items:flex-start;background:rgba(15,10,28,0.97);border:1px solid rgba(160,80,255,0.25);border-radius:24px;padding:28px;">
-        <div style="width:160px;min-width:160px;height:240px;border-radius:18px;overflow:hidden;box-shadow:0 0 40px rgba(160,80,255,0.35);flex-shrink:0;">
+    <div class="card-overlay open" id="packBuyModal" style="z-index:2000;padding:16px;">
+      <div class="card-modal" style="max-width:480px;width:100%;flex-direction:column;gap:18px;align-items:center;background:rgba(15,10,28,0.97);border:1px solid rgba(160,80,255,0.25);border-radius:24px;padding:22px;">
+        <div style="width:140px;min-width:140px;height:210px;border-radius:18px;overflow:hidden;box-shadow:0 0 40px rgba(160,80,255,0.35);flex-shrink:0;">
           <div style="width:100%;height:100%;background-image:url('${pack.image_url}');background-size:cover;background-position:center;"></div>
         </div>
         <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
