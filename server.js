@@ -1668,6 +1668,83 @@ app.post('/api/packs/open', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  CRAFT — крафт карточек
+// ══════════════════════════════════════════
+
+// Таблица редкостей: что во что крафтится
+const CRAFT_RARITY_MAP = {
+  'Rare':  'Epic',
+  'rare':  'Epic',
+  'Epic':  'Legend',
+  'epic':  'Legend',
+};
+const CRAFT_NEEDED = 10;
+
+app.post('/api/cards/craft', async (req, res) => {
+  const { userId, cardIds, rarity } = req.body;
+
+  if (!userId || !cardIds || !Array.isArray(cardIds) || cardIds.length !== CRAFT_NEEDED) {
+    return res.json({ success: false, error: `Нужно ровно ${CRAFT_NEEDED} карточек` });
+  }
+
+  // Определяем целевую редкость
+  const rarityKey = (rarity || '').charAt(0).toUpperCase() + (rarity || '').slice(1).toLowerCase();
+  const normalizedInput = rarity?.charAt(0).toUpperCase() + rarity?.slice(1).toLowerCase();
+  const targetRarity = CRAFT_RARITY_MAP[normalizedInput] || CRAFT_RARITY_MAP[rarity];
+  if (!targetRarity) {
+    return res.json({ success: false, error: 'Эту редкость нельзя крафтить (только Rare и Epic)' });
+  }
+
+  try {
+    // 1. Получаем telegram_id
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id) {
+      return res.json({ success: false, error: 'Telegram не привязан' });
+    }
+    const { telegram_id, username } = users[0];
+
+    // 2. Отправляем крафт-запрос в бота
+    //    Бот должен: проверить что карточки принадлежат юзеру,
+    //    удалить 10 карточек, выдать 1 случайную карточку targetRarity
+    const craftRes = await fetch(`${BOT_URL}/api/cards/craft`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id,
+        card_ids: cardIds,       // массив ID карточек для уничтожения
+        source_rarity: normalizedInput,
+        target_rarity: targetRarity,
+        fernie_user_id: userId
+      })
+    });
+
+    const craftData = await craftRes.json();
+
+    if (!craftData.success) {
+      return res.json({ success: false, error: craftData.error || 'Ошибка крафта в боте' });
+    }
+
+    // 3. Уведомляем пользователя в TG
+    const card = craftData.card;
+    await sendTgMessage(telegram_id,
+      `⚗️ <b>Крафт завершён!</b>\n\n` +
+      `<blockquote>` +
+      `🃏 Скрафчено: <b>${card?.name || '—'}</b>\n` +
+      `✨ Редкость: <b>${targetRarity}</b>\n` +
+      `🔥 Использовано: <b>${CRAFT_NEEDED} карточек ${normalizedInput}</b>` +
+      `</blockquote>`
+    );
+
+    res.json({ success: true, card: craftData.card });
+
+  } catch (e) {
+    console.error('craft error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ── Роут для CollectionCard без .html ────────────────────────────
 app.get('/CollectionCard', (req, res) => {
   res.sendFile('CollectionCard.html', { root: 'public' });
