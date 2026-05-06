@@ -647,14 +647,18 @@ body{
   background:#04010a;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:20px;opacity:0;pointer-events:none;transition:opacity .3s;
+  padding-top:max(80px, env(safe-area-inset-top, 80px));
+  padding-bottom:max(40px, env(safe-area-inset-bottom, 40px));
+  padding-left:16px;padding-right:16px;
+  box-sizing:border-box;
 }
 .craft-anim-overlay.open{opacity:1;pointer-events:all;}
 .craft-anim-grid{
-  display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
-  max-width:500px;
+  display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center;
+  width:100%;max-width:420px;
 }
 .craft-anim-card{
-  width:80px;height:120px;border-radius:12px;
+  width:60px;height:90px;border-radius:10px;
   background:var(--fill,#7eb8ff);
   transition:all .5s cubic-bezier(.22,.61,.36,1);
   position:relative;overflow:hidden;
@@ -2022,11 +2026,14 @@ async function doCraft() {
   if (craftSelected.length < CRAFT_NEEDED) return;
   const selectedIds = craftSelected.map(c => c.card_id);
   const selectedCards = [...craftSelected];
+  // Сохраняем до закрытия (closeCraftOverlay обнуляет craftRarity)
+  const savedRarity = craftRarity;
+  const savedTargetRarity = craftTargetRarity;
   closeCraftOverlay();
-  runCraftAnimation(selectedCards, selectedIds);
+  runCraftAnimation(selectedCards, selectedIds, savedRarity, savedTargetRarity);
 }
 
-async function runCraftAnimation(cards, cardIds) {
+async function runCraftAnimation(cards, cardIds, craftRarity, craftTargetRarity) {
   const animOverlay = document.getElementById('craftAnimOverlay');
   const animGrid = document.getElementById('craftAnimGrid');
   const animLabel = document.getElementById('craftAnimLabel');
@@ -2099,12 +2106,21 @@ async function runCraftAnimation(cards, cardIds) {
       el.style.width = '0px';
       el.style.margin = '0';
       el.style.padding = '0';
+      el.style.gap = '0';
     }
   });
   await sleep(600);
 
-  // Last card grows with new color
+  // Вытаскиваем последнюю карточку из flex-потока и центрируем
   const lastEl = cardEls[cardEls.length - 1].el;
+  animGrid.style.position = 'relative';
+  animGrid.style.height = '0';
+  lastEl.style.position = 'absolute';
+  lastEl.style.left = '50%';
+  lastEl.style.transform = 'translateX(-50%)';
+  lastEl.style.top = '-97px'; // половина от итоговой высоты 195px/2
+
+  // Last card grows with new color
   lastEl.getBoundingClientRect();
   lastEl.style.transition = 'all .7s cubic-bezier(.34,1.4,.64,1)';
   lastEl.style.width = '130px';
@@ -2196,6 +2212,9 @@ function closeCraftAnim() {
   const animGrid = document.getElementById('craftAnimGrid');
   animGrid.style.display = '';
   animGrid.style.opacity = '1';
+  animGrid.style.position = '';
+  animGrid.style.height = '';
+  animGrid.innerHTML = '';
   document.getElementById('craftAnimLabel').style.opacity = '1';
   document.getElementById('craftResultWrap').style.opacity = '0';
 }
