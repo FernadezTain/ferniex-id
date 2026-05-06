@@ -2144,7 +2144,7 @@ async function runCraftAnimation(cards, cardIds, craftRarity, craftTargetRarity)
       craftResult = JSON.parse(text);
     } catch(e) {
       console.error('Craft API returned non-JSON:', text.slice(0, 200));
-      craftResult = { success: false, error: 'Сервер не поддерживает крафт. Добавь /api/cards/craft в server.js' };
+      craftResult = { success: false, error: 'Ответ сервера: ' + text.slice(0, 80) };
     }
   } catch(e) {
     craftResult = { success: false, error: e.message };
