@@ -525,6 +525,166 @@ body{
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ══════════ CRAFT SYSTEM ══════════ */
+.craft-btn{
+  padding:10px 22px;border-radius:12px;border:none;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.88rem;
+  background:linear-gradient(135deg,rgba(255,110,200,0.25),rgba(192,132,252,0.35));
+  border:1px solid rgba(255,110,200,0.35);color:#fff;
+  transition:all .18s;-webkit-tap-highlight-color:transparent;
+  margin-top:10px;
+}
+.craft-btn:hover{opacity:.88;transform:translateY(-1px);}
+.craft-btn:active{transform:scale(.96);}
+
+/* Craft overlay */
+.craft-overlay{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,0.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;flex-direction:column;align-items:center;
+  padding:16px 12px 24px;overflow-y:auto;
+  opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.craft-overlay.open{opacity:1;pointer-events:all;}
+.craft-header{
+  width:100%;max-width:600px;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;flex-shrink:0;
+}
+.craft-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;}
+.craft-title span{font-size:.85rem;font-weight:500;color:var(--muted);margin-left:8px;}
+.craft-close{
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  font-size:1rem;color:var(--muted);-webkit-tap-highlight-color:transparent;
+  flex-shrink:0;
+}
+.craft-desc{
+  font-size:.82rem;color:var(--muted);margin-bottom:16px;text-align:center;
+  max-width:500px;
+}
+.craft-desc b{color:#ff6ec7;}
+
+/* Selected slots */
+.craft-slots{
+  display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+  max-width:600px;margin-bottom:16px;
+}
+.craft-slot{
+  width:52px;height:78px;border-radius:10px;
+  border:1.5px dashed rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.03);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;color:rgba(255,255,255,0.15);
+  transition:all .2s;position:relative;overflow:hidden;
+  flex-shrink:0;
+}
+.craft-slot.filled{border-color:rgba(192,132,252,0.5);background:rgba(160,80,255,0.08);}
+.craft-slot.filled .craft-slot-img{
+  position:absolute;inset:0;background-size:cover;background-position:center;border-radius:9px;
+}
+.craft-slot.rare-slot{border-color:rgba(126,184,255,0.4);}
+.craft-slot.epic-slot{border-color:rgba(192,132,252,0.4);}
+
+/* Do craft button */
+.craft-do-btn{
+  padding:13px 40px;border-radius:14px;border:none;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:1rem;
+  background:linear-gradient(135deg,#7c3aed,#a855f7,#ff6ec7);
+  color:#fff;transition:all .2s;margin-bottom:18px;
+  box-shadow:0 4px 24px rgba(168,85,247,0.35);
+  opacity:.4;pointer-events:none;
+  -webkit-tap-highlight-color:transparent;
+}
+.craft-do-btn.ready{opacity:1;pointer-events:all;}
+.craft-do-btn.ready:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(168,85,247,0.5);}
+.craft-do-btn.ready:active{transform:scale(.97);}
+
+/* Cards grid in craft picker */
+.craft-pick-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:10px;width:100%;max-width:600px;
+}
+.craft-pick-card{
+  position:relative;border-radius:14px;overflow:hidden;cursor:pointer;
+  aspect-ratio:2/3;border:2px solid transparent;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.craft-pick-card:hover{transform:translateY(-2px);}
+.craft-pick-card.picked{
+  border-color:#a855f7 !important;
+  box-shadow:0 0 0 2px rgba(168,85,247,0.4),0 8px 24px rgba(168,85,247,0.3);
+}
+.craft-pick-card.rare{border-color:rgba(126,184,255,0.3);}
+.craft-pick-card.epic{border-color:rgba(192,132,252,0.3);}
+.craft-pick-img{position:absolute;inset:0;background-size:cover;background-position:center;}
+.craft-pick-check{
+  position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;
+  background:#a855f7;display:none;align-items:center;justify-content:center;
+  font-size:.65rem;color:#fff;font-weight:800;
+  box-shadow:0 2px 8px rgba(0,0,0,0.5);
+}
+.craft-pick-card.picked .craft-pick-check{display:flex;}
+.craft-pick-info{
+  position:absolute;bottom:0;left:0;right:0;
+  padding:20px 7px 7px;
+  background:linear-gradient(transparent,rgba(4,1,10,0.9) 60%);
+  font-size:.65rem;font-family:'Syne',sans-serif;font-weight:700;
+  pointer-events:none;
+}
+.craft-pick-id{
+  position:absolute;top:5px;left:6px;font-size:.55rem;
+  background:rgba(0,0,0,0.5);padding:2px 5px;border-radius:6px;
+  color:rgba(255,255,255,0.4);backdrop-filter:blur(4px);pointer-events:none;
+}
+
+/* ── CRAFT ANIMATION OVERLAY ── */
+.craft-anim-overlay{
+  position:fixed;inset:0;z-index:3000;
+  background:#04010a;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.craft-anim-overlay.open{opacity:1;pointer-events:all;}
+.craft-anim-grid{
+  display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+  max-width:500px;
+}
+.craft-anim-card{
+  width:80px;height:120px;border-radius:12px;
+  background:var(--fill,#7eb8ff);
+  transition:all .5s cubic-bezier(.22,.61,.36,1);
+  position:relative;overflow:hidden;
+  flex-shrink:0;
+}
+.craft-anim-card .craft-anim-img{
+  position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:0;transition:opacity .4s;
+}
+.craft-anim-label{
+  font-family:'Syne',sans-serif;font-size:.9rem;color:var(--muted);
+  text-align:center;min-height:24px;
+}
+.craft-result-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  opacity:0;transition:opacity .4s;
+}
+.craft-result-card{
+  width:180px;height:270px;border-radius:20px;overflow:hidden;position:relative;
+}
+.craft-result-card-img{position:absolute;inset:0;background-size:cover;background-position:center;}
+.craft-result-close{
+  padding:12px 32px;border-radius:12px;border:none;cursor:pointer;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+  color:var(--text);transition:all .18s;
+  -webkit-tap-highlight-color:transparent;
+}
+.craft-result-close:hover{background:rgba(255,255,255,0.14);}
+
 /* RESPONSIVE */
 @media(min-width:1100px){
   .cc-wrap{max-width:1180px;}
@@ -662,6 +822,7 @@ body{
       <div class="modal-card-id" id="modalCardId">ID: —</div>
       <div id="modalRarityBadge"></div>
       <button class="market-btn primary" id="modalSellBtn" onclick="sellCurrentCardFromModal()" style="margin-top:14px;">Продать на маркет</button>
+      <button class="craft-btn" id="modalCraftBtn" onclick="openCraftFromModal()" style="display:none;">⚗️ Крафт</button>
     </div>
     <button class="modal-close" onclick="closeCardModal()">✕</button>
   </div>
@@ -707,6 +868,40 @@ body{
     </div>
     <!-- All offers list -->
     <div class="offers-list" id="offersList"></div>
+  </div>
+</div>
+
+<!-- CRAFT PICKER OVERLAY -->
+<div class="craft-overlay" id="craftOverlay">
+  <div class="craft-header">
+    <div class="craft-title">⚗️ Крафт <span id="craftTitleSub">— выбери 10 карточек</span></div>
+    <button class="craft-close" onclick="closeCraftOverlay()">✕</button>
+  </div>
+  <div class="craft-desc">
+    Выбери <b>10 карточек</b> той же редкости и скрафти карточку следующей редкости.
+    <br>Rare → Epic · Epic → Legend
+  </div>
+  <!-- Slots -->
+  <div class="craft-slots" id="craftSlots"></div>
+  <!-- Craft button -->
+  <button class="craft-do-btn" id="craftDoBtn" onclick="doCraft()">✨ Крафт</button>
+  <!-- Cards to pick -->
+  <div class="craft-pick-grid" id="craftPickGrid"></div>
+</div>
+
+<!-- CRAFT ANIMATION OVERLAY -->
+<div class="craft-anim-overlay" id="craftAnimOverlay">
+  <div class="craft-anim-grid" id="craftAnimGrid"></div>
+  <div class="craft-anim-label" id="craftAnimLabel"></div>
+  <div class="craft-result-wrap" id="craftResultWrap">
+    <div style="font-size:.82rem;color:var(--muted);">Скрафчено!</div>
+    <div class="craft-result-card" id="craftResultCard">
+      <div class="craft-result-card-img" id="craftResultImg"></div>
+      <div style="position:absolute;inset:0;border-radius:20px;border:2.5px solid var(--result-border,rgba(255,110,200,0.8));pointer-events:none;"></div>
+    </div>
+    <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;" id="craftResultName"></div>
+    <div id="craftResultBadge"></div>
+    <button class="craft-result-close" onclick="closeCraftAnim()">Закрыть</button>
   </div>
 </div>
 
@@ -1682,6 +1877,325 @@ async function doOpenPack(packId) {
 
 // При переключении на вкладку кейсов — грузим мои паки
 const _origSwitchTab = switchTab;
+// ══════════════════════════════════════════
+//  CRAFT SYSTEM
+// ══════════════════════════════════════════
+const CRAFT_MAP = { rare: 'epic', epic: 'legend' };
+const CRAFT_COLORS = {
+  rare:   '#7eb8ff',
+  epic:   '#c084fc',
+  legend: '#ff6ec7',
+  ultima: '#fbbf24'
+};
+const CRAFT_NEEDED = 10;
+
+let craftRarity = null;       // 'rare' | 'epic'
+let craftTargetRarity = null; // 'epic' | 'legend'
+let craftSelected = [];       // array of card objects
+let craftSourceCard = null;   // card that triggered craft
+
+function openCraftFromModal() {
+  const card = currentModalCard;
+  if (!card) return;
+  const rarity = (card.rarity || '').toLowerCase();
+  if (!CRAFT_MAP[rarity]) return; // legend/ultima нельзя
+  craftRarity = rarity;
+  craftTargetRarity = CRAFT_MAP[rarity];
+  craftSourceCard = card;
+  craftSelected = [];
+  closeCardModal();
+  buildCraftUI();
+  document.getElementById('craftOverlay').classList.add('open');
+}
+
+function closeCraftOverlay() {
+  document.getElementById('craftOverlay').classList.remove('open');
+  craftSelected = [];
+  craftRarity = null;
+}
+
+function buildCraftUI() {
+  const color = CRAFT_COLORS[craftRarity] || '#c084fc';
+  const targetColor = CRAFT_COLORS[craftTargetRarity] || '#ff6ec7';
+  document.getElementById('craftTitleSub').textContent =
+    `— выбери 10 карточек · ${craftRarity.charAt(0).toUpperCase()+craftRarity.slice(1)} → ${craftTargetRarity.charAt(0).toUpperCase()+craftTargetRarity.slice(1)}`;
+
+  // Build slots
+  const slotsEl = document.getElementById('craftSlots');
+  slotsEl.innerHTML = '';
+  for (let i = 0; i < CRAFT_NEEDED; i++) {
+    const slot = document.createElement('div');
+    slot.className = `craft-slot ${craftRarity}-slot`;
+    slot.id = `craft-slot-${i}`;
+    slot.innerHTML = '+';
+    slotsEl.appendChild(slot);
+  }
+
+  // Build pick grid — only cards matching rarity
+  const eligible = allCards.filter(c => (c.rarity || '').toLowerCase() === craftRarity);
+  const grid = document.getElementById('craftPickGrid');
+  grid.innerHTML = '';
+
+  if (!eligible.length) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:.85rem;grid-column:1/-1;text-align:center;padding:2rem;">
+      Нет карточек редкости ${craftRarity.charAt(0).toUpperCase()+craftRarity.slice(1)}
+    </div>`;
+    return;
+  }
+
+  eligible.forEach(card => {
+    const cat = catalogCards[card.name] || {};
+    const imgUrl = card.image_url || cat.image_url || '';
+    const el = document.createElement('div');
+    el.className = `craft-pick-card ${craftRarity}`;
+    el.dataset.cardId = card.card_id;
+    el.innerHTML = `
+      <div class="craft-pick-img" style="background-image:url('${imgUrl}');"></div>
+      <div class="craft-pick-id">${card.card_id || ''}</div>
+      <div class="craft-pick-info">${card.name || '—'}</div>
+      <div class="craft-pick-check">✓</div>
+    `;
+    // Highlight the card that triggered craft
+    if (card.card_id === craftSourceCard?.card_id) {
+      el.style.outline = `2px solid ${color}`;
+    }
+    el.addEventListener('click', () => toggleCraftCard(el, card));
+    grid.appendChild(el);
+  });
+
+  updateCraftBtn();
+}
+
+function toggleCraftCard(el, card) {
+  const idx = craftSelected.findIndex(c => c.card_id === card.card_id);
+  if (idx >= 0) {
+    // deselect
+    craftSelected.splice(idx, 1);
+    el.classList.remove('picked');
+  } else {
+    if (craftSelected.length >= CRAFT_NEEDED) {
+      showToast(`Уже выбрано ${CRAFT_NEEDED} карточек`);
+      return;
+    }
+    craftSelected.push(card);
+    el.classList.add('picked');
+  }
+  updateCraftSlots();
+  updateCraftBtn();
+}
+
+function updateCraftSlots() {
+  for (let i = 0; i < CRAFT_NEEDED; i++) {
+    const slot = document.getElementById(`craft-slot-${i}`);
+    if (!slot) continue;
+    const card = craftSelected[i];
+    if (card) {
+      const cat = catalogCards[card.name] || {};
+      const imgUrl = card.image_url || cat.image_url || '';
+      slot.className = `craft-slot filled ${craftRarity}-slot`;
+      slot.innerHTML = `<div class="craft-slot-img" style="background-image:url('${imgUrl}');"></div>`;
+    } else {
+      slot.className = `craft-slot ${craftRarity}-slot`;
+      slot.innerHTML = '+';
+    }
+  }
+}
+
+function updateCraftBtn() {
+  const btn = document.getElementById('craftDoBtn');
+  const sub = document.getElementById('craftTitleSub');
+  const cnt = craftSelected.length;
+  if (cnt >= CRAFT_NEEDED) {
+    btn.classList.add('ready');
+    sub.textContent = `— готово! Нажми Крафт`;
+  } else {
+    btn.classList.remove('ready');
+    sub.textContent = `— выбрано ${cnt}/${CRAFT_NEEDED}`;
+  }
+}
+
+// ── RUN CRAFT ──
+async function doCraft() {
+  if (craftSelected.length < CRAFT_NEEDED) return;
+  const selectedIds = craftSelected.map(c => c.card_id);
+  const selectedCards = [...craftSelected];
+  closeCraftOverlay();
+  runCraftAnimation(selectedCards, selectedIds);
+}
+
+async function runCraftAnimation(cards, cardIds) {
+  const animOverlay = document.getElementById('craftAnimOverlay');
+  const animGrid = document.getElementById('craftAnimGrid');
+  const animLabel = document.getElementById('craftAnimLabel');
+  const resultWrap = document.getElementById('craftResultWrap');
+  const color = CRAFT_COLORS[craftRarity];
+  const targetColor = CRAFT_COLORS[craftTargetRarity];
+
+  animGrid.innerHTML = '';
+  resultWrap.style.opacity = '0';
+  animLabel.textContent = '';
+  animOverlay.classList.add('open');
+
+  // Create 10 cards (5+5 rows initially)
+  const cardEls = cards.map((card, i) => {
+    const cat = catalogCards[card.name] || {};
+    const imgUrl = card.image_url || cat.image_url || '';
+    const el = document.createElement('div');
+    el.className = 'craft-anim-card';
+    el.style.setProperty('--fill', color);
+    el.style.background = color;
+    el.style.opacity = '0';
+    el.style.transform = 'scale(0.5)';
+    el.innerHTML = `<div class="craft-anim-img" style="background-image:url('${imgUrl}');"></div>`;
+    animGrid.appendChild(el);
+    return el;
+  });
+
+  // Phase 1: cards appear one by one with slight delay
+  animLabel.textContent = 'Карточки выбраны...';
+  for (let i = 0; i < cardEls.length; i++) {
+    await sleep(60);
+    cardEls[i].style.transition = 'all .35s cubic-bezier(.34,1.56,.64,1)';
+    cardEls[i].style.opacity = '1';
+    cardEls[i].style.transform = 'scale(1)';
+  }
+  await sleep(600);
+
+  // Phase 2: fill with rarity color (hide images, show solid color)
+  animLabel.textContent = 'Заливка цветом...';
+  cardEls.forEach(el => {
+    el.style.transition = 'background .4s ease, box-shadow .4s';
+    el.style.background = color;
+    el.style.boxShadow = `0 0 20px ${color}88`;
+    const img = el.querySelector('.craft-anim-img');
+    img.style.opacity = '0';
+  });
+  await sleep(700);
+
+  // Phase 3: collapse to one row (5 cards → center)
+  animLabel.textContent = 'Соединение...';
+  animGrid.style.transition = 'all .6s ease';
+  animGrid.style.justifyContent = 'center';
+  // Shrink each card and stack into one row
+  cardEls.forEach((el, i) => {
+    el.style.transition = `all .6s cubic-bezier(.22,.61,.36,1) ${i*30}ms`;
+    el.style.width = '56px';
+    el.style.height = '84px';
+  });
+  await sleep(700);
+
+  // Phase 4: all cards merge into one (scale down to nothing, one stays)
+  animLabel.textContent = 'Крафт...';
+  cardEls.forEach((el, i) => {
+    if (i < cardEls.length - 1) {
+      el.style.transition = `all .5s ease ${i*25}ms`;
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0) translateX(60px)';
+      el.style.width = '0';
+      el.style.margin = '0';
+    }
+  });
+  await sleep(600);
+  // Last card transforms
+  const lastEl = cardEls[cardEls.length - 1];
+  lastEl.style.transition = 'all .6s cubic-bezier(.34,1.56,.64,1)';
+  lastEl.style.width = '120px';
+  lastEl.style.height = '180px';
+  lastEl.style.background = targetColor;
+  lastEl.style.boxShadow = `0 0 60px ${targetColor}, 0 0 100px ${targetColor}88`;
+  await sleep(700);
+
+  // Phase 5: API call while animation plays
+  animLabel.textContent = 'Магия крафта...';
+  let craftResult = null;
+  try {
+    const res = await fetch('/api/cards/craft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, cardIds, rarity: craftRarity })
+    });
+    craftResult = await res.json();
+  } catch(e) {
+    craftResult = { success: false, error: e.message };
+  }
+
+  // Phase 6: reveal result card
+  if (!craftResult?.success) {
+    lastEl.style.transition = 'all .4s ease';
+    lastEl.style.opacity = '0';
+    await sleep(500);
+    animOverlay.classList.remove('open');
+    showToast(craftResult?.error || 'Ошибка крафта');
+    await loadInventory();
+    return;
+  }
+
+  const resultCard = craftResult.card;
+  const resultRarity = (resultCard.rarity || craftTargetRarity).toLowerCase();
+  const resultColor = CRAFT_COLORS[resultRarity];
+  const cat = catalogCards[resultCard.name] || {};
+  const imgUrl = resultCard.image_url || cat.image_url || '';
+
+  // Change color to result rarity
+  lastEl.style.background = resultColor;
+  lastEl.style.boxShadow = `0 0 80px ${resultColor}, 0 0 140px ${resultColor}66`;
+  await sleep(500);
+
+  // Reveal image on the big card
+  const resultImg = lastEl.querySelector('.craft-anim-img');
+  resultImg.style.backgroundImage = `url('${imgUrl}')`;
+  resultImg.style.transition = 'opacity .6s ease';
+  resultImg.style.opacity = '1';
+  lastEl.style.transition = 'all .6s ease';
+  lastEl.style.boxShadow = `0 0 40px ${resultColor}`;
+  await sleep(800);
+
+  // Phase 7: fade out grid, show result panel
+  animGrid.style.transition = 'opacity .4s';
+  animGrid.style.opacity = '0';
+  animLabel.style.opacity = '0';
+  await sleep(400);
+  animGrid.style.display = 'none';
+
+  // Setup result panel
+  const resultCardEl = document.getElementById('craftResultCard');
+  document.getElementById('craftResultImg').style.backgroundImage = `url('${imgUrl}')`;
+  resultCardEl.style.setProperty('--result-border', resultColor);
+  resultCardEl.style.boxShadow = `0 0 60px ${resultColor}88`;
+  document.getElementById('craftResultName').textContent = resultCard.name || '—';
+  document.getElementById('craftResultBadge').innerHTML =
+    `<div class="card-rarity-badge badge-${resultRarity}">${getRarityIcon(resultRarity)} ${resultCard.rarity || craftTargetRarity}</div>`;
+
+  resultWrap.style.transition = 'opacity .5s ease';
+  resultWrap.style.opacity = '1';
+
+  await loadInventory();
+}
+
+function closeCraftAnim() {
+  const animOverlay = document.getElementById('craftAnimOverlay');
+  animOverlay.classList.remove('open');
+  // Reset grid for next time
+  const animGrid = document.getElementById('craftAnimGrid');
+  animGrid.style.display = '';
+  animGrid.style.opacity = '1';
+  document.getElementById('craftAnimLabel').style.opacity = '1';
+  document.getElementById('craftResultWrap').style.opacity = '0';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Inject craft button into modal based on rarity ──
+const _origOpenCardModal = openCardModal;
+openCardModal = function(card, catalogEntry, rarity, imageUrl) {
+  _origOpenCardModal(card, catalogEntry, rarity, imageUrl);
+  const craftBtn = document.getElementById('modalCraftBtn');
+  if (craftBtn) {
+    // Show craft button only for rare and epic
+    craftBtn.style.display = CRAFT_MAP[rarity] ? 'block' : 'none';
+  }
+};
+
 // ══════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════
