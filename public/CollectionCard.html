@@ -504,7 +504,7 @@ body{
 .modal-legend .modal-card-wrap{box-shadow:0 14px 60px rgba(255,110,200,0.5);}
 .modal-ultima .modal-card-wrap{box-shadow:0 12px 55px rgba(251,191,36,0.45);}
 
-.modal-info{text-align:center;}
+.modal-info{text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .modal-card-name{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;margin-bottom:.35rem;}
 .modal-card-id{font-size:.72rem;color:var(--muted);margin-bottom:.6rem;font-family:'Inter',sans-serif;}
 .modal-close{
@@ -822,7 +822,7 @@ body{
       <div class="modal-card-id" id="modalCardId">ID: —</div>
       <div id="modalRarityBadge"></div>
       <button class="market-btn primary" id="modalSellBtn" onclick="sellCurrentCardFromModal()" style="margin-top:14px;">Продать на маркет</button>
-      <button class="craft-btn" id="modalCraftBtn" onclick="openCraftFromModal()" style="display:none;">⚗️ Крафт</button>
+      <button class="craft-btn" id="modalCraftBtn" onclick="openCraftFromModal()" style="display:none;width:100%;margin-top:8px;">⚗️ Крафт</button>
     </div>
     <button class="modal-close" onclick="closeCardModal()">✕</button>
   </div>
@@ -1601,6 +1601,10 @@ function openCardModal(card, catalogEntry, rarity, imageUrl) {
     `<div class="card-rarity-badge badge-${rarity}" style="font-size:.8rem;padding:4px 12px;">${rarityLabel}</div>`;
   document.getElementById('modalSellBtn').style.display = 'block';
 
+  // Show/hide craft button based on rarity
+  const craftBtn = document.getElementById('modalCraftBtn');
+  if (craftBtn) craftBtn.style.display = CRAFT_MAP[rarity] ? 'block' : 'none';
+
   // Reset classes
   modal.className = 'card-modal modal-' + rarity;
   wrap.className = 'modal-card-wrap';
@@ -1875,8 +1879,7 @@ async function doOpenPack(packId) {
   }, 500);
 }
 
-// При переключении на вкладку кейсов — грузим мои паки
-const _origSwitchTab = switchTab;
+// При переключении на вкладку кейсов — грузим мои паки (switchPacksTab вызывается внутри switchTab)
 // ══════════════════════════════════════════
 //  CRAFT SYSTEM
 // ══════════════════════════════════════════
@@ -2036,74 +2039,80 @@ async function runCraftAnimation(cards, cardIds) {
   animLabel.textContent = '';
   animOverlay.classList.add('open');
 
-  // Create 10 cards (5+5 rows initially)
-  const cardEls = cards.map((card, i) => {
+  // Create 10 cards
+  const cardEls = cards.map((card) => {
     const cat = catalogCards[card.name] || {};
     const imgUrl = card.image_url || cat.image_url || '';
     const el = document.createElement('div');
     el.className = 'craft-anim-card';
-    el.style.setProperty('--fill', color);
-    el.style.background = color;
-    el.style.opacity = '0';
-    el.style.transform = 'scale(0.5)';
+    el.style.cssText = `background:${color};box-shadow:0 0 12px ${color}66;opacity:0;transform:scale(0.5) translateY(20px);transition:none;`;
     el.innerHTML = `<div class="craft-anim-img" style="background-image:url('${imgUrl}');"></div>`;
     animGrid.appendChild(el);
-    return el;
+    return { el, imgUrl };
   });
 
-  // Phase 1: cards appear one by one with slight delay
+  // Phase 1: cards appear one by one
   animLabel.textContent = 'Карточки выбраны...';
   for (let i = 0; i < cardEls.length; i++) {
-    await sleep(60);
-    cardEls[i].style.transition = 'all .35s cubic-bezier(.34,1.56,.64,1)';
-    cardEls[i].style.opacity = '1';
-    cardEls[i].style.transform = 'scale(1)';
+    await sleep(80);
+    const { el } = cardEls[i];
+    // Force reflow so transition fires
+    el.getBoundingClientRect();
+    el.style.transition = 'opacity .3s ease, transform .4s cubic-bezier(.34,1.4,.64,1), box-shadow .3s';
+    el.style.opacity = '1';
+    el.style.transform = 'scale(1) translateY(0)';
   }
-  await sleep(600);
+  await sleep(700);
 
   // Phase 2: fill with rarity color (hide images, show solid color)
   animLabel.textContent = 'Заливка цветом...';
-  cardEls.forEach(el => {
-    el.style.transition = 'background .4s ease, box-shadow .4s';
+  cardEls.forEach(({ el }) => {
+    el.getBoundingClientRect();
+    el.style.transition = 'background .5s ease, box-shadow .5s';
     el.style.background = color;
-    el.style.boxShadow = `0 0 20px ${color}88`;
+    el.style.boxShadow = `0 0 24px ${color}`;
     const img = el.querySelector('.craft-anim-img');
+    img.style.transition = 'opacity .4s';
     img.style.opacity = '0';
   });
-  await sleep(700);
+  await sleep(800);
 
-  // Phase 3: collapse to one row (5 cards → center)
+  // Phase 3: collapse to one row
   animLabel.textContent = 'Соединение...';
-  animGrid.style.transition = 'all .6s ease';
-  animGrid.style.justifyContent = 'center';
-  // Shrink each card and stack into one row
-  cardEls.forEach((el, i) => {
-    el.style.transition = `all .6s cubic-bezier(.22,.61,.36,1) ${i*30}ms`;
-    el.style.width = '56px';
-    el.style.height = '84px';
+  cardEls.forEach(({ el }) => {
+    el.getBoundingClientRect();
+    el.style.transition = 'all .55s cubic-bezier(.22,.61,.36,1)';
+    el.style.width = '52px';
+    el.style.height = '78px';
+    el.style.borderRadius = '10px';
   });
   await sleep(700);
 
-  // Phase 4: all cards merge into one (scale down to nothing, one stays)
+  // Phase 4: all cards fly into one
   animLabel.textContent = 'Крафт...';
-  cardEls.forEach((el, i) => {
+  cardEls.forEach(({ el }, i) => {
     if (i < cardEls.length - 1) {
-      el.style.transition = `all .5s ease ${i*25}ms`;
+      el.getBoundingClientRect();
+      el.style.transition = `all .45s ease ${i * 20}ms`;
       el.style.opacity = '0';
-      el.style.transform = 'scale(0) translateX(60px)';
-      el.style.width = '0';
+      el.style.transform = 'scale(0.1)';
+      el.style.width = '0px';
       el.style.margin = '0';
+      el.style.padding = '0';
     }
   });
   await sleep(600);
-  // Last card transforms
-  const lastEl = cardEls[cardEls.length - 1];
-  lastEl.style.transition = 'all .6s cubic-bezier(.34,1.56,.64,1)';
-  lastEl.style.width = '120px';
-  lastEl.style.height = '180px';
+
+  // Last card grows with new color
+  const lastEl = cardEls[cardEls.length - 1].el;
+  lastEl.getBoundingClientRect();
+  lastEl.style.transition = 'all .7s cubic-bezier(.34,1.4,.64,1)';
+  lastEl.style.width = '130px';
+  lastEl.style.height = '195px';
+  lastEl.style.borderRadius = '16px';
   lastEl.style.background = targetColor;
-  lastEl.style.boxShadow = `0 0 60px ${targetColor}, 0 0 100px ${targetColor}88`;
-  await sleep(700);
+  lastEl.style.boxShadow = `0 0 70px ${targetColor}, 0 0 120px ${targetColor}55`;
+  await sleep(800);
 
   // Phase 5: API call while animation plays
   animLabel.textContent = 'Магия крафта...';
@@ -2114,7 +2123,13 @@ async function runCraftAnimation(cards, cardIds) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser.id, cardIds, rarity: craftRarity })
     });
-    craftResult = await res.json();
+    const text = await res.text();
+    try {
+      craftResult = JSON.parse(text);
+    } catch(e) {
+      console.error('Craft API returned non-JSON:', text.slice(0, 200));
+      craftResult = { success: false, error: 'Сервер не поддерживает крафт. Добавь /api/cards/craft в server.js' };
+    }
   } catch(e) {
     craftResult = { success: false, error: e.message };
   }
@@ -2137,18 +2152,20 @@ async function runCraftAnimation(cards, cardIds) {
   const imgUrl = resultCard.image_url || cat.image_url || '';
 
   // Change color to result rarity
+  lastEl.getBoundingClientRect();
+  lastEl.style.transition = 'background .5s ease, box-shadow .5s';
   lastEl.style.background = resultColor;
-  lastEl.style.boxShadow = `0 0 80px ${resultColor}, 0 0 140px ${resultColor}66`;
-  await sleep(500);
+  lastEl.style.boxShadow = `0 0 80px ${resultColor}, 0 0 140px ${resultColor}55`;
+  await sleep(600);
 
   // Reveal image on the big card
   const resultImg = lastEl.querySelector('.craft-anim-img');
   resultImg.style.backgroundImage = `url('${imgUrl}')`;
-  resultImg.style.transition = 'opacity .6s ease';
+  resultImg.getBoundingClientRect();
+  resultImg.style.transition = 'opacity .7s ease';
   resultImg.style.opacity = '1';
-  lastEl.style.transition = 'all .6s ease';
-  lastEl.style.boxShadow = `0 0 40px ${resultColor}`;
-  await sleep(800);
+  lastEl.style.boxShadow = `0 0 40px ${resultColor}88`;
+  await sleep(900);
 
   // Phase 7: fade out grid, show result panel
   animGrid.style.transition = 'opacity .4s';
@@ -2184,17 +2201,6 @@ function closeCraftAnim() {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── Inject craft button into modal based on rarity ──
-const _origOpenCardModal = openCardModal;
-openCardModal = function(card, catalogEntry, rarity, imageUrl) {
-  _origOpenCardModal(card, catalogEntry, rarity, imageUrl);
-  const craftBtn = document.getElementById('modalCraftBtn');
-  if (craftBtn) {
-    // Show craft button only for rare and epic
-    craftBtn.style.display = CRAFT_MAP[rarity] ? 'block' : 'none';
-  }
-};
 
 // ══════════════════════════════════════════
 //  TOAST
