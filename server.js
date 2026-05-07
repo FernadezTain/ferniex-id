@@ -2120,7 +2120,7 @@ async function hasFerniePlus(userId) {
 app.post('/api/chat', async (req, res) => {
   const { model, messages, max_tokens, stream, user_id } = req.body;
   const userId = user_id || req.headers['x-user-id'] || null;
-
+  console.log('>>> /api/chat userId:', userId, 'user_id from body:', user_id, 'totalTokens will be counted');
   // Проверка лимита если пользователь авторизован
   if (userId) {
     const plus = await hasFerniePlus(userId);
@@ -2175,8 +2175,10 @@ app.post('/api/chat', async (req, res) => {
 
       let tokensSaved = false;
       const saveTokens = () => {
+        console.log('>>> saveTokens called, userId:', userId, 'totalTokens:', totalTokens, 'tokensSaved:', tokensSaved);
         if (userId && totalTokens > 0 && !tokensSaved) {
           tokensSaved = true;
+          console.log('>>> saving tokens:', totalTokens, 'for user:', userId);
           addTokensUsed(userId, totalTokens).catch(console.error);
         }
       };
