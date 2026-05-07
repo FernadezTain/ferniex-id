@@ -1750,5 +1750,102 @@ app.get('/CollectionCard', (req, res) => {
   res.sendFile('CollectionCard.html', { root: 'public' });
 });
 
+// ══════════════════════════════════════════════════════════════
+//  SUPPORT TICKETS — система обращений
+// ══════════════════════════════════════════════════════════════
+
+async function generateTicketNum() {
+  const res = await fetch(
+    `${SB_URL}/rest/v1/support_tickets?select=ticket_num&order=id.desc&limit=1`,
+    { headers: sbHeaders }
+  );
+  const rows = await res.json();
+  if (!rows.length) return 'TK-00001';
+  const last = parseInt(rows[0].ticket_num.replace('TK-', ''), 10) || 0;
+  return `TK-${String(last + 1).padStart(5, '0')}`;
+}
+
+function nowFormatted() {
+  return new Date().toLocaleString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+}
+
+// POST /api/tickets/create
+app.post('/api/tickets/create', async (req, res) => {
+  const { nick, type } = req.body;
+  if (!nick || !type) return res.json({ success: false, error: 'Нет данных' });
+
+  const typeLabels = {
+    bug: 'Баг / Ошибка', suggest: 'Предложение',
+    question: 'Вопрос', complaint: 'Жалоба', other: 'Другое'
+  };
+  if (!typeLabels[type]) return res.json({ success: false, error: 'Неверный тип' });
+
+  try {
+    const ticketNum = await generateTicketNum();
+    const history = JSON.stringify([{ status: 'Обращение создано', date: nowFormatted() }]);
+
+    const insertRes = await fetch(`${SB_URL}/rest/v1/support_tickets`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        ticket_num: ticketNum, user_nick: nick, type: typeLabels[type],
+        status: 'open', admin_nick: 'Не назначен', description: '', history
+      })
+    });
+    const insertData = await insertRes.json();
+    if (insertRes.status >= 300) {
+      console.error('ticket insert error:', insertData);
+      return res.json({ success: false, error: 'Ошибка создания обращения' });
+    }
+
+    const adminChatId = process.env.ADMIN_CHAT_ID;
+    if (BOT_TOKEN && adminChatId) {
+      await sendTgMessage(adminChatId,
+        `📩 <b>Новое обращение ${ticketNum}</b>\n\n<blockquote>` +
+        `👤 Ник: <b>${nick}</b>\n📋 Тип: <b>${typeLabels[type]}</b>\n` +
+        `🕒 Создано: <b>${nowFormatted()} МСК</b></blockquote>`
+      );
+    }
+
+    res.json({ success: true, ticketNum });
+  } catch (e) {
+    console.error('create ticket error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// GET /api/tickets/:ticketNum
+app.get('/api/tickets/:ticketNum', async (req, res) => {
+  const { ticketNum } = req.params;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}&select=*`,
+      { headers: sbHeaders }
+    );
+    const data = await r.json();
+    if (!data.length) return res.json({ success: false, error: 'Обращение не найдено' });
+
+    const t = data[0];
+    const statusMap = { open: 'Открыто', in_progress: 'В работе', closed: 'Закрыто' };
+    res.json({
+      success: true,
+      ticket: {
+        num: t.ticket_num, user: t.user_nick, admin: t.admin_nick,
+        type: t.type, status: statusMap[t.status] || t.status,
+        description: t.description,
+        created: new Date(t.created_at).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' }),
+        history: typeof t.history === 'string' ? JSON.parse(t.history) : t.history
+      }
+    });
+  } catch (e) {
+    console.error('get ticket error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
