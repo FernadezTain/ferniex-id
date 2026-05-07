@@ -112,6 +112,8 @@ app.post("/api/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
 
+    console.log('>>> login user:', JSON.stringify(user));
+    console.log('>>> telegram_id:', user.telegram_id);
     if (user.telegram_id) {
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
       let device = 'неизвестно';
