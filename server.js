@@ -14,7 +14,7 @@ app.use(cors({
   origin: [
     'https://ferniex-minigame.vercel.app',
     'https://ferniex-id.vercel.app',
-    'https://ferniex-ai.vercel.app',
+    'https://fernie-x-ai-chat.vercel.app',
   ],
   credentials: true
 }));
