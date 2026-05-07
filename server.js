@@ -2119,7 +2119,9 @@ async function hasFerniePlus(userId) {
 
 app.post('/api/chat', async (req, res) => {
   // 🔥 ИЗВЛЕКАЕМ ТОЛЬКО НУЖНЫЕ ПОЛЯ ДЛЯ MISTRAL
-  const { model, messages, max_tokens, stream, userId } = req.body;
+  // Важно: мы НЕ деструктурируем userId здесь, чтобы он точно не попал дальше
+  const { model, messages, max_tokens, stream } = req.body;
+  const userId = req.body.userId || null; // Берем userId отдельно для проверки лимитов
 
   // ВАЛИДАЦИЯ (чтобы не слать мусор в Mistral)
   if (!model || !messages || !Array.isArray(messages)) {
@@ -2144,6 +2146,7 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     // 🔥 СОЗДАЕМ ЧИСТЫЙ ОБЪЕКТ ТОЛЬКО С ПОЛЯМИ MISTRAL API
+    // Мы явно перечисляем поля, чтобы userId НИКОГДА не попал сюда
     const mistralPayload = {
       model: model,
       messages: messages,
@@ -2170,6 +2173,7 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
+    // ... остальной код обработки stream и non-stream остается без изменений ...
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -2182,7 +2186,6 @@ app.post('/api/chat', async (req, res) => {
       const counter = new Transform({
         transform(chunk, encoding, callback) {
           const text = chunk.toString();
-          // Примерный подсчёт токенов по символам (1 токен ≈ 4 символа)
           totalTokens += Math.ceil(text.length / 4);
           callback(null, chunk);
         },
