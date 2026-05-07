@@ -294,7 +294,8 @@
       <!-- СОЗДАНИЕ ОБРАЩЕНИЯ -->
       <div class="card-face card-create">
         <h2>Создание обращения</h2>
-        <input type="text" id="nickInput" placeholder="Введите ваш Nick" style="width:85%;">
+        <p id="createUserLabel" style="font-size:13px;color:#888;">👤 <span id="createNickDisplay">Загрузка...</span></p>
+        <input type="number" id="telegramIdInput" placeholder="Ваш Telegram ID (числа)" style="width:85%;" inputmode="numeric" min="1">
         <select id="typeSelect" style="width:85%;">
           <option value="">Выберите тип обращения</option>
           <option value="bug">Баг / Ошибка</option>
@@ -303,6 +304,7 @@
           <option value="complaint">Жалоба</option>
           <option value="other">Другое</option>
         </select>
+        <textarea id="descriptionInput" placeholder="Опишите проблему подробнее..." style="width:85%;min-height:70px;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);backdrop-filter:blur(10px);color:#fff;font-size:14px;resize:vertical;font-family:inherit;outline:none;transition:all 0.3s ease;" onfocus="this.style.borderColor='#00c853';this.style.boxShadow='0 0 12px rgba(0,200,83,0.6)'" onblur="this.style.borderColor='rgba(255,255,255,0.2)';this.style.boxShadow='none'"></textarea>
         <div class="buttons">
           <button class="btn" id="createBackBtn">Назад</button>
           <button class="btn success" id="createSubmitBtn">Создать</button>
@@ -330,7 +332,18 @@
 
   <script>
     // ── Конфиг ──────────────────────────────────────────────────
-    const API_BASE = '/api'; // сервер на том же домене
+    const API_BASE = '/api';
+
+    // ── Получаем ник из FernieID сессии ──────────────────────────
+    let fernieNick = 'Гость';
+    try {
+      const session = JSON.parse(localStorage.getItem('fernieid_session') || '{}');
+      if (session?.username) fernieNick = session.username;
+    } catch {}
+    document.addEventListener('DOMContentLoaded', () => {
+      const el = document.getElementById('createNickDisplay');
+      if (el) el.textContent = fernieNick;
+    });
 
     // ── Элементы ────────────────────────────────────────────────
     const card              = document.getElementById('card');
@@ -354,7 +367,7 @@
       'card-menu':    { w: '520px', h: '380px' },
       'card-check':   { w: '520px', h: '380px' },
       'card-loading': { w: '620px', h: '600px' },
-      'card-create':  { w: '520px', h: '420px' },
+      'card-create':  { w: '520px', h: '520px' },
       'card-created': { w: '520px', h: '360px' },
     };
 
@@ -439,7 +452,11 @@
       slideTo(faceCheck);
       setTimeout(() => document.getElementById('ticketInput').focus(), 300);
     });
-    document.getElementById('createBtn').addEventListener('click', () => slideTo(faceCreate));
+    document.getElementById('createBtn').addEventListener('click', () => {
+      const el = document.getElementById('createNickDisplay');
+      if (el) el.textContent = fernieNick;
+      slideTo(faceCreate);
+    });
     document.getElementById('checkBackBtn').addEventListener('click', () => slideTo(faceMenu));
     document.getElementById('createBackBtn').addEventListener('click', () => slideTo(faceMenu));
     document.getElementById('resultBackBtn').addEventListener('click', () => {
@@ -489,10 +506,12 @@
 
     // ── Создание обращения ────────────────────────────────────────
     document.getElementById('createSubmitBtn').addEventListener('click', async () => {
-      const nick = document.getElementById('nickInput').value.trim();
-      const type = document.getElementById('typeSelect').value;
-      if (!nick) return showError('Введите Nick!');
-      if (!type) return showError('Выберите тип!');
+      const tgId        = document.getElementById('telegramIdInput').value.trim();
+      const type        = document.getElementById('typeSelect').value;
+      const description = document.getElementById('descriptionInput').value.trim();
+      if (!tgId || !/^\d+$/.test(tgId)) return showError('Введите корректный Telegram ID (только цифры)!');
+      if (!type)  return showError('Выберите тип обращения!');
+      if (!description) return showError('Опишите проблему!');
 
       document.getElementById('createSubmitBtn').disabled = true;
 
@@ -500,7 +519,7 @@
         const resp = await fetch(`${API_BASE}/tickets/create`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nick, type })
+          body: JSON.stringify({ nick: fernieNick, telegram_id: tgId, type, description })
         });
         const data = await resp.json();
 
@@ -511,8 +530,9 @@
         }
 
         document.getElementById('createdNum').textContent = data.ticketNum;
-        document.getElementById('nickInput').value = '';
+        document.getElementById('telegramIdInput').value = '';
         document.getElementById('typeSelect').value = '';
+        document.getElementById('descriptionInput').value = '';
         showNotification('Готово', `Обращение ${data.ticketNum} создано`);
         slideTo(faceCreated);
       } catch {
@@ -520,10 +540,6 @@
       }
 
       document.getElementById('createSubmitBtn').disabled = false;
-    });
-
-    document.getElementById('nickInput').addEventListener('keypress', e => {
-      if (e.key === 'Enter') document.getElementById('createSubmitBtn').click();
     });
 
     // ── 3D Tilt эффект ────────────────────────────────────────────
