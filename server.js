@@ -2118,26 +2118,12 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, max_tokens, stream } = req.body;
-  
-  // Получаем userId из сессии (передаётся с фронта)
-  const userId = req.body.userId || null;
+  // 🔥 ИЗВЛЕКАЕМ ТОЛЬКО НУЖНЫЕ ПОЛЯ ДЛЯ MISTRAL
+  const { model, messages, max_tokens, stream, userId } = req.body;
 
-  // 🔥 ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ (исправление 422)
-  if (!model || typeof model !== 'string') {
-    return res.status(422).json({ error: { message: 'Поле "model" обязательно и должно быть строкой' } });
-  }
-  if (!messages || !Array.isArray(messages) || messages.length === 0) {
-    return res.status(422).json({ error: { message: 'Поле "messages" обязательно и должно быть непустым массивом' } });
-  }
-  // Валидация структуры сообщений
-  for (const msg of messages) {
-    if (!msg.role || !msg.content) {
-      return res.status(422).json({ error: { message: 'Каждое сообщение должно содержать поля "role" и "content"' } });
-    }
-    if (!['user', 'assistant', 'system'].includes(msg.role)) {
-      return res.status(422).json({ error: { message: `Недопустимая роль сообщения: "${msg.role}"` } });
-    }
+  // ВАЛИДАЦИЯ (чтобы не слать мусор в Mistral)
+  if (!model || !messages || !Array.isArray(messages)) {
+     return res.status(422).json({ error: { message: 'Неверный формат запроса' } });
   }
 
   // Проверка лимита если пользователь авторизован
@@ -2157,18 +2143,21 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
+    // 🔥 СОЗДАЕМ ЧИСТЫЙ ОБЪЕКТ ТОЛЬКО С ПОЛЯМИ MISTRAL API
+    const mistralPayload = {
+      model: model,
+      messages: messages,
+      max_tokens: max_tokens || 8192,
+      stream: stream || false
+    };
+
     const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
-      body: JSON.stringify({ 
-        model, 
-        messages, 
-        max_tokens: max_tokens || 8192, 
-        stream: stream || false 
-      })
+      body: JSON.stringify(mistralPayload) // <-- Отправляем только очищенный объект
     });
 
     if (!mistralRes.ok) {
