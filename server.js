@@ -2066,5 +2066,148 @@ app.post('/api/ai-chats/save', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  FernieX-AI — /api/chat с лимитами токенов
+// ══════════════════════════════════════════
+
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+const TOKEN_LIMIT_FREE = 200000;
+const TOKEN_LIMIT_PLUS = 1500000;
+
+async function getTokensUsedToday(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const r = await fetch(
+    `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=tokens_used`,
+    { headers: sbHeaders }
+  );
+  const rows = await r.json();
+  return rows[0]?.tokens_used || 0;
+}
+
+async function addTokensUsed(userId, tokens) {
+  const today = new Date().toISOString().slice(0, 10);
+  const check = await fetch(
+    `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=id,tokens_used`,
+    { headers: sbHeaders }
+  );
+  const rows = await check.json();
+  if (rows.length) {
+    await fetch(`${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ tokens_used: rows[0].tokens_used + tokens })
+    });
+  } else {
+    await fetch(`${SB_URL}/rest/v1/ai_token_usage`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: userId, tokens_used: tokens, date: today })
+    });
+  }
+}
+
+async function hasFerniePlus(userId) {
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id) return false;
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/status?telegram_id=${users[0].telegram_id}`);
+    const data = await botRes.json();
+    return !!data.active;
+  } catch { return false; }
+}
+
+app.post('/api/chat', async (req, res) => {
+  const { model, messages, max_tokens, stream } = req.body;
+
+  // Получаем userId из сессии (передаётся с фронта)
+  const userId = req.body.userId || null;
+
+  // Проверка лимита если пользователь авторизован
+  if (userId) {
+    const plus = await hasFerniePlus(userId);
+    const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
+    const used = await getTokensUsedToday(userId);
+    if (used >= limit) {
+      return res.status(429).json({
+        error: {
+          message: plus
+            ? `Достигнут дневной лимит Fernie+ (${TOKEN_LIMIT_PLUS.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
+            : `Достигнут дневной лимит (${TOKEN_LIMIT_FREE.toLocaleString('ru-RU')} токенов). Оформи Fernie+ для увеличения лимита до 1 500 000 токенов/день.`
+        }
+      });
+    }
+  }
+
+  try {
+    const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`
+      },
+      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream || false })
+    });
+
+    if (!mistralRes.ok) {
+      const err = await mistralRes.json().catch(() => ({}));
+      return res.status(mistralRes.status).json(err);
+    }
+
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      let totalTokens = 0;
+      const reader = mistralRes.body;
+      const { Transform } = await import('stream');
+
+      const counter = new Transform({
+        transform(chunk, encoding, callback) {
+          const text = chunk.toString();
+          // Примерный подсчёт токенов по символам (1 токен ≈ 4 символа)
+          totalTokens += Math.ceil(text.length / 4);
+          callback(null, chunk);
+        },
+        flush(callback) {
+          if (userId && totalTokens > 0) {
+            addTokensUsed(userId, totalTokens).catch(console.error);
+          }
+          callback();
+        }
+      });
+
+      reader.pipe(counter).pipe(res);
+      res.on('close', () => {
+        if (userId && totalTokens > 0) {
+          addTokensUsed(userId, totalTokens).catch(console.error);
+        }
+      });
+    } else {
+      const data = await mistralRes.json();
+      const tokens = data.usage?.total_tokens || 0;
+      if (userId && tokens > 0) await addTokensUsed(userId, tokens);
+      res.json(data);
+    }
+  } catch (e) {
+    console.error('chat error:', e);
+    res.status(500).json({ error: { message: 'Ошибка сервера' } });
+  }
+});
+
+// GET токены пользователя сегодня
+app.get('/api/chat/usage/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const plus = await hasFerniePlus(userId);
+    const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
+    const used = await getTokensUsedToday(userId);
+    res.json({ success: true, used, limit, has_plus: plus, remaining: Math.max(0, limit - used) });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
