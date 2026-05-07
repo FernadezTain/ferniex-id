@@ -876,6 +876,14 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;">👥 Пользователи</div>
         <div class="admin-search-wrap"><input class="admin-search-input" id="adminSearchInput" placeholder="🔍 Поиск по имени..." oninput="filterAdminUsers()"></div>
         <div id="adminUsersList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+
+        <!-- МОДЕРАЦИЯ ОБРАЩЕНИЙ -->
+        <div style="margin-top:1.5rem;">
+          <button onclick="openTicketModeration()" style="display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;padding:10px 18px;border-radius:14px;background:rgba(0,200,83,0.1);border:1px solid rgba(0,200,83,0.25);color:var(--text);cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;">
+            📋 Модерация обращений
+            <span id="ticketModerationBadge" style="background:rgba(0,200,83,0.3);border:1px solid rgba(0,200,83,0.5);border-radius:100px;padding:2px 8px;font-size:.7rem;font-weight:700;display:none;">0</span>
+          </button>
+        </div>
       </div>
 
     </main>
@@ -2708,5 +2716,233 @@ async function doModAction() {
     </div>
   </div>
 </div>
+<!-- МОДЕРАЦИЯ ОБРАЩЕНИЙ ОВЕРЛЕЙ -->
+<div id="ticketModOverlay" style="position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,0.85);backdrop-filter:blur(14px);display:none;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;">
+  <div style="width:100%;max-width:600px;margin:auto;background:rgba(10,6,20,0.99);border:1px solid rgba(0,200,83,0.2);border-radius:24px;padding:1.75rem;box-shadow:0 36px 80px rgba(0,0,0,0.8);position:relative;">
+
+    <!-- Заголовок -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+      <div style="font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;">📋 Модерация обращений</div>
+      <button onclick="closeTicketModeration()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;padding:4px 8px;line-height:1;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.4)'">✕</button>
+    </div>
+
+    <!-- Системные табы: Новые | На рассмотрении | Завершённые -->
+    <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;background:rgba(255,255,255,0.04);border-radius:12px;padding:4px;">
+      <button class="tm-tab tm-tab-active" data-tstatus="open"     onclick="switchTicketTab(this,'open')"        style="flex:1;padding:9px 6px;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;background:rgba(0,200,83,0.18);color:#fff;transition:all .2s;">🟢 Новые</button>
+      <button class="tm-tab"               data-tstatus="in_progress" onclick="switchTicketTab(this,'in_progress')" style="flex:1;padding:9px 6px;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;background:none;color:rgba(255,255,255,.45);transition:all .2s;">🔄 На рассмотрении</button>
+      <button class="tm-tab"               data-tstatus="closed"   onclick="switchTicketTab(this,'closed')"      style="flex:1;padding:9px 6px;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;background:none;color:rgba(255,255,255,.45);transition:all .2s;">✅ Завершённые</button>
+    </div>
+
+    <!-- Список тикетов -->
+    <div id="tmTicketList" style="margin-bottom:1rem;"></div>
+
+    <!-- Детальная панель тикета (скрыта по умолчанию) -->
+    <div id="tmTicketDetail" style="display:none;border-top:1px solid rgba(255,255,255,0.08);padding-top:1.25rem;margin-top:.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div style="font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;" id="tmDetailNum"></div>
+        <button onclick="closeTmDetail()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:.8rem;">← Назад к списку</button>
+      </div>
+
+      <!-- Системный статус -->
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem;">Системный статус</div>
+        <div style="display:flex;gap:.5rem;">
+          <button onclick="setTicketSystemStatus('open')"        style="flex:1;padding:8px 4px;border-radius:10px;border:1px solid rgba(0,200,83,0.3);background:rgba(0,200,83,0.08);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:#00c853;cursor:pointer;transition:all .2s;" id="tmSysBtn-open">🟢 Открыто</button>
+          <button onclick="setTicketSystemStatus('in_progress')" style="flex:1;padding:8px 4px;border-radius:10px;border:1px solid rgba(255,184,122,0.3);background:rgba(255,184,122,0.08);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:#ffb87a;cursor:pointer;transition:all .2s;" id="tmSysBtn-in_progress">🔄 В работе</button>
+          <button onclick="setTicketSystemStatus('closed')"      style="flex:1;padding:8px 4px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;transition:all .2s;" id="tmSysBtn-closed">✅ Закрыто</button>
+        </div>
+      </div>
+
+      <!-- Таймлайн с кнопками удаления -->
+      <div style="font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem;">Отслеживание</div>
+      <div id="tmTimeline" style="margin-bottom:1rem;max-height:200px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#00c853 rgba(0,0,0,0.1);"></div>
+
+      <!-- Добавить статус -->
+      <div style="font-size:.65rem;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase;margin-bottom:.5rem;">Добавить статус</div>
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;">
+        <input id="tmNewStatus" placeholder="Текст статуса..." style="flex:1;padding:10px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;font-family:'Inter',sans-serif;font-size:.85rem;color:#fff;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(0,200,83,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'">
+        <button onclick="addTicketStatus()" style="padding:10px 18px;border-radius:11px;background:rgba(0,200,83,0.18);border:1px solid rgba(0,200,83,0.35);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:#00c853;cursor:pointer;white-space:nowrap;transition:all .2s;">+ Добавить</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── TICKET MODERATION ──────────────────────────────────────────
+let tmCurrentStatus = 'open';
+let tmCurrentTicket = null;
+
+function openTicketModeration() {
+  document.getElementById('ticketModOverlay').style.display = 'flex';
+  loadTmTickets('open');
+}
+function closeTicketModeration() {
+  document.getElementById('ticketModOverlay').style.display = 'none';
+  tmCurrentTicket = null;
+  document.getElementById('tmTicketDetail').style.display = 'none';
+}
+
+function switchTicketTab(btn, status) {
+  document.querySelectorAll('.tm-tab').forEach(t => {
+    t.style.background = 'none';
+    t.style.color = 'rgba(255,255,255,.45)';
+  });
+  btn.style.background = 'rgba(0,200,83,0.18)';
+  btn.style.color = '#fff';
+  tmCurrentStatus = status;
+  document.getElementById('tmTicketDetail').style.display = 'none';
+  tmCurrentTicket = null;
+  loadTmTickets(status);
+}
+
+async function loadTmTickets(status) {
+  const list = document.getElementById('tmTicketList');
+  list.innerHTML = '<div style="text-align:center;padding:1rem;color:rgba(255,255,255,.4);font-size:.85rem;">Загрузка...</div>';
+  try {
+    const r = await fetch(`${API}/api/admin/tickets?status=${status}&adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) { list.innerHTML = '<div style="color:rgba(255,107,107,.8);font-size:.85rem;text-align:center;padding:1rem;">Ошибка загрузки</div>'; return; }
+
+    const badge = document.getElementById('ticketModerationBadge');
+    if (status === 'open' && d.tickets.length > 0) {
+      badge.textContent = d.tickets.length;
+      badge.style.display = '';
+    }
+
+    if (!d.tickets.length) { list.innerHTML = '<div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.3);font-size:.85rem;">Обращений нет</div>'; return; }
+
+    const statusLabel = { open: '🟢', in_progress: '🔄', closed: '✅' };
+    list.innerHTML = d.tickets.map(t => `
+      <div onclick="openTmDetail(${JSON.stringify(t).replace(/"/g,'&quot;')})" style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);margin-bottom:.5rem;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='rgba(0,200,83,0.3)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.07)'">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:.9rem;">${t.ticket_num} <span style="font-size:.75rem;font-weight:400;color:rgba(255,255,255,.4);">${t.type}</span></div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.5);margin-top:2px;">👤 ${t.user_nick} · ✈️ ${t.telegram_id || '—'}</div>
+        </div>
+        <span style="font-size:1rem;">${statusLabel[t.status] || '●'}</span>
+      </div>`).join('');
+  } catch { list.innerHTML = '<div style="color:rgba(255,107,107,.8);font-size:.85rem;text-align:center;padding:1rem;">Ошибка сети</div>'; }
+}
+
+function openTmDetail(ticket) {
+  if (typeof ticket === 'string') ticket = JSON.parse(ticket);
+  tmCurrentTicket = ticket;
+  document.getElementById('tmDetailNum').textContent = `${ticket.ticket_num} — ${ticket.type}`;
+  document.getElementById('tmTicketDetail').style.display = 'block';
+  renderTmTimeline(typeof ticket.history === 'string' ? JSON.parse(ticket.history) : ticket.history || []);
+  // Highlight current system status button
+  ['open','in_progress','closed'].forEach(s => {
+    const btn = document.getElementById(`tmSysBtn-${s}`);
+    if (btn) btn.style.opacity = ticket.status === s ? '1' : '0.45';
+  });
+}
+
+function closeTmDetail() {
+  document.getElementById('tmTicketDetail').style.display = 'none';
+  tmCurrentTicket = null;
+}
+
+function renderTmTimeline(history) {
+  const el = document.getElementById('tmTimeline');
+  if (!history.length) { el.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:.8rem;">Пусто</div>'; return; }
+  el.innerHTML = history.map((item, idx) => `
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;position:relative;padding-left:16px;">
+      <div style="position:absolute;left:0;top:4px;width:9px;height:9px;background:#00c853;border-radius:50%;box-shadow:0 0 6px rgba(0,200,83,0.6);flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:.82rem;font-weight:600;color:#fff;">${item.status}</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.4);">${item.date}</div>
+      </div>
+      <button onclick="confirmDeleteHistory(${idx})" style="background:rgba(255,59,59,0.15);border:1px solid rgba(255,59,59,0.3);border-radius:8px;padding:3px 9px;font-size:.7rem;color:#ff6b6b;cursor:pointer;flex-shrink:0;transition:all .2s;" title="Удалить запись">✕</button>
+    </div>`).join('');
+}
+
+let tmDeletePending = null;
+function confirmDeleteHistory(idx) {
+  if (tmDeletePending === idx) {
+    deleteHistoryEntry(idx);
+    tmDeletePending = null;
+  } else {
+    tmDeletePending = idx;
+    setTimeout(() => { tmDeletePending = null; }, 3000);
+    if (typeof showToast === 'function') showToast('⚠️ Нажмите ещё раз для подтверждения удаления');
+  }
+}
+
+async function deleteHistoryEntry(idx) {
+  if (!tmCurrentTicket) return;
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${tmCurrentTicket.ticket_num}/history/${idx}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminId: currentUser.id })
+    });
+    const d = await r.json();
+    if (d.success) {
+      tmCurrentTicket.history = d.history;
+      renderTmTimeline(d.history);
+      if (typeof showToast === 'function') showToast('✅ Запись удалена');
+    } else {
+      if (typeof showToast === 'function') showToast('❌ ' + (d.error || 'Ошибка'));
+    }
+  } catch { if (typeof showToast === 'function') showToast('❌ Ошибка сети'); }
+}
+
+async function setTicketSystemStatus(status) {
+  if (!tmCurrentTicket) return;
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${tmCurrentTicket.ticket_num}/system-status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) {
+      tmCurrentTicket.status = status;
+      ['open','in_progress','closed'].forEach(s => {
+        const btn = document.getElementById(`tmSysBtn-${s}`);
+        if (btn) btn.style.opacity = status === s ? '1' : '0.45';
+      });
+      // Reload history
+      const rr = await fetch(`${API}/api/admin/tickets?status=${tmCurrentStatus}&adminId=${currentUser.id}`);
+      const dd = await rr.json();
+      const fresh = dd.tickets?.find(t => t.ticket_num === tmCurrentTicket.ticket_num);
+      if (fresh) {
+        tmCurrentTicket = fresh;
+        renderTmTimeline(typeof fresh.history === 'string' ? JSON.parse(fresh.history) : fresh.history || []);
+      }
+      if (typeof showToast === 'function') showToast('✅ Статус обновлён');
+    } else {
+      if (typeof showToast === 'function') showToast('❌ ' + (d.error || 'Ошибка'));
+    }
+  } catch { if (typeof showToast === 'function') showToast('❌ Ошибка сети'); }
+}
+
+async function addTicketStatus() {
+  if (!tmCurrentTicket) return;
+  const input = document.getElementById('tmNewStatus');
+  const text = input.value.trim();
+  if (!text) return;
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${tmCurrentTicket.ticket_num}/add-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) {
+      input.value = '';
+      tmCurrentTicket.history = d.history;
+      renderTmTimeline(d.history);
+      if (typeof showToast === 'function') showToast('✅ Статус добавлен');
+    } else {
+      if (typeof showToast === 'function') showToast('❌ ' + (d.error || 'Ошибка'));
+    }
+  } catch { if (typeof showToast === 'function') showToast('❌ Ошибка сети'); }
+}
+
+document.getElementById('ticketModOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('ticketModOverlay')) closeTicketModeration();
+});
+</script>
 </body>
 </html>
