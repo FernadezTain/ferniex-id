@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Центр Поддержки FernieX</title>
+  <style>
+    /* ===================== Общие стили ===================== */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
+
+    body {
+      height: 100vh;
+      background: radial-gradient(circle at top, #141414, #000);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .header {
+      position: absolute;
+      top: 40px;
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .scene { perspective: 1400px; overflow: visible; }
+
+    .card {
+      width: 460px;
+      height: 300px;
+      background: linear-gradient(145deg, #0e0e0e, #1b1b1b);
+      border-radius: 20px;
+      box-shadow: 0 50px 100px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease, width 0.5s ease, height 0.5s ease;
+    }
+    .card:hover { box-shadow: 0 50px 100px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(0,200,83,0.2); }
+    .card.active-menu   { width: 520px; height: 380px; }
+    .card.active-check  { width: 520px; height: 380px; }
+    .card.active-result { width: 620px; height: 600px; }
+    .card.active-create { width: 520px; height: 420px; }
+    .card.active-loading{ width: 620px; height: 600px; }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.5s cubic-bezier(.4,0,.2,1);
+      pointer-events: none;
+      min-width: 0;
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    .card-main { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+    h1, h2 { color: #fff; text-align: center; word-break: break-word; }
+    p { color: #aaa; font-size: 15px; }
+
+    input, select {
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      font-size: 14px;
+      text-align: center;
+      width: 75%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    input::placeholder { color: #888; }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #00c853;
+      box-shadow: 0 0 12px rgba(0,200,83,0.6);
+      background: rgba(255,255,255,0.1);
+    }
+
+    select {
+      appearance: none;
+      padding-right: 40px;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23fff' d='M1.41 0L6 4.59L10.59 0L12 1.41L6 7.41L0 1.41L1.41 0z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      background-size: 12px 12px;
+    }
+    select:hover { background: rgba(255,255,255,0.12); border-color: rgba(0,200,83,0.6); }
+    select option { background: #1b1b1b; color: #fff; }
+
+    .buttons { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+
+    .btn {
+      padding: 12px 32px;
+      border-radius: 12px;
+      border: none;
+      background: #fff;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 16px;
+    }
+    .btn:hover { background: #e5e5e5; }
+    .btn.danger { background: #ff3b3b; color: #fff; }
+    .btn.danger:hover { background: #e13232; }
+    .btn.success { background: #00c853; color: #fff; }
+    .btn.success:hover { background: #00a340; }
+
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,0.2);
+      border-top: 3px solid #00c853;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 20px 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-header { text-align: center; width: 100%; margin-bottom: 15px; }
+    .result-header h2 { margin-bottom: 5px; font-size: 20px; }
+    .result-info { text-align: left; width: 100%; margin-bottom: 15px; }
+    .info-row {
+      display: flex; justify-content: space-between; margin-bottom: 6px;
+      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .info-label { color: #aaa; font-size: 12px; }
+    .info-value { color: #fff; font-weight: 600; font-size: 12px; }
+
+    .timeline, .scrollbar {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #00c853 rgba(0,0,0,0.1);
+    }
+    .timeline::-webkit-scrollbar { width: 8px; }
+    .timeline::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+    .timeline::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #00ff73, #00c853);
+      border-radius: 8px; border: 2px solid transparent; background-clip: padding-box;
+    }
+
+    .timeline-item { display: flex; gap: 10px; margin-bottom: 12px; position: relative; padding-left: 15px; }
+    .timeline-dot {
+      width: 10px; height: 10px; background: #00c853; border-radius: 50%;
+      margin-top: 4px; flex-shrink: 0; position: absolute; left: 0;
+      box-shadow: 0 0 8px rgba(0,200,83,0.6);
+    }
+    .timeline-content { flex: 1; }
+    .timeline-status { color: #fff; font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+    .timeline-date { color: #888; font-size: 11px; }
+
+    .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+    .menu-btn {
+      width: 280px; padding: 12px 20px; border-radius: 12px; border: none;
+      background: #fff; color: #000; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .menu-btn:hover { background: #e5e5e5; }
+    .menu-btn.success { background: #00c853; color: #fff; }
+    .menu-btn.success:hover { background: #00a340; }
+
+    #notification-container {
+      position: fixed; top: 20px; right: 20px; width: 280px;
+      display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+    }
+    .notification {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(12px);
+      border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);
+      padding: 16px 20px; color: #fff;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      opacity: 0; transform: translateY(-20px); pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .notification.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .notification .title { font-weight: 700; margin-bottom: 6px; }
+    .notification .message { font-weight: 400; font-size: 14px; color: #ddd; }
+
+    #error-banner {
+      position: fixed; top: 20px; left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(255,59,59,0.2); border: 1px solid rgba(255,59,59,0.5);
+      backdrop-filter: blur(12px); padding: 16px 20px 16px 16px;
+      border-radius: 16px; color: #fff; font-weight: 500;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      display: flex; justify-content: space-between; align-items: center;
+      min-width: 300px; opacity: 0; pointer-events: none;
+      transition: opacity 0.4s ease, transform 0.4s ease; z-index: 9999;
+    }
+    #error-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+    #error-banner .close-btn {
+      width: 18px; height: 18px; cursor: pointer; position: relative;
+      margin-left: 12px; flex-shrink: 0;
+    }
+    #error-banner .close-btn::before,
+    #error-banner .close-btn::after {
+      content: ''; position: absolute; width: 2px; height: 18px;
+      background-color: #fff; transform-origin: center;
+    }
+    #error-banner .close-btn::before { transform: translate(8px,0) rotate(45deg); }
+    #error-banner .close-btn::after  { transform: translate(8px,0) rotate(-45deg); }
+
+    .loading-text { margin-top: 10px; color: #aaa; font-size: 14px; }
+
+    /* Тикет-номер после создания */
+    .ticket-created-num {
+      font-size: 28px; font-weight: 800; color: #00c853;
+      letter-spacing: 2px; margin: 8px 0;
+      text-shadow: 0 0 20px rgba(0,200,83,0.5);
+    }
+    .ticket-hint { color: #888; font-size: 13px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="header">Центр Поддержки FernieX</div>
+
+  <div class="scene">
+    <div class="card active-main" id="card">
+
+      <!-- ГЛАВНОЕ МЕНЮ -->
+      <div class="card-face card-main">
+        <h1>Центр Поддержки</h1>
+        <p>Выберите действие</p>
+        <button class="btn" id="startBtn">Начать</button>
+      </div>
+
+      <!-- ВЫБОР ДЕЙСТВИЯ -->
+      <div class="card-face card-menu">
+        <h2>Выберите действие</h2>
+        <div class="menu-buttons">
+          <button class="menu-btn" id="checkStatusBtn">Проверить статус обращения</button>
+          <button class="menu-btn success" id="createBtn">Создать обращение</button>
+        </div>
+        <div class="buttons" style="margin-top: 20px;">
+          <button class="btn" id="backToMainBtn">Назад</button>
+        </div>
+      </div>
+
+      <!-- ВВОД НОМЕРА ОБРАЩЕНИЯ -->
+      <div class="card-face card-check">
+        <h2>Проверка статуса обращения</h2>
+        <p>Введите номер обращения</p>
+        <input type="text" id="ticketInput" placeholder="TK-00001">
+        <div class="buttons">
+          <button class="btn" id="checkBackBtn">Назад</button>
+          <button class="btn success" id="checkBtn">Проверить</button>
+        </div>
+      </div>
+
+      <!-- ЗАГРУЗКА / РЕЗУЛЬТАТ -->
+      <div class="card-face card-loading">
+
+        <div id="loadingContent">
+          <h2>Поиск обращения...</h2>
+          <div class="loading-spinner"></div>
+          <div class="loading-text" id="loadingText"></div>
+        </div>
+
+        <div id="resultContent" style="display:none; width:100%; max-height:100%; overflow-y:auto;">
+          <div class="result-header">
+            <h2 id="ticketNumber">Обращение №</h2>
+          </div>
+          <div class="result-info">
+            <div class="info-row"><span class="info-label">Пользователь:</span><span class="info-value" id="resultUser">-</span></div>
+            <div class="info-row"><span class="info-label">Администратор:</span><span class="info-value" id="resultAdmin">-</span></div>
+            <div class="info-row"><span class="info-label">Тип обращения:</span><span class="info-value" id="resultType">-</span></div>
+            <div class="info-row"><span class="info-label">Создано:</span><span class="info-value" id="resultDate">-</span></div>
+            <div class="info-row"><span class="info-label">Статус:</span><span class="info-value" id="resultStatus">-</span></div>
+            <div class="info-row"><span class="info-label">Описание:</span><span class="info-value" id="resultDescription">-</span></div>
+          </div>
+          <p style="text-align:left; margin:10px 0; color:#aaa; font-size:13px;">Отслеживание:</p>
+          <div class="timeline scrollbar" id="timeline" style="max-height:140px;"></div>
+          <div class="buttons">
+            <button class="btn" id="resultBackBtn">Назад</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- СОЗДАНИЕ ОБРАЩЕНИЯ -->
+      <div class="card-face card-create">
+        <h2>Создание обращения</h2>
+        <input type="text" id="nickInput" placeholder="Введите ваш Nick" style="width:85%;">
+        <select id="typeSelect" style="width:85%;">
+          <option value="">Выберите тип обращения</option>
+          <option value="bug">Баг / Ошибка</option>
+          <option value="suggest">Предложение</option>
+          <option value="question">Вопрос</option>
+          <option value="complaint">Жалоба</option>
+          <option value="other">Другое</option>
+        </select>
+        <div class="buttons">
+          <button class="btn" id="createBackBtn">Назад</button>
+          <button class="btn success" id="createSubmitBtn">Создать</button>
+        </div>
+      </div>
+
+      <!-- УСПЕХ СОЗДАНИЯ -->
+      <div class="card-face card-created">
+        <h2>Обращение создано!</h2>
+        <div class="ticket-created-num" id="createdNum">TK-00000</div>
+        <p class="ticket-hint">Сохраните номер — по нему можно отслеживать статус</p>
+        <div class="buttons" style="margin-top:10px;">
+          <button class="btn" id="createdBackBtn">В меню</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="notification-container"></div>
+  <div id="error-banner">
+    <span id="error-message">Ошибка</span>
+    <div class="close-btn"></div>
+  </div>
+
+  <script>
+    // ── Конфиг ──────────────────────────────────────────────────
+    const API_BASE = '/api'; // сервер на том же домене
+
+    // ── Элементы ────────────────────────────────────────────────
+    const card              = document.getElementById('card');
+    const faces             = document.querySelectorAll('.card-face');
+    const faceMain          = document.querySelector('.card-main');
+    const faceMenu          = document.querySelector('.card-menu');
+    const faceCheck         = document.querySelector('.card-check');
+    const faceLoading       = document.querySelector('.card-loading');
+    const faceCreate        = document.querySelector('.card-create');
+    const faceCreated       = document.querySelector('.card-created');
+    const loadingContent    = document.getElementById('loadingContent');
+    const resultContent     = document.getElementById('resultContent');
+    const errorBanner       = document.getElementById('error-banner');
+    const errorMessage      = document.getElementById('error-message');
+    const errorCloseBtn     = document.querySelector('#error-banner .close-btn');
+    const notifContainer    = document.getElementById('notification-container');
+
+    // ── Размеры карты ────────────────────────────────────────────
+    const CARD_SIZES = {
+      'card-main':    { w: '460px', h: '300px' },
+      'card-menu':    { w: '520px', h: '380px' },
+      'card-check':   { w: '520px', h: '380px' },
+      'card-loading': { w: '620px', h: '600px' },
+      'card-create':  { w: '520px', h: '420px' },
+      'card-created': { w: '520px', h: '360px' },
+    };
+
+    // ── Навигация ────────────────────────────────────────────────
+    let currentFace = faceMain;
+    let errorTimeout = null;
+    let activeNotif  = null;
+
+    function slideTo(nextFace) {
+      if (!nextFace || nextFace === currentFace) return;
+      faces.forEach(f => {
+        f.style.transition = 'transform 0.5s cubic-bezier(.4,0,.2,1), opacity 0.4s, filter 0.5s';
+        f.style.pointerEvents = 'none';
+        if (f !== nextFace) f.style.filter = 'blur(6px)';
+      });
+      currentFace.style.transform = 'translateX(-100%)';
+      currentFace.style.opacity = '0';
+      nextFace.style.transform = 'translateX(100%)';
+      nextFace.style.opacity = '0';
+      nextFace.style.filter = 'blur(6px)';
+      requestAnimationFrame(() => {
+        nextFace.style.transform = 'translateX(0)';
+        nextFace.style.opacity = '1';
+        nextFace.style.filter = 'blur(0)';
+      });
+
+      // Resize card
+      const cls = [...nextFace.classList].find(c => CARD_SIZES[c]);
+      if (cls) {
+        card.style.width  = CARD_SIZES[cls].w;
+        card.style.height = CARD_SIZES[cls].h;
+      }
+
+      setTimeout(() => {
+        currentFace = nextFace;
+        currentFace.style.pointerEvents = 'auto';
+      }, 500);
+    }
+
+    // ── Ошибки ───────────────────────────────────────────────────
+    function showError(msg) {
+      errorMessage.innerText = msg;
+      errorBanner.classList.add('show');
+      clearTimeout(errorTimeout);
+      errorTimeout = setTimeout(() => errorBanner.classList.remove('show'), 3000);
+    }
+    errorCloseBtn.addEventListener('click', () => errorBanner.classList.remove('show'));
+
+    // ── Уведомления ──────────────────────────────────────────────
+    function showNotification(title, message) {
+      if (activeNotif) activeNotif.remove();
+      const n = document.createElement('div');
+      n.className = 'notification';
+      n.innerHTML = `<div class="title">${title}</div><div class="message">${message}</div>`;
+      notifContainer.appendChild(n);
+      setTimeout(() => n.classList.add('show'), 50);
+      activeNotif = n;
+      setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 400); }, 2500);
+    }
+
+    // ── Таймлайн ─────────────────────────────────────────────────
+    function renderTimeline(history) {
+      const tl = document.getElementById('timeline');
+      tl.innerHTML = '';
+      (history || []).forEach(item => {
+        const d = document.createElement('div');
+        d.className = 'timeline-item';
+        d.innerHTML = `
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-status">${item.status}</div>
+            <div class="timeline-date">${item.date}</div>
+          </div>`;
+        tl.appendChild(d);
+      });
+    }
+
+    // ── Кнопки навигации ─────────────────────────────────────────
+    document.getElementById('startBtn').addEventListener('click', () => slideTo(faceMenu));
+    document.getElementById('backToMainBtn').addEventListener('click', () => slideTo(faceMain));
+    document.getElementById('checkStatusBtn').addEventListener('click', () => {
+      slideTo(faceCheck);
+      setTimeout(() => document.getElementById('ticketInput').focus(), 300);
+    });
+    document.getElementById('createBtn').addEventListener('click', () => slideTo(faceCreate));
+    document.getElementById('checkBackBtn').addEventListener('click', () => slideTo(faceMenu));
+    document.getElementById('createBackBtn').addEventListener('click', () => slideTo(faceMenu));
+    document.getElementById('resultBackBtn').addEventListener('click', () => {
+      resultContent.style.display = 'none';
+      loadingContent.style.display = 'block';
+      slideTo(faceCheck);
+    });
+    document.getElementById('createdBackBtn').addEventListener('click', () => slideTo(faceMenu));
+
+    // ── Проверка обращения ────────────────────────────────────────
+    document.getElementById('checkBtn').addEventListener('click', async () => {
+      const num = document.getElementById('ticketInput').value.trim().toUpperCase();
+      if (!num) return showError('Введите номер обращения!');
+
+      slideTo(faceLoading);
+      loadingContent.style.display = 'block';
+      resultContent.style.display = 'none';
+
+      try {
+        const resp = await fetch(`${API_BASE}/tickets/${encodeURIComponent(num)}`);
+        const data = await resp.json();
+
+        if (!data.success) return showError(data.error || 'Обращение не найдено');
+
+        const t = data.ticket;
+        document.getElementById('ticketNumber').textContent    = `Обращение №${t.num}`;
+        document.getElementById('resultUser').textContent      = t.user;
+        document.getElementById('resultAdmin').textContent     = t.admin;
+        document.getElementById('resultType').textContent      = t.type;
+        document.getElementById('resultDate').textContent      = t.created;
+        document.getElementById('resultStatus').textContent    = t.status;
+        document.getElementById('resultDescription').textContent = t.description || '—';
+        renderTimeline(t.history);
+
+        loadingContent.style.display = 'none';
+        resultContent.style.display  = 'block';
+        showNotification('Успешно', 'Обращение найдено');
+      } catch {
+        showError('Ошибка соединения с сервером');
+        slideTo(faceCheck);
+      }
+    });
+
+    document.getElementById('ticketInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') document.getElementById('checkBtn').click();
+    });
+
+    // ── Создание обращения ────────────────────────────────────────
+    document.getElementById('createSubmitBtn').addEventListener('click', async () => {
+      const nick = document.getElementById('nickInput').value.trim();
+      const type = document.getElementById('typeSelect').value;
+      if (!nick) return showError('Введите Nick!');
+      if (!type) return showError('Выберите тип!');
+
+      document.getElementById('createSubmitBtn').disabled = true;
+
+      try {
+        const resp = await fetch(`${API_BASE}/tickets/create`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nick, type })
+        });
+        const data = await resp.json();
+
+        if (!data.success) {
+          showError(data.error || 'Ошибка создания');
+          document.getElementById('createSubmitBtn').disabled = false;
+          return;
+        }
+
+        document.getElementById('createdNum').textContent = data.ticketNum;
+        document.getElementById('nickInput').value = '';
+        document.getElementById('typeSelect').value = '';
+        showNotification('Готово', `Обращение ${data.ticketNum} создано`);
+        slideTo(faceCreated);
+      } catch {
+        showError('Ошибка соединения с сервером');
+      }
+
+      document.getElementById('createSubmitBtn').disabled = false;
+    });
+
+    document.getElementById('nickInput').addEventListener('keypress', e => {
+      if (e.key === 'Enter') document.getElementById('createSubmitBtn').click();
+    });
+
+    // ── 3D Tilt эффект ────────────────────────────────────────────
+    let rotateX = 0, rotateY = 0, targetX = 0, targetY = 0;
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      targetX = ((e.clientY - r.top  - r.height/2) / (r.height/2)) * 8;
+      targetY = ((e.clientX - r.left - r.width/2)  / (r.width/2))  * 8;
+    });
+    card.addEventListener('mouseleave', () => { targetX = 0; targetY = 0; });
+    (function animateTilt() {
+      rotateX += (targetX - rotateX) * 0.1;
+      rotateY += (targetY - rotateY) * 0.1;
+      card.style.transform = `perspective(1000px) rotateX(${-rotateX}deg) rotateY(${rotateY}deg)`;
+      requestAnimationFrame(animateTilt);
+    })();
+  </script>
+</body>
+</html>
