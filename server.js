@@ -2118,17 +2118,10 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  // 🔥 ИЗВЛЕКАЕМ ТОЛЬКО НУЖНЫЕ ПОЛЯ
-  const model = req.body.model;
-  const messages = req.body.messages;
-  const max_tokens = req.body.max_tokens;
-  const stream = req.body.stream;
-  const userId = req.body.userId; // Только для проверки лимитов!
+  const { model, messages, max_tokens, stream } = req.body;
 
-  // 🔥 ВАЛИДАЦИЯ
-  if (!model || !messages || !Array.isArray(messages)) {
-    return res.status(422).json({ error: { message: 'Неверный формат запроса' } });
-  }
+  // Получаем userId из сессии (передаётся с фронта)
+  const userId = req.body.userId || null;
 
   // Проверка лимита если пользователь авторизован
   if (userId) {
@@ -2147,34 +2140,20 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // 🔥 СОЗДАЁМ ЧИСТЫЙ ОБЪЕКТ ТОЛЬКО ДЛЯ MISTRAL (без userId!)
-const mistralPayload = {
-  model: model,
-  messages: messages,
-  max_tokens: max_tokens || 8192,
-  stream: stream || false
-};
-
-const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${MISTRAL_API_KEY}`
-  },
-  body: JSON.stringify(mistralPayload) // <-- Отправляем только очищенный объект
-});
+    const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`
+      },
+      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream || false })
+    });
 
     if (!mistralRes.ok) {
       const err = await mistralRes.json().catch(() => ({}));
-      // Проксируем ошибку от Mistral с понятным сообщением
-      return res.status(mistralRes.status).json({ 
-        error: { 
-          message: err.error?.message || `Ошибка провайдера: ${mistralRes.status}` 
-        } 
-      });
+      return res.status(mistralRes.status).json(err);
     }
 
-    // ... остальной код обработки stream и non-stream остается без изменений ...
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -2187,6 +2166,7 @@ const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
       const counter = new Transform({
         transform(chunk, encoding, callback) {
           const text = chunk.toString();
+          // Примерный подсчёт токенов по символам (1 токен ≈ 4 символа)
           totalTokens += Math.ceil(text.length / 4);
           callback(null, chunk);
         },
@@ -2212,7 +2192,7 @@ const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
     }
   } catch (e) {
     console.error('chat error:', e);
-    res.status(500).json({ error: { message: 'Ошибка сервера при обработке запроса' } });
+    res.status(500).json({ error: { message: 'Ошибка сервера' } });
   }
 });
 
@@ -2228,6 +2208,5 @@ app.get('/api/chat/usage/:userId', async (req, res) => {
     res.json({ success: false, error: e.message });
   }
 });
-
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
