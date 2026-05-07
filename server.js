@@ -2209,5 +2209,16 @@ app.get('/api/chat/usage/:userId', async (req, res) => {
     res.json({ success: false, error: e.message });
   }
 });
+app.post('/api/chat/add-tokens', async (req, res) => {
+  const { user_id, tokens } = req.body;
+  if (!user_id || !tokens) return res.json({ success: false });
+  try {
+    await addTokensUsed(String(user_id), Math.ceil(tokens));
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
