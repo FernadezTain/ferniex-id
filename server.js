@@ -2118,14 +2118,16 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  // 🔥 ИЗВЛЕКАЕМ ТОЛЬКО НУЖНЫЕ ПОЛЯ ДЛЯ MISTRAL
-  // Важно: мы НЕ деструктурируем userId здесь, чтобы он точно не попал дальше
-  const { model, messages, max_tokens, stream } = req.body;
-  const userId = req.body.userId || null; // Берем userId отдельно для проверки лимитов
+  // 🔥 ИЗВЛЕКАЕМ ТОЛЬКО НУЖНЫЕ ПОЛЯ
+  const model = req.body.model;
+  const messages = req.body.messages;
+  const max_tokens = req.body.max_tokens;
+  const stream = req.body.stream;
+  const userId = req.body.userId; // Только для проверки лимитов!
 
-  // ВАЛИДАЦИЯ (чтобы не слать мусор в Mistral)
+  // 🔥 ВАЛИДАЦИЯ
   if (!model || !messages || !Array.isArray(messages)) {
-     return res.status(422).json({ error: { message: 'Неверный формат запроса' } });
+    return res.status(422).json({ error: { message: 'Неверный формат запроса' } });
   }
 
   // Проверка лимита если пользователь авторизован
@@ -2145,23 +2147,22 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // 🔥 СОЗДАЕМ ЧИСТЫЙ ОБЪЕКТ ТОЛЬКО С ПОЛЯМИ MISTRAL API
-    // Мы явно перечисляем поля, чтобы userId НИКОГДА не попал сюда
-    const mistralPayload = {
-      model: model,
-      messages: messages,
-      max_tokens: max_tokens || 8192,
-      stream: stream || false
-    };
+    // 🔥 СОЗДАЁМ ЧИСТЫЙ ОБЪЕКТ ТОЛЬКО ДЛЯ MISTRAL (без userId!)
+const mistralPayload = {
+  model: model,
+  messages: messages,
+  max_tokens: max_tokens || 8192,
+  stream: stream || false
+};
 
-    const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MISTRAL_API_KEY}`
-      },
-      body: JSON.stringify(mistralPayload) // <-- Отправляем только очищенный объект
-    });
+const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${MISTRAL_API_KEY}`
+  },
+  body: JSON.stringify(mistralPayload) // <-- Отправляем только очищенный объект
+});
 
     if (!mistralRes.ok) {
       const err = await mistralRes.json().catch(() => ({}));
