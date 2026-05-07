@@ -4,62 +4,116 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Центр Поддержки FernieX</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     /* ===================== Общие стили ===================== */
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --green: #00c853;
+      --green-glow: rgba(0,200,83,0.35);
+      --green-dim: #00a340;
+      --bg: #080808;
+      --surface: #111111;
+      --surface2: #1a1a1a;
+      --border: rgba(255,255,255,0.07);
+      --text: #f0f0f0;
+      --muted: #888;
+      --radius: 18px;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
 
     body {
-      height: 100vh;
-      background: radial-gradient(circle at top, #141414, #000);
+      min-height: 100vh;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,200,83,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,100,40,0.05) 0%, transparent 60%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      font-family: var(--font-body);
+      padding: 0 16px 40px;
+      overflow-x: hidden;
     }
 
+    /* ── Шапка ── */
     .header {
-      position: absolute;
-      top: 40px;
-      font-size: 28px;
-      font-weight: 700;
-      color: #fff;
+      padding: 32px 0 28px;
+      font-family: var(--font-head);
+      font-size: clamp(20px, 5vw, 26px);
+      font-weight: 800;
+      color: var(--text);
       text-align: center;
-      animation: fadeIn 0.6s ease;
+      letter-spacing: -0.5px;
+      animation: fadeDown 0.7s ease both;
+      width: 100%;
+    }
+    .header span {
+      color: var(--green);
     }
 
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .scene { perspective: 1400px; overflow: visible; }
+    /* ── Сцена и карточка ── */
+    .scene {
+      perspective: 1400px;
+      width: 100%;
+      max-width: 520px;
+      animation: fadeIn 0.5s 0.2s ease both;
+    }
 
     .card {
-      width: 460px;
-      height: 300px;
-      background: linear-gradient(145deg, #0e0e0e, #1b1b1b);
-      border-radius: 20px;
-      box-shadow: 0 50px 100px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.05);
+      width: 100%;
+      min-height: 280px;
+      background: linear-gradient(160deg, var(--surface) 0%, #131313 100%);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(0,200,83,0.04),
+        0 30px 80px rgba(0,0,0,0.7),
+        0 8px 24px rgba(0,0,0,0.4);
       position: relative;
       overflow: hidden;
       transform-style: preserve-3d;
-      transition: transform 0.15s ease, width 0.5s ease, height 0.5s ease;
+      transition: transform 0.15s ease, min-height 0.45s cubic-bezier(.4,0,.2,1), box-shadow 0.3s ease;
     }
-    .card:hover { box-shadow: 0 50px 100px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(0,200,83,0.2); }
-    .card.active-menu   { width: 520px; height: 380px; }
-    .card.active-check  { width: 520px; height: 380px; }
-    .card.active-result { width: 620px; height: 600px; }
-    .card.active-create { width: 520px; height: 420px; }
-    .card.active-loading{ width: 620px; height: 600px; }
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 60% 30% at 50% 0%, rgba(0,200,83,0.06), transparent);
+      pointer-events: none;
+      border-radius: var(--radius);
+    }
+    .card:hover {
+      box-shadow:
+        0 0 0 1px rgba(0,200,83,0.1),
+        0 30px 80px rgba(0,0,0,0.7),
+        0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .card.active-menu    { min-height: 340px; }
+    .card.active-check   { min-height: 320px; }
+    .card.active-result  { min-height: 480px; }
+    .card.active-create  { min-height: 420px; }
+    .card.active-loading { min-height: 420px; }
 
     .card-face {
       position: absolute;
       inset: 0;
-      padding: 32px;
+      padding: clamp(24px, 5vw, 36px);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       gap: 14px;
-      transition: all 0.5s cubic-bezier(.4,0,.2,1);
+      transition: transform 0.5s cubic-bezier(.4,0,.2,1), opacity 0.4s ease, filter 0.5s ease;
       pointer-events: none;
       min-width: 0;
       transform: translateX(100%);
@@ -67,166 +121,265 @@
     }
     .card-main { transform: translateX(0); opacity: 1; pointer-events: auto; }
 
-    h1, h2 { color: #fff; text-align: center; word-break: break-word; }
-    p { color: #aaa; font-size: 15px; }
-
-    input, select {
-      padding: 12px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.2);
-      background: rgba(255,255,255,0.07);
-      backdrop-filter: blur(10px);
-      color: #fff;
-      font-size: 14px;
+    h1 {
+      font-family: var(--font-head);
+      font-size: clamp(22px, 5vw, 28px);
+      font-weight: 800;
+      color: var(--text);
       text-align: center;
-      width: 75%;
-      cursor: pointer;
-      transition: all 0.3s ease;
+      word-break: break-word;
+      letter-spacing: -0.5px;
+      line-height: 1.2;
     }
-    input::placeholder { color: #888; }
+    h2 {
+      font-family: var(--font-head);
+      font-size: clamp(16px, 4vw, 20px);
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      word-break: break-word;
+      letter-spacing: -0.3px;
+    }
+    p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+
+    /* ── Поля ввода ── */
+    input, select {
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-size: 15px;
+      font-family: var(--font-body);
+      text-align: center;
+      width: 100%;
+      cursor: pointer;
+      transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+      -webkit-appearance: none;
+    }
+    input::placeholder { color: #555; }
     input:focus, select:focus {
       outline: none;
-      border-color: #00c853;
-      box-shadow: 0 0 12px rgba(0,200,83,0.6);
-      background: rgba(255,255,255,0.1);
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px var(--green-glow);
+      background: rgba(255,255,255,0.07);
     }
 
     select {
       appearance: none;
       padding-right: 40px;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23fff' d='M1.41 0L6 4.59L10.59 0L12 1.41L6 7.41L0 1.41L1.41 0z'/%3e%3c/svg%3e");
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23777' d='M1.41 0L6 4.59L10.59 0L12 1.41L6 7.41L0 1.41L1.41 0z'/%3e%3c/svg%3e");
       background-repeat: no-repeat;
       background-position: right 16px center;
-      background-size: 12px 12px;
+      background-size: 12px;
     }
-    select:hover { background: rgba(255,255,255,0.12); border-color: rgba(0,200,83,0.6); }
+    select:hover { border-color: rgba(0,200,83,0.4); }
     select option { background: #1b1b1b; color: #fff; }
 
-    .buttons { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+    .field-wrap { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+    /* ── Кнопки ── */
+    .buttons { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
 
     .btn {
-      padding: 12px 32px;
+      flex: 1;
+      min-width: 100px;
+      padding: 13px 20px;
       border-radius: 12px;
-      border: none;
-      background: #fff;
-      color: #000;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-family: var(--font-body);
       font-weight: 600;
       cursor: pointer;
-      transition: 0.2s;
-      font-size: 16px;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      font-size: 15px;
+      letter-spacing: 0.1px;
     }
-    .btn:hover { background: #e5e5e5; }
-    .btn.danger { background: #ff3b3b; color: #fff; }
-    .btn.danger:hover { background: #e13232; }
-    .btn.success { background: #00c853; color: #fff; }
-    .btn.success:hover { background: #00a340; }
+    .btn:hover { background: rgba(255,255,255,0.13); border-color: rgba(255,255,255,0.2); }
+    .btn:active { transform: scale(0.97); }
+    .btn.danger { background: rgba(255,59,59,0.15); border-color: rgba(255,59,59,0.3); color: #ff6b6b; }
+    .btn.danger:hover { background: rgba(255,59,59,0.25); }
+    .btn.success {
+      background: var(--green);
+      border-color: var(--green);
+      color: #000;
+      font-weight: 700;
+      box-shadow: 0 4px 20px rgba(0,200,83,0.3);
+    }
+    .btn.success:hover { background: #00dd5a; box-shadow: 0 4px 28px rgba(0,200,83,0.45); }
 
+    /* ── Спиннер ── */
     .loading-spinner {
-      width: 40px; height: 40px;
-      border: 3px solid rgba(255,255,255,0.2);
-      border-top: 3px solid #00c853;
+      width: 44px; height: 44px;
+      border: 3px solid rgba(255,255,255,0.08);
+      border-top: 3px solid var(--green);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 20px 0;
+      animation: spin 0.75s linear infinite;
+      margin: 16px 0;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--muted); font-size: 13px; }
 
-    .result-header { text-align: center; width: 100%; margin-bottom: 15px; }
-    .result-header h2 { margin-bottom: 5px; font-size: 20px; }
-    .result-info { text-align: left; width: 100%; margin-bottom: 15px; }
+    /* ── Результат ── */
+    .result-header { text-align: center; width: 100%; margin-bottom: 12px; }
+    .result-header h2 { margin-bottom: 4px; }
+    .result-info { width: 100%; margin-bottom: 12px; }
     .info-row {
-      display: flex; justify-content: space-between; margin-bottom: 6px;
-      padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
     }
-    .info-label { color: #aaa; font-size: 12px; }
-    .info-value { color: #fff; font-weight: 600; font-size: 12px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: var(--muted); font-size: 12px; flex-shrink: 0; }
+    .info-value { color: var(--text); font-weight: 600; font-size: 12px; text-align: right; word-break: break-all; }
 
+    /* ── Таймлайн ── */
     .timeline, .scrollbar {
       overflow-y: auto;
       scrollbar-width: thin;
-      scrollbar-color: #00c853 rgba(0,0,0,0.1);
+      scrollbar-color: var(--green) rgba(0,0,0,0.1);
     }
-    .timeline::-webkit-scrollbar { width: 8px; }
-    .timeline::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+    .timeline::-webkit-scrollbar { width: 4px; }
+    .timeline::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 8px; }
     .timeline::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, #00ff73, #00c853);
-      border-radius: 8px; border: 2px solid transparent; background-clip: padding-box;
+      background: var(--green);
+      border-radius: 8px;
     }
 
-    .timeline-item { display: flex; gap: 10px; margin-bottom: 12px; position: relative; padding-left: 15px; }
+    .timeline-item { display: flex; gap: 10px; margin-bottom: 12px; position: relative; padding-left: 18px; }
     .timeline-dot {
-      width: 10px; height: 10px; background: #00c853; border-radius: 50%;
+      width: 8px; height: 8px; background: var(--green); border-radius: 50%;
       margin-top: 4px; flex-shrink: 0; position: absolute; left: 0;
-      box-shadow: 0 0 8px rgba(0,200,83,0.6);
+      box-shadow: 0 0 10px var(--green-glow);
     }
     .timeline-content { flex: 1; }
-    .timeline-status { color: #fff; font-weight: 600; font-size: 12px; margin-bottom: 2px; }
-    .timeline-date { color: #888; font-size: 11px; }
+    .timeline-status { color: var(--text); font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+    .timeline-date { color: #666; font-size: 11px; }
 
-    .menu-buttons { display: flex; flex-direction: column; gap: 12px; }
+    /* ── Меню ── */
+    .menu-buttons { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     .menu-btn {
-      width: 280px; padding: 12px 20px; border-radius: 12px; border: none;
-      background: #fff; color: #000; font-weight: 600; cursor: pointer; transition: 0.2s;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .menu-btn:hover { background: #e5e5e5; }
-    .menu-btn.success { background: #00c853; color: #fff; }
-    .menu-btn.success:hover { background: #00a340; }
+    .menu-btn::before { content: '→'; color: var(--muted); font-size: 16px; transition: color 0.2s, transform 0.2s; }
+    .menu-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+    .menu-btn:hover::before { color: var(--text); transform: translateX(3px); }
+    .menu-btn:active { transform: scale(0.98); }
+    .menu-btn.success {
+      background: rgba(0,200,83,0.1);
+      border-color: rgba(0,200,83,0.3);
+      color: #00e85e;
+    }
+    .menu-btn.success::before { color: var(--green); }
+    .menu-btn.success:hover { background: rgba(0,200,83,0.18); border-color: rgba(0,200,83,0.5); }
 
+    .menu-btn.back {
+      background: transparent;
+      border-color: rgba(255,255,255,0.06);
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .menu-btn.back::before { content: '←'; }
+    .menu-btn.back:hover { background: rgba(255,255,255,0.05); color: var(--text); border-color: rgba(255,255,255,0.12); }
+
+    /* ── Уведомления ── */
     #notification-container {
-      position: fixed; top: 20px; right: 20px; width: 280px;
-      display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+      position: fixed; top: 16px; right: 16px;
+      width: min(280px, calc(100vw - 32px));
+      display: flex; flex-direction: column; gap: 8px; z-index: 9999;
     }
     .notification {
-      background: rgba(255,255,255,0.1);
-      backdrop-filter: blur(12px);
-      border-radius: 16px; border: 1px solid rgba(255,255,255,0.2);
-      padding: 16px 20px; color: #fff;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-      opacity: 0; transform: translateY(-20px); pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease;
+      background: rgba(20,20,20,0.92);
+      backdrop-filter: blur(16px);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 14px 18px;
+      color: var(--text);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+      opacity: 0; transform: translateY(-10px) scale(0.97); pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    .notification.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
-    .notification .title { font-weight: 700; margin-bottom: 6px; }
-    .notification .message { font-weight: 400; font-size: 14px; color: #ddd; }
+    .notification.show { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .notification .title { font-weight: 700; font-size: 13px; margin-bottom: 4px; color: var(--green); }
+    .notification .message { font-size: 13px; color: #bbb; }
 
+    /* ── Баннер ошибки ── */
     #error-banner {
-      position: fixed; top: 20px; left: 50%;
+      position: fixed; top: 16px; left: 50%;
       transform: translateX(-50%) translateY(-20px);
-      background: rgba(255,59,59,0.2); border: 1px solid rgba(255,59,59,0.5);
-      backdrop-filter: blur(12px); padding: 16px 20px 16px 16px;
-      border-radius: 16px; color: #fff; font-weight: 500;
+      background: rgba(255,40,40,0.12);
+      border: 1px solid rgba(255,80,80,0.35);
+      backdrop-filter: blur(16px);
+      padding: 13px 16px 13px 16px;
+      border-radius: 14px; color: #ff8080; font-weight: 500; font-size: 14px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-      display: flex; justify-content: space-between; align-items: center;
-      min-width: 300px; opacity: 0; pointer-events: none;
-      transition: opacity 0.4s ease, transform 0.4s ease; z-index: 9999;
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      width: min(340px, calc(100vw - 32px));
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s ease; z-index: 9999;
     }
     #error-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
     #error-banner .close-btn {
-      width: 18px; height: 18px; cursor: pointer; position: relative;
-      margin-left: 12px; flex-shrink: 0;
+      width: 18px; height: 18px; cursor: pointer; position: relative; flex-shrink: 0; opacity: 0.7;
     }
+    #error-banner .close-btn:hover { opacity: 1; }
     #error-banner .close-btn::before,
     #error-banner .close-btn::after {
-      content: ''; position: absolute; width: 2px; height: 18px;
-      background-color: #fff; transform-origin: center;
+      content: ''; position: absolute; width: 2px; height: 16px;
+      background-color: #ff8080; transform-origin: center; top: 1px; left: 8px;
     }
-    #error-banner .close-btn::before { transform: translate(8px,0) rotate(45deg); }
-    #error-banner .close-btn::after  { transform: translate(8px,0) rotate(-45deg); }
+    #error-banner .close-btn::before { transform: rotate(45deg); }
+    #error-banner .close-btn::after  { transform: rotate(-45deg); }
 
-    .loading-text { margin-top: 10px; color: #aaa; font-size: 14px; }
-
-    /* Тикет-номер после создания */
+    /* ── Тикет создан ── */
     .ticket-created-num {
-      font-size: 28px; font-weight: 800; color: #00c853;
-      letter-spacing: 2px; margin: 8px 0;
-      text-shadow: 0 0 20px rgba(0,200,83,0.5);
+      font-family: var(--font-head);
+      font-size: clamp(24px, 6vw, 32px);
+      font-weight: 800;
+      color: var(--green);
+      letter-spacing: 2px;
+      margin: 6px 0;
+      text-shadow: 0 0 30px var(--green-glow);
     }
-    .ticket-hint { color: #888; font-size: 13px; text-align: center; }
+    .ticket-hint { color: #666; font-size: 13px; text-align: center; max-width: 280px; line-height: 1.4; }
+
+    /* ── Мобильные правки ── */
+    @media (max-width: 480px) {
+      body { padding: 0 12px 32px; }
+      .header { padding: 24px 0 20px; }
+      .card-face { padding: 24px 20px; gap: 12px; }
+      .btn { padding: 13px 14px; font-size: 14px; }
+      .menu-btn { padding: 13px 16px; font-size: 14px; }
+      #notification-container { top: 12px; right: 12px; }
+    }
+
+    @media (max-width: 360px) {
+      .buttons { flex-direction: column; }
+      .btn { min-width: unset; width: 100%; }
+    }
   </style>
 </head>
 <body>
 
-  <div class="header">Центр Поддержки FernieX</div>
+  <div class="header">Центр Поддержки <span>FernieX</span></div>
 
   <div class="scene">
     <div class="card active-main" id="card">
@@ -244,18 +397,18 @@
         <div class="menu-buttons">
           <button class="menu-btn" id="checkStatusBtn">Проверить статус обращения</button>
           <button class="menu-btn success" id="createBtn">Создать обращение</button>
-        </div>
-        <div class="buttons" style="margin-top: 20px;">
-          <button class="btn" id="backToMainBtn">Назад</button>
+          <button class="menu-btn back" id="backToMainBtn">Назад</button>
         </div>
       </div>
 
       <!-- ВВОД НОМЕРА ОБРАЩЕНИЯ -->
       <div class="card-face card-check">
-        <h2>Проверка статуса обращения</h2>
+        <h2>Проверка статуса</h2>
         <p>Введите номер обращения</p>
-        <input type="text" id="ticketInput" placeholder="TK-00001">
-        <div class="buttons">
+        <div class="field-wrap" style="max-width:280px;">
+          <input type="text" id="ticketInput" placeholder="TK-00001" style="text-align:center; letter-spacing:1px;">
+        </div>
+        <div class="buttons" style="max-width:280px;">
           <button class="btn" id="checkBackBtn">Назад</button>
           <button class="btn success" id="checkBtn">Проверить</button>
         </div>
@@ -294,17 +447,19 @@
       <!-- СОЗДАНИЕ ОБРАЩЕНИЯ -->
       <div class="card-face card-create">
         <h2>Создание обращения</h2>
-        <p id="createUserLabel" style="font-size:13px;color:#888;">👤 <span id="createNickDisplay">Загрузка...</span></p>
-        <input type="number" id="telegramIdInput" placeholder="Ваш Telegram ID (числа)" style="width:85%;" inputmode="numeric" min="1">
-        <select id="typeSelect" style="width:85%;">
-          <option value="">Выберите тип обращения</option>
-          <option value="bug">Баг / Ошибка</option>
-          <option value="suggest">Предложение</option>
-          <option value="question">Вопрос</option>
-          <option value="complaint">Жалоба</option>
-          <option value="other">Другое</option>
-        </select>
-        <textarea id="descriptionInput" placeholder="Опишите проблему подробнее..." style="width:85%;min-height:70px;padding:12px 16px;border-radius:14px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);backdrop-filter:blur(10px);color:#fff;font-size:14px;resize:vertical;font-family:inherit;outline:none;transition:all 0.3s ease;" onfocus="this.style.borderColor='#00c853';this.style.boxShadow='0 0 12px rgba(0,200,83,0.6)'" onblur="this.style.borderColor='rgba(255,255,255,0.2)';this.style.boxShadow='none'"></textarea>
+        <p id="createUserLabel" style="font-size:13px;color:#555;">👤 <span id="createNickDisplay">Загрузка...</span></p>
+        <div class="field-wrap">
+          <input type="number" id="telegramIdInput" placeholder="Ваш Telegram ID (числа)" inputmode="numeric" min="1">
+          <select id="typeSelect">
+            <option value="">Выберите тип обращения</option>
+            <option value="bug">Баг / Ошибка</option>
+            <option value="suggest">Предложение</option>
+            <option value="question">Вопрос</option>
+            <option value="complaint">Жалоба</option>
+            <option value="other">Другое</option>
+          </select>
+          <textarea id="descriptionInput" placeholder="Опишите проблему подробнее..." style="width:100%;min-height:80px;padding:13px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#f0f0f0;font-size:15px;font-family:'DM Sans',sans-serif;resize:vertical;outline:none;transition:border-color 0.25s,box-shadow 0.25s;" onfocus="this.style.borderColor='#00c853';this.style.boxShadow='0 0 0 3px rgba(0,200,83,0.35)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)';this.style.boxShadow='none'"></textarea>
+        </div>
         <div class="buttons">
           <button class="btn" id="createBackBtn">Назад</button>
           <button class="btn success" id="createSubmitBtn">Создать</button>
@@ -363,12 +518,12 @@
 
     // ── Размеры карты ────────────────────────────────────────────
     const CARD_SIZES = {
-      'card-main':    { w: '460px', h: '300px' },
-      'card-menu':    { w: '520px', h: '380px' },
-      'card-check':   { w: '520px', h: '380px' },
-      'card-loading': { w: '620px', h: '600px' },
-      'card-create':  { w: '520px', h: '520px' },
-      'card-created': { w: '520px', h: '360px' },
+      'card-main':    { h: '280px' },
+      'card-menu':    { h: '340px' },
+      'card-check':   { h: '320px' },
+      'card-loading': { h: '420px' },
+      'card-create':  { h: '420px' },
+      'card-created': { h: '300px' },
     };
 
     // ── Навигация ────────────────────────────────────────────────
@@ -397,8 +552,7 @@
       // Resize card
       const cls = [...nextFace.classList].find(c => CARD_SIZES[c]);
       if (cls) {
-        card.style.width  = CARD_SIZES[cls].w;
-        card.style.height = CARD_SIZES[cls].h;
+        card.style.minHeight = CARD_SIZES[cls].h;
       }
 
       setTimeout(() => {
