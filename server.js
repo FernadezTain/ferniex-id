@@ -2119,9 +2119,26 @@ async function hasFerniePlus(userId) {
 
 app.post('/api/chat', async (req, res) => {
   const { model, messages, max_tokens, stream } = req.body;
-
+  
   // Получаем userId из сессии (передаётся с фронта)
   const userId = req.body.userId || null;
+
+  // 🔥 ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ (исправление 422)
+  if (!model || typeof model !== 'string') {
+    return res.status(422).json({ error: { message: 'Поле "model" обязательно и должно быть строкой' } });
+  }
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return res.status(422).json({ error: { message: 'Поле "messages" обязательно и должно быть непустым массивом' } });
+  }
+  // Валидация структуры сообщений
+  for (const msg of messages) {
+    if (!msg.role || !msg.content) {
+      return res.status(422).json({ error: { message: 'Каждое сообщение должно содержать поля "role" и "content"' } });
+    }
+    if (!['user', 'assistant', 'system'].includes(msg.role)) {
+      return res.status(422).json({ error: { message: `Недопустимая роль сообщения: "${msg.role}"` } });
+    }
+  }
 
   // Проверка лимита если пользователь авторизован
   if (userId) {
@@ -2146,12 +2163,22 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
-      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream || false })
+      body: JSON.stringify({ 
+        model, 
+        messages, 
+        max_tokens: max_tokens || 8192, 
+        stream: stream || false 
+      })
     });
 
     if (!mistralRes.ok) {
       const err = await mistralRes.json().catch(() => ({}));
-      return res.status(mistralRes.status).json(err);
+      // Проксируем ошибку от Mistral с понятным сообщением
+      return res.status(mistralRes.status).json({ 
+        error: { 
+          message: err.error?.message || `Ошибка провайдера: ${mistralRes.status}` 
+        } 
+      });
     }
 
     if (stream) {
@@ -2192,7 +2219,7 @@ app.post('/api/chat', async (req, res) => {
     }
   } catch (e) {
     console.error('chat error:', e);
-    res.status(500).json({ error: { message: 'Ошибка сервера' } });
+    res.status(500).json({ error: { message: 'Ошибка сервера при обработке запроса' } });
   }
 });
 
