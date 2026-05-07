@@ -2118,8 +2118,8 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, max_tokens, stream } = req.body;
-  const userId = req.headers['x-user-id'] || null;
+  const { model, messages, max_tokens, stream, user_id } = req.body;
+  const userId = user_id || req.headers['x-user-id'] || null;
 
   // Проверка лимита если пользователь авторизован
   if (userId) {
