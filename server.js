@@ -2169,19 +2169,20 @@ app.post('/api/chat', async (req, res) => {
           callback(null, chunk);
         },
         flush(callback) {
-          if (userId && totalTokens > 0) {
-            addTokensUsed(userId, totalTokens).catch(console.error);
-          }
           callback();
         }
       });
 
-      reader.pipe(counter).pipe(res);
-      res.on('close', () => {
-        if (userId && totalTokens > 0) {
+      let tokensSaved = false;
+      const saveTokens = () => {
+        if (userId && totalTokens > 0 && !tokensSaved) {
+          tokensSaved = true;
           addTokensUsed(userId, totalTokens).catch(console.error);
         }
-      });
+      };
+      reader.pipe(counter).pipe(res);
+      res.on('finish', saveTokens);
+      res.on('close', saveTokens);
     } else {
       const data = await mistralRes.json();
       const tokens = data.usage?.total_tokens || 0;
