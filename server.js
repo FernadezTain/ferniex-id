@@ -14,6 +14,7 @@ app.use(cors({
   origin: [
     'https://ferniex-minigame.vercel.app',
     'https://ferniex-id.vercel.app',
+    'https://ferniex-ai.vercel.app',
   ],
   credentials: true
 }));
@@ -148,6 +149,22 @@ app.post("/api/login", async (req, res) => {
     }
 
     res.json({ success: true, userId: user.id, telegramLinked: !!user.telegram_id });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Верификация FernieID токена (для внешних сервисов) ======
+app.post("/api/verify-token", async (req, res) => {
+  const { userId, username } = req.body;
+  if (!userId || !username) return res.json({ success: false, error: "Нет данных" });
+  try {
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&username=eq.${username}&select=id,username,role,telegram_id`, { headers: sbHeaders });
+    const data = await response.json();
+    if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const user = data[0];
+    res.json({ success: true, userId: user.id, username: user.username, role: user.role, telegramLinked: !!user.telegram_id });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
@@ -1996,6 +2013,47 @@ app.delete('/api/admin/tickets/:ticketNum/history/:index', async (req, res) => {
   } catch (e) {
     console.error('delete history error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════
+//  FernieX-AI — синхронизация чатов
+// ══════════════════════════════════════════
+
+app.get('/api/ai-chats/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=chats,chat_order`, { headers: sbHeaders });
+    const data = await r.json();
+    if (!data.length) return res.json({ success: true, chats: {}, chat_order: [] });
+    res.json({ success: true, chats: data[0].chats, chat_order: data[0].chat_order });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/ai-chats/save', async (req, res) => {
+  const { userId, chats, chat_order } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (rows.length) {
+      await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ chats, chat_order, updated_at: new Date().toISOString() })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/ai_chats`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, chats, chat_order })
+      });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
