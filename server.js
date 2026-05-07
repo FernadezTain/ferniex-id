@@ -2146,7 +2146,7 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
-      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream || false })
+      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream !== undefined ? stream : false })
     });
 
     if (!mistralRes.ok) {
