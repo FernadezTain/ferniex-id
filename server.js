@@ -57,6 +57,7 @@ async function notifyBot(url, body, retries = 2) {
 
 // ====== Хелпер: Telegram ======
 async function sendTgMessage(chatId, text) {
+  console.log('>>> sendTgMessage to:', chatId, 'BOT_TOKEN exists:', !!BOT_TOKEN);
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
