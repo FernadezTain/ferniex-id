@@ -1775,8 +1775,9 @@ function nowFormatted() {
 
 // POST /api/tickets/create
 app.post('/api/tickets/create', async (req, res) => {
-  const { nick, type } = req.body;
-  if (!nick || !type) return res.json({ success: false, error: 'Нет данных' });
+  const { nick, telegram_id, type, description } = req.body;
+  if (!nick || !type || !telegram_id) return res.json({ success: false, error: 'Нет данных' });
+  if (!/^\d+$/.test(String(telegram_id))) return res.json({ success: false, error: 'Неверный Telegram ID' });
 
   const typeLabels = {
     bug: 'Баг / Ошибка', suggest: 'Предложение',
@@ -1792,8 +1793,9 @@ app.post('/api/tickets/create', async (req, res) => {
       method: 'POST',
       headers: { ...sbHeaders, Prefer: 'return=representation' },
       body: JSON.stringify({
-        ticket_num: ticketNum, user_nick: nick, type: typeLabels[type],
-        status: 'open', admin_nick: 'Не назначен', description: '', history
+        ticket_num: ticketNum, user_nick: nick, telegram_id: String(telegram_id),
+        type: typeLabels[type], status: 'open', admin_nick: 'Не назначен',
+        description: description || '', history
       })
     });
     const insertData = await insertRes.json();
@@ -1802,11 +1804,22 @@ app.post('/api/tickets/create', async (req, res) => {
       return res.json({ success: false, error: 'Ошибка создания обращения' });
     }
 
+    // Уведомление пользователю
+    await sendTgMessage(String(telegram_id),
+      `📩 <b>Обращение создано!</b>\n\n<blockquote>` +
+      `🔖 Номер: <b>${ticketNum}</b>\n` +
+      `📋 Тип: <b>${typeLabels[type]}</b>\n` +
+      `🕒 Создано: <b>${nowFormatted()} МСК</b></blockquote>\n\n` +
+      `<i>Сохрани номер — по нему можно проверить статус.</i>`
+    );
+
+    // Уведомление администраторам
     const adminChatId = process.env.ADMIN_CHAT_ID;
     if (BOT_TOKEN && adminChatId) {
       await sendTgMessage(adminChatId,
         `📩 <b>Новое обращение ${ticketNum}</b>\n\n<blockquote>` +
         `👤 Ник: <b>${nick}</b>\n📋 Тип: <b>${typeLabels[type]}</b>\n` +
+        `✈️ TG: <code>${telegram_id}</code>\n` +
         `🕒 Создано: <b>${nowFormatted()} МСК</b></blockquote>`
       );
     }
@@ -1843,6 +1856,145 @@ app.get('/api/tickets/:ticketNum', async (req, res) => {
     });
   } catch (e) {
     console.error('get ticket error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ── GET /api/admin/tickets?status=open|in_progress|closed&adminId=
+app.get('/api/admin/tickets', async (req, res) => {
+  const { status, adminId } = req.query;
+  if (!adminId) return res.json({ success: false, error: 'Нет adminId' });
+  try {
+    const adminCheck = await fetch(`${SB_URL}/rest/v1/users?id=eq.${adminId}&select=role`, { headers: sbHeaders });
+    const admins = await adminCheck.json();
+    if (!admins.length || admins[0].role !== 'admin') return res.json({ success: false, error: 'Нет доступа' });
+
+    const filter = status ? `&status=eq.${status}` : '';
+    const r = await fetch(
+      `${SB_URL}/rest/v1/support_tickets?select=*&order=created_at.desc${filter}`,
+      { headers: sbHeaders }
+    );
+    const tickets = await r.json();
+    res.json({ success: true, tickets });
+  } catch (e) {
+    console.error('admin tickets error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ── PATCH /api/admin/tickets/:ticketNum/system-status — изменить системный статус
+app.patch('/api/admin/tickets/:ticketNum/system-status', async (req, res) => {
+  const { ticketNum } = req.params;
+  const { status, adminId, adminNick } = req.body;
+  const allowed = ['open', 'in_progress', 'closed'];
+  if (!allowed.includes(status)) return res.json({ success: false, error: 'Неверный статус' });
+
+  try {
+    const adminCheck = await fetch(`${SB_URL}/rest/v1/users?id=eq.${adminId}&select=role`, { headers: sbHeaders });
+    const admins = await adminCheck.json();
+    if (!admins.length || admins[0].role !== 'admin') return res.json({ success: false, error: 'Нет доступа' });
+
+    const r = await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}&select=*`, { headers: sbHeaders });
+    const tickets = await r.json();
+    if (!tickets.length) return res.json({ success: false, error: 'Обращение не найдено' });
+    const t = tickets[0];
+
+    const statusLabel = { open: 'Открыто', in_progress: 'В работе', closed: 'Закрыто' }[status];
+    const history = (typeof t.history === 'string' ? JSON.parse(t.history) : t.history) || [];
+    history.push({ status: `Статус изменён: ${statusLabel}`, date: nowFormatted() });
+
+    await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ status, admin_nick: adminNick || 'Администратор', history: JSON.stringify(history), updated_at: new Date().toISOString() })
+    });
+
+    if (t.telegram_id) {
+      const msgs = { open: '🔓 Открыто', in_progress: '🔄 Взято в работу', closed: '✅ Закрыто' };
+      await sendTgMessage(t.telegram_id,
+        `📋 <b>Статус обращения ${ticketNum} изменён</b>\n\n<blockquote>` +
+        `📌 Новый статус: <b>${msgs[status]}</b>\n` +
+        `👮 Администратор: <b>${adminNick || 'Администратор'}</b>\n` +
+        `🕒 ${nowFormatted()} МСК</blockquote>`
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('system-status error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ── POST /api/admin/tickets/:ticketNum/add-status — добавить запись в таймлайн
+app.post('/api/admin/tickets/:ticketNum/add-status', async (req, res) => {
+  const { ticketNum } = req.params;
+  const { text, adminId, adminNick } = req.body;
+  if (!text?.trim()) return res.json({ success: false, error: 'Нет текста' });
+
+  try {
+    const adminCheck = await fetch(`${SB_URL}/rest/v1/users?id=eq.${adminId}&select=role`, { headers: sbHeaders });
+    const admins = await adminCheck.json();
+    if (!admins.length || admins[0].role !== 'admin') return res.json({ success: false, error: 'Нет доступа' });
+
+    const r = await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}&select=history,telegram_id`, { headers: sbHeaders });
+    const tickets = await r.json();
+    if (!tickets.length) return res.json({ success: false, error: 'Не найдено' });
+    const t = tickets[0];
+
+    const history = (typeof t.history === 'string' ? JSON.parse(t.history) : t.history) || [];
+    history.push({ status: text.trim(), date: nowFormatted() });
+
+    await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ history: JSON.stringify(history), updated_at: new Date().toISOString() })
+    });
+
+    if (t.telegram_id) {
+      await sendTgMessage(t.telegram_id,
+        `📋 <b>Обновление по обращению ${ticketNum}</b>\n\n<blockquote>` +
+        `💬 ${text.trim()}\n` +
+        `👮 ${adminNick || 'Администратор'}\n` +
+        `🕒 ${nowFormatted()} МСК</blockquote>`
+      );
+    }
+
+    res.json({ success: true, history });
+  } catch (e) {
+    console.error('add-status error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ── DELETE /api/admin/tickets/:ticketNum/history/:index — удалить запись таймлайна
+app.delete('/api/admin/tickets/:ticketNum/history/:index', async (req, res) => {
+  const { ticketNum, index } = req.params;
+  const { adminId } = req.body;
+
+  try {
+    const adminCheck = await fetch(`${SB_URL}/rest/v1/users?id=eq.${adminId}&select=role`, { headers: sbHeaders });
+    const admins = await adminCheck.json();
+    if (!admins.length || admins[0].role !== 'admin') return res.json({ success: false, error: 'Нет доступа' });
+
+    const r = await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}&select=history`, { headers: sbHeaders });
+    const tickets = await r.json();
+    if (!tickets.length) return res.json({ success: false, error: 'Не найдено' });
+
+    const history = (typeof tickets[0].history === 'string' ? JSON.parse(tickets[0].history) : tickets[0].history) || [];
+    const idx = parseInt(index);
+    if (idx < 0 || idx >= history.length) return res.json({ success: false, error: 'Неверный индекс' });
+    history.splice(idx, 1);
+
+    await fetch(`${SB_URL}/rest/v1/support_tickets?ticket_num=eq.${encodeURIComponent(ticketNum)}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ history: JSON.stringify(history), updated_at: new Date().toISOString() })
+    });
+
+    res.json({ success: true, history });
+  } catch (e) {
+    console.error('delete history error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
 });
