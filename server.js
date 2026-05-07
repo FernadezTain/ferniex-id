@@ -57,7 +57,6 @@ async function notifyBot(url, body, retries = 2) {
 
 // ====== Хелпер: Telegram ======
 async function sendTgMessage(chatId, text) {
-  console.log('>>> sendTgMessage to:', chatId, 'BOT_TOKEN exists:', !!BOT_TOKEN);
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
@@ -113,8 +112,6 @@ app.post("/api/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
 
-    console.log('>>> login user:', JSON.stringify(user));
-    console.log('>>> telegram_id:', user.telegram_id);
     if (user.telegram_id) {
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
       let device = 'неизвестно';
@@ -137,17 +134,8 @@ app.post("/api/login", async (req, res) => {
         }
       }
 
-      const serviceMap = {
-        'ferniex-minigame.vercel.app': '🎮 FernieX Minigame',
-        'fernie-x-ai-chat.vercel.app': '🤖 FernieX AI',
-        'ferniex-id.vercel.app': '🔐 FernieID (Личный кабинет)',
-      };
-      const origin = req.headers['origin'] || req.headers['referer'] || '';
-      const serviceName = Object.entries(serviceMap).find(([k]) => origin.includes(k))?.[1] || '🌐 FernieID';
-
       await sendTgMessage(user.telegram_id,
-        `🔐 <b>Выполнен вход через FernieID</b>\n\n` +
-        `🛡 Сервис: <b>${serviceName}</b>\n\n` +
+        `🔐 <b>Выполнен вход в Личный Кабинет FernieID</b>\n\n` +
         `<blockquote>` +
         `👤 Аккаунт: <b>${username}</b>\n` +
         `🕒 Время: <b>${now} МСК</b>` +
