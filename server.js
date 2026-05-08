@@ -2032,32 +2032,34 @@ app.delete('/api/admin/tickets/:ticketNum/history/:index', async (req, res) => {
 app.get('/api/ai-chats/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=chats,chat_order`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=chats,chat_order,last_chat_id`, { headers: sbHeaders });
     const data = await r.json();
-    if (!data.length) return res.json({ success: true, chats: {}, chat_order: [] });
-    res.json({ success: true, chats: data[0].chats, chat_order: data[0].chat_order });
+    if (!data.length) return res.json({ success: true, chats: {}, chat_order: [], last_chat_id: null });
+    res.json({ success: true, chats: data[0].chats, chat_order: data[0].chat_order, last_chat_id: data[0].last_chat_id || null });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
 });
 
 app.post('/api/ai-chats/save', async (req, res) => {
-  const { userId, chats, chat_order } = req.body;
+  const { userId, chats, chat_order, last_chat_id } = req.body;
   if (!userId) return res.json({ success: false, error: 'Нет userId' });
   try {
     const check = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
     const rows = await check.json();
+    const payload = { chats, chat_order, updated_at: new Date().toISOString() };
+    if (last_chat_id !== undefined) payload.last_chat_id = last_chat_id;
     if (rows.length) {
       await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ chats, chat_order, updated_at: new Date().toISOString() })
+        body: JSON.stringify(payload)
       });
     } else {
       await fetch(`${SB_URL}/rest/v1/ai_chats`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, chats, chat_order })
+        body: JSON.stringify({ user_id: userId, ...payload })
       });
     }
     res.json({ success: true });
