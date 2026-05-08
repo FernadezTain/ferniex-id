@@ -1152,7 +1152,14 @@ app.delete('/api/backgrounds/:id', async (req, res) => {
     const check = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}&uploader_id=eq.${userId}&select=id`, { headers: sbHeaders });
     const rows = await check.json();
     if (!rows.length) return res.json({ success: false, error: 'Нет доступа' });
-    await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders });
+    await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${bg.id}`, { method: 'DELETE' });
+
+    // Сбрасываем активный фон у всех пользователей, у которых он был установлен
+    await fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${bg.id}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ active_background_id: null })
+    });
     res.json({ success: true });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
@@ -2032,34 +2039,32 @@ app.delete('/api/admin/tickets/:ticketNum/history/:index', async (req, res) => {
 app.get('/api/ai-chats/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=chats,chat_order,last_chat_id`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=chats,chat_order`, { headers: sbHeaders });
     const data = await r.json();
-    if (!data.length) return res.json({ success: true, chats: {}, chat_order: [], last_chat_id: null });
-    res.json({ success: true, chats: data[0].chats, chat_order: data[0].chat_order, last_chat_id: data[0].last_chat_id || null });
+    if (!data.length) return res.json({ success: true, chats: {}, chat_order: [] });
+    res.json({ success: true, chats: data[0].chats, chat_order: data[0].chat_order });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
 });
 
 app.post('/api/ai-chats/save', async (req, res) => {
-  const { userId, chats, chat_order, last_chat_id } = req.body;
+  const { userId, chats, chat_order } = req.body;
   if (!userId) return res.json({ success: false, error: 'Нет userId' });
   try {
     const check = await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
     const rows = await check.json();
-    const payload = { chats, chat_order, updated_at: new Date().toISOString() };
-    if (last_chat_id !== undefined) payload.last_chat_id = last_chat_id;
     if (rows.length) {
       await fetch(`${SB_URL}/rest/v1/ai_chats?user_id=eq.${userId}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ chats, chat_order, updated_at: new Date().toISOString() })
       });
     } else {
       await fetch(`${SB_URL}/rest/v1/ai_chats`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, ...payload })
+        body: JSON.stringify({ user_id: userId, chats, chat_order })
       });
     }
     res.json({ success: true });
@@ -2120,9 +2125,11 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, max_tokens, stream, user_id } = req.body;
-  const userId = user_id || req.headers['x-user-id'] || null;
-  console.log('>>> /api/chat userId:', userId, 'user_id from body:', user_id, 'totalTokens will be counted');
+  const { model, messages, max_tokens, stream } = req.body;
+
+  // Получаем userId из сессии (передаётся с фронта)
+  const userId = req.body.userId || null;
+
   // Проверка лимита если пользователь авторизован
   if (userId) {
     const plus = await hasFerniePlus(userId);
@@ -2146,7 +2153,7 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
-      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 32000, stream: stream !== undefined ? stream : false })
+      body: JSON.stringify({ model, messages, max_tokens: max_tokens || 8192, stream: stream || false })
     });
 
     if (!mistralRes.ok) {
@@ -2171,22 +2178,19 @@ app.post('/api/chat', async (req, res) => {
           callback(null, chunk);
         },
         flush(callback) {
+          if (userId && totalTokens > 0) {
+            addTokensUsed(userId, totalTokens).catch(console.error);
+          }
           callback();
         }
       });
 
-      let tokensSaved = false;
-      const saveTokens = () => {
-        console.log('>>> saveTokens called, userId:', userId, 'totalTokens:', totalTokens, 'tokensSaved:', tokensSaved);
-        if (userId && totalTokens > 0 && !tokensSaved) {
-          tokensSaved = true;
-          console.log('>>> saving tokens:', totalTokens, 'for user:', userId);
+      reader.pipe(counter).pipe(res);
+      res.on('close', () => {
+        if (userId && totalTokens > 0) {
           addTokensUsed(userId, totalTokens).catch(console.error);
         }
-      };
-      reader.pipe(counter).pipe(res);
-      res.on('finish', saveTokens);
-      res.on('close', saveTokens);
+      });
     } else {
       const data = await mistralRes.json();
       const tokens = data.usage?.total_tokens || 0;
@@ -2211,16 +2215,5 @@ app.get('/api/chat/usage/:userId', async (req, res) => {
     res.json({ success: false, error: e.message });
   }
 });
-app.post('/api/chat/add-tokens', async (req, res) => {
-  const { user_id, tokens } = req.body;
-  if (!user_id || !tokens) return res.json({ success: false });
-  try {
-    await addTokensUsed(String(user_id), Math.ceil(tokens));
-    res.json({ success: true });
-  } catch(e) {
-    res.json({ success: false, error: e.message });
-  }
-});
-
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
