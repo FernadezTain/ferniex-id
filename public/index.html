@@ -281,6 +281,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .main-content::-webkit-scrollbar-thumb:hover{background:linear-gradient(to bottom,var(--p2),var(--p3));}
 .main-content{scrollbar-width:thin;scrollbar-color:var(--p1) transparent;}
 #unlinkTgBtn,#linkTgBtn{display:none;}
+.more-drawer-item{display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;font-size:.88rem;font-weight:500;color:rgba(255,255,255,.8);transition:background .18s,color .18s;-webkit-tap-highlight-color:transparent;}
+.more-drawer-item:hover,.more-drawer-item:active{background:rgba(180,141,255,0.1);color:#fff;}
+.more-drawer-ico{font-size:1.2rem;width:28px;text-align:center;flex-shrink:0;}
 .tpg-empty{text-align:center;padding:3rem 1rem;color:var(--muted);font-size:.85rem;line-height:1.8;}
 .tpg-empty-icon{font-size:3rem;display:block;margin-bottom:.75rem;opacity:.4;}
 .tpg-card{border-radius:18px;overflow:hidden;position:relative;background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 24px rgba(0,0,0,0.4);padding:1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:1.25rem;}
@@ -891,13 +894,23 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 <!-- МОБИЛЬНЫЙ НАВ -->
 <nav class="mobile-nav" id="mobileNav">
   <div class="mobile-nav-inner">
-    <div class="mobile-nav-btn active" data-section="overview"><div class="mnav-icon-wrap"><span class="mnav-icon">🏠</span></div><span>Обзор</span></div>
-    <div class="mobile-nav-btn" data-section="gamestats"><div class="mnav-icon-wrap"><span class="mnav-icon">🎮</span></div><span>Статистика</span></div>
-    <div class="mobile-nav-btn" data-section="fernieplus"><div class="mnav-icon-wrap"><span class="mnav-icon">✨</span></div><span>Fernie+</span></div>
-    <div class="mobile-nav-btn" data-section="security"><div class="mnav-icon-wrap"><span class="mnav-icon">🛡️</span></div><span>Безопасность</span></div>
-    <div class="mobile-nav-btn admin-only" data-section="admin" id="adminMobileBtn" style="display:none"><div class="mnav-icon-wrap"><span class="mnav-icon">👑</span></div><span>Админ</span></div>
+    <div class="mobile-nav-btn active" data-section="overview"><div class="mnav-icon-wrap"><span class="mnav-icon">🏠</span></div><span>Главная</span></div>
+    <div class="mobile-nav-btn" data-section="gamestats"><div class="mnav-icon-wrap"><span class="mnav-icon">📊</span></div><span>Статистика</span></div>
+    <button class="mobile-nav-btn" id="moreNavBtn" onclick="openMoreDrawer()"><div class="mnav-icon-wrap"><span class="mnav-icon">⋯</span></div><span>Другое</span></button>
   </div>
 </nav>
+
+<!-- DRAWER "ДРУГОЕ" -->
+<div id="moreDrawerOverlay" onclick="closeMoreDrawer()" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);"></div>
+<div id="moreDrawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:401;background:rgba(14,8,24,0.98);border:1px solid rgba(180,141,255,0.15);border-radius:24px 24px 0 0;padding:1.25rem 1rem calc(env(safe-area-inset-bottom) + 1.25rem);box-shadow:0 -8px 40px rgba(0,0,0,0.6);">
+  <div style="width:36px;height:4px;border-radius:100px;background:rgba(255,255,255,0.15);margin:0 auto .75rem;"></div>
+  <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.2);padding:0 8px;margin-bottom:.6rem;">Разделы</div>
+  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('security')"><span class="more-drawer-ico">🛡️</span><span>Безопасность</span></div>
+  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('fernieplus')"><span class="more-drawer-ico">✨</span><span>Fernie+</span></div>
+  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('cards')"><span class="more-drawer-ico">🃏</span><span>Коллекционные карточки</span></div>
+  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('apikeys')"><span class="more-drawer-ico">🔑</span><span>API-ключи</span></div>
+  <div class="more-drawer-item admin-only" id="adminDrawerBtn" style="display:none;" onclick="closeMoreDrawer();switchSection('admin')"><span class="more-drawer-ico">👑</span><span>Админ-Панель</span></div>
+</div>
 
 <!-- BUY MODAL -->
 <div class="buy-overlay" id="buyOverlay">
@@ -1045,6 +1058,15 @@ $('loginSubmit').onclick=async()=>{
 };
 $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginSubmit').click();});
 
+function openMoreDrawer(){
+  const overlay=$('moreDrawerOverlay'),drawer=$('moreDrawer');
+  overlay.style.display='block';drawer.style.display='block';
+  requestAnimationFrame(()=>{drawer.style.transform='translateY(0)';drawer.style.opacity='1';});
+}
+function closeMoreDrawer(){
+  const overlay=$('moreDrawerOverlay'),drawer=$('moreDrawer');
+  overlay.style.display='none';drawer.style.display='none';
+}
 function switchSection(section) {
   document.querySelectorAll('.nav-item,.mobile-nav-btn').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));
@@ -2029,7 +2051,7 @@ async function reviewApply(applyId, verdict) {
 }
 
 function checkAdminAccess(){
-  if(currentUser?.role==='admin'){$('adminNavItem').style.display='';$('adminMobileBtn').style.display='';}
+  if(currentUser?.role==='admin'){$('adminNavItem').style.display='';$('adminMobileBtn').style.display='';if($('adminDrawerBtn'))$('adminDrawerBtn').style.display='flex';}
 }
 // ════ ПЕРЕНОС АККАУНТА ════
 function openTransferPage() {
