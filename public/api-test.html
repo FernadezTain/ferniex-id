@@ -44,11 +44,12 @@ hr { border: none; border-top: 1px solid #222; margin: 4px 0 12px; }
 <div class="block">
   <label>Эндпоинт</label>
   <div class="endpoints">
-    <div class="ep active" onclick="setEndpoint(this, '/api/apikeys/verify', 'POST', '{\"key\":\"KEY\"}')">POST /verify</div>
+    <div class="ep active" onclick="setEndpoint(this, '/api/apikeys/verify', 'POST', '{&quot;key&quot;:&quot;KEY&quot;}')">POST /verify</div>
     <div class="ep" onclick="setEndpoint(this, '/api/balance/USER_ID', 'GET', '')">GET /balance</div>
-    <div class="ep" onclick="setEndpoint(this, '/api/verify-token', 'POST', '{\"userId\":\"ID\",\"username\":\"NAME\"}')">POST /verify-token</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/verify-token', 'POST', '{&quot;userId&quot;:&quot;ID&quot;,&quot;username&quot;:&quot;NAME&quot;}')">POST /verify-token</div>
     <div class="ep" onclick="setEndpoint(this, '/api/config', 'GET', '')">GET /config</div>
-    <div class="ep" onclick="setEndpoint(this, '/api/stats', 'POST', '{\"userId\":\"ID\",\"game\":\"pixel_snake\",\"score\":100}')">POST /stats</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/stats', 'POST', '{&quot;userId&quot;:&quot;ID&quot;,&quot;game&quot;:&quot;pixel_snake&quot;,&quot;score&quot;:100}')">POST /stats</div>
+    <div class="ep" onclick="openAuthModal()">🔐 Тест авторизации</div>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:10px;">
     <select id="method" style="width:100px;margin-bottom:0;">
@@ -139,5 +140,128 @@ document.getElementById('body').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendRequest();
 });
 </script>
+<!-- Модалка авторизации -->
+<div id="authModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;">
+  <div style="background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:24px;width:340px;font-family:monospace;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <span style="color:#b48dff;font-weight:700;">🔐 Тест авторизации</span>
+      <span onclick="closeAuthModal()" style="cursor:pointer;color:#888;font-size:1.2rem;">✕</span>
+    </div>
+
+    <div id="authStep1">
+      <label style="font-size:.75rem;color:#888;display:block;margin-bottom:4px;">Логин</label>
+      <input id="authUsername" placeholder="username" style="width:100%;padding:8px 10px;background:#1e1e1e;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-family:monospace;font-size:.85rem;outline:none;margin-bottom:10px;">
+      <label style="font-size:.75rem;color:#888;display:block;margin-bottom:4px;">Пароль</label>
+      <input id="authPassword" type="password" placeholder="password" style="width:100%;padding:8px 10px;background:#1e1e1e;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-family:monospace;font-size:.85rem;outline:none;margin-bottom:14px;">
+      <button onclick="doAuthLogin()" style="width:100%;padding:9px;border-radius:6px;border:none;background:#b48dff;color:#000;font-family:monospace;font-size:.85rem;font-weight:700;cursor:pointer;">Войти</button>
+      <div id="authErr1" style="color:#ff6b6b;font-size:.75rem;margin-top:8px;"></div>
+    </div>
+
+    <div id="authStep2" style="display:none;">
+      <div style="color:#888;font-size:.8rem;margin-bottom:12px;">Введи код из Telegram</div>
+      <input id="authCode" placeholder="123456" maxlength="6" style="width:100%;padding:8px 10px;background:#1e1e1e;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-family:monospace;font-size:1.2rem;outline:none;margin-bottom:14px;text-align:center;letter-spacing:6px;">
+      <button onclick="doAuthVerify()" style="width:100%;padding:9px;border-radius:6px;border:none;background:#b48dff;color:#000;font-family:monospace;font-size:.85rem;font-weight:700;cursor:pointer;">Подтвердить</button>
+      <div id="authErr2" style="color:#ff6b6b;font-size:.75rem;margin-top:8px;"></div>
+    </div>
+
+    <div id="authStep3" style="display:none;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:12px;">✅</div>
+      <div style="color:#7de8c0;font-weight:700;margin-bottom:8px;">Успешный вход!</div>
+      <div id="authResult" style="font-size:.78rem;color:#aaa;text-align:left;background:#111;border-radius:6px;padding:10px;white-space:pre-wrap;"></div>
+      <button onclick="closeAuthModal()" style="margin-top:14px;padding:8px 20px;border-radius:6px;border:none;background:#333;color:#e0e0e0;font-family:monospace;cursor:pointer;">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let authUserId = null;
+
+function openAuthModal() {
+  document.getElementById('authModal').style.display = 'flex';
+  document.getElementById('authStep1').style.display = 'block';
+  document.getElementById('authStep2').style.display = 'none';
+  document.getElementById('authStep3').style.display = 'none';
+  document.getElementById('authErr1').textContent = '';
+  document.getElementById('authUsername').value = '';
+  document.getElementById('authPassword').value = '';
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').style.display = 'none';
+}
+
+async function doAuthLogin() {
+  const base = document.getElementById('baseUrl').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const username = document.getElementById('authUsername').value.trim();
+  const password = document.getElementById('authPassword').value.trim();
+  const errEl = document.getElementById('authErr1');
+
+  if (!apiKey) { errEl.textContent = 'Введи API Key вверху страницы'; return; }
+  if (!username || !password) { errEl.textContent = 'Заполни все поля'; return; }
+
+  errEl.textContent = 'Загрузка...';
+  try {
+    const res = await fetch(base + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, username, password })
+    });
+    const data = await res.json();
+
+    // Показываем ответ в основном блоке
+    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('statusLine').innerHTML = `Статус: <span>${res.status}</span> · /api/auth/login`;
+
+    if (!data.success) { errEl.textContent = data.error; return; }
+
+    if (data.require2fa) {
+      authUserId = data.userId;
+      document.getElementById('authStep1').style.display = 'none';
+      document.getElementById('authStep2').style.display = 'block';
+      document.getElementById('authErr2').textContent = '';
+    } else {
+      showAuthSuccess(data);
+    }
+  } catch(e) {
+    errEl.textContent = 'Ошибка сети: ' + e.message;
+  }
+}
+
+async function doAuthVerify() {
+  const base = document.getElementById('baseUrl').value.trim();
+  const apiKey = document.getElementById('apiKey').value.trim();
+  const code = document.getElementById('authCode').value.trim();
+  const errEl = document.getElementById('authErr2');
+
+  if (!code) { errEl.textContent = 'Введи код'; return; }
+
+  errEl.textContent = 'Проверка...';
+  try {
+    const res = await fetch(base + '/api/auth/verify-2fa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, userId: authUserId, code })
+    });
+    const data = await res.json();
+
+    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('statusLine').innerHTML = `Статус: <span>${res.status}</span> · /api/auth/verify-2fa`;
+
+    if (!data.success) { errEl.textContent = data.error; return; }
+    showAuthSuccess(data);
+  } catch(e) {
+    errEl.textContent = 'Ошибка сети: ' + e.message;
+  }
+}
+
+function showAuthSuccess(data) {
+  document.getElementById('authStep1').style.display = 'none';
+  document.getElementById('authStep2').style.display = 'none';
+  document.getElementById('authStep3').style.display = 'block';
+  document.getElementById('authResult').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+
 </body>
 </html>
