@@ -12,9 +12,11 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static("public"));
 app.use(cors({
   origin: [
-    'https://ferniex-minigame.vercel.app',
     'https://ferniex-id.vercel.app',
+    'https://ferniex-minigame.vercel.app',
     'https://fernie-x-ai-chat.vercel.app',
+    'https://ferniex-music.vercel.app',
+    
   ],
   credentials: true
 }));
