@@ -16,7 +16,6 @@ app.use(cors({
     'https://ferniex-minigame.vercel.app',
     'https://fernie-x-ai-chat.vercel.app',
     'https://ferniex-music.vercel.app',
-    'https://fernie-id-api-test.vercel.app/',
     
   ],
   credentials: true
@@ -2612,6 +2611,38 @@ app.get('/api/config', (req, res) => {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseKey: process.env.SUPABASE_KEY
   });
+});
+
+app.post('/api/apikeys/verify', async (req, res) => {
+  const { key } = req.body;
+  if (!key) return res.json({ success: false, error: 'Нет ключа' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${key}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+    const apiKey = rows[0];
+    if (apiKey.status !== 'active') return res.json({ success: false, error: 'Ключ неактивен' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRes = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}&select=requests_total,requests_today,last_used_date`, { headers: sbHeaders });
+    const statsRows = await statsRes.json();
+    const cur = statsRows[0] || {};
+    const sameDay = cur.last_used_date === today;
+    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        requests_total: (cur.requests_total || 0) + 1,
+        requests_today: sameDay ? (cur.requests_today || 0) + 1 : 1,
+        last_used_date: today,
+        last_used_at: new Date().toISOString()
+      })
+    });
+
+    res.json({ success: true, userId: apiKey.user_id, name: apiKey.name, appName: apiKey.app_name, type: apiKey.type });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
 });
 
 const port = process.env.PORT || 3000;
