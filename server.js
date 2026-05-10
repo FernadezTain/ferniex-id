@@ -117,7 +117,7 @@ app.post("/api/login", async (req, res) => {
       return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
     }
 
-    if (false && user.telegram_id) { // старый блок уведомлений — сохранён, но отключён (используется после verify-2fa)
+    if (false) { // старый блок уведомлений — отключён
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
       let device = 'неизвестно';
       if (userAgent) {
@@ -160,7 +160,7 @@ app.post("/api/login", async (req, res) => {
         `</blockquote>\n\n` +
         `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
       );
-    } // конец отключённого блока
+    }
 
     res.json({ success: true, userId: user.id, telegramLinked: false });
   } catch (e) {
