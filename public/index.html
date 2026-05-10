@@ -281,6 +281,64 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .main-content::-webkit-scrollbar-thumb:hover{background:linear-gradient(to bottom,var(--p2),var(--p3));}
 .main-content{scrollbar-width:thin;scrollbar-color:var(--p1) transparent;}
 #unlinkTgBtn,#linkTgBtn{display:none;}
+/* ════ API KEYS ════ */
+.api-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1rem;text-align:center;gap:1rem;}
+.api-empty-icon{font-size:3.5rem;opacity:.5;}
+.api-empty-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
+.api-empty-desc{font-size:.8rem;color:var(--muted);line-height:1.7;max-width:280px;}
+.api-key-card{border-radius:16px;padding:1.25rem;background:rgba(20,15,32,0.65);border:1px solid rgba(255,255,255,0.08);box-shadow:0 4px 20px rgba(0,0,0,0.38);margin-bottom:.75rem;cursor:pointer;transition:border-color .22s,transform .22s;position:relative;overflow:hidden;}
+.api-key-card::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(180,141,255,0.4) 40%,rgba(255,255,255,0.6) 50%,rgba(180,141,255,0.4) 60%,transparent);}
+.api-key-card:hover{border-color:rgba(180,141,255,0.25);transform:translateY(-2px);}
+.api-key-card.selected{border-color:rgba(180,141,255,0.4);background:rgba(180,141,255,0.06);}
+.api-key-card-top{display:flex;align-items:center;gap:12px;margin-bottom:.85rem;}
+.api-key-ico{width:40px;height:40px;border-radius:12px;flex-shrink:0;background:rgba(180,141,255,0.12);border:1px solid rgba(180,141,255,0.22);display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.api-key-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;margin-bottom:.15rem;}
+.api-key-app{font-size:.68rem;color:var(--muted);}
+.api-key-val{display:flex;align-items:center;gap:8px;padding:.6rem .85rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;font-family:monospace;font-size:.78rem;color:rgba(255,255,255,.6);letter-spacing:.5px;margin-bottom:.85rem;}
+.api-key-val-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.api-key-copy{background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:6px;font-size:.72rem;transition:color .2s,background .2s;-webkit-tap-highlight-color:transparent;flex-shrink:0;}
+.api-key-copy:hover{color:var(--p1);background:rgba(180,141,255,0.1);}
+.api-key-meta{display:flex;gap:.5rem;flex-wrap:wrap;}
+.api-key-badge{font-size:.6rem;font-weight:600;padding:3px 9px;border-radius:100px;}
+.api-key-badge.active{background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.2);color:var(--teal);}
+.api-key-badge.type{background:rgba(180,141,255,0.1);border:1px solid rgba(180,141,255,0.2);color:var(--p1);}
+.api-key-badge.date{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);}
+.api-detail-panel{border-radius:16px;padding:1.5rem;background:rgba(20,15,32,0.65);border:1px solid rgba(180,141,255,0.2);box-shadow:0 4px 20px rgba(0,0,0,0.38);margin-top:1rem;position:relative;overflow:hidden;}
+.api-detail-panel::before{content:'';position:absolute;top:0;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,rgba(180,141,255,0.5) 40%,rgba(255,255,255,0.7) 50%,rgba(180,141,255,0.5) 60%,transparent);}
+.api-detail-tabs{display:flex;gap:.4rem;margin-bottom:1.25rem;background:rgba(255,255,255,0.04);border-radius:12px;padding:4px;}
+.api-detail-tab{flex:1;padding:8px;border:none;background:none;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:var(--muted);cursor:pointer;border-radius:9px;transition:all .22s;-webkit-tap-highlight-color:transparent;}
+.api-detail-tab.active{background:rgba(180,141,255,0.15);color:rgba(255,255,255,.92);}
+.api-detail-section{display:none;}
+.api-detail-section.active{display:block;}
+.api-action-btns{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem;}
+.api-action-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;border:1px solid;}
+.api-action-btn.edit{background:rgba(126,184,255,0.1);border-color:rgba(126,184,255,0.25);color:var(--p2);}
+.api-action-btn.edit:hover{background:rgba(126,184,255,0.18);}
+.api-action-btn.danger{background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.25);color:var(--red);}
+.api-action-btn.danger:hover{background:rgba(255,107,107,0.18);}
+.api-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:1rem;}
+.api-stat-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:.85rem .75rem;text-align:center;}
+.api-stat-box-val{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--p1);margin-bottom:.2rem;}
+.api-stat-box-lbl{font-size:.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.api-log-item{display:flex;align-items:flex-start;gap:10px;padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.api-log-item:last-child{border-bottom:none;}
+.api-log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.api-log-dot.ok{background:var(--teal);}
+.api-log-dot.err{background:var(--red);}
+.api-log-action{font-size:.78rem;color:rgba(255,255,255,.8);margin-bottom:.15rem;}
+.api-log-meta{font-size:.63rem;color:var(--muted);}
+/* API CREATE MODAL */
+.api-modal-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s;}
+.api-modal-overlay.show{opacity:1;pointer-events:all;}
+.api-modal{width:100%;max-width:420px;background:rgba(14,8,28,0.99);border:1px solid rgba(180,141,255,0.2);border-radius:24px;padding:1.75rem;box-shadow:0 36px 72px rgba(0,0,0,0.8);transform:scale(0.9) translateY(14px);transition:transform .28s cubic-bezier(.22,.68,0,1.3);position:relative;}
+.api-modal::before{content:'';position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(180,141,255,0.6) 40%,rgba(255,255,255,0.9) 50%,rgba(180,141,255,0.6) 60%,transparent);}
+.api-modal-overlay.show .api-modal{transform:scale(1) translateY(0);}
+.api-modal-title{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;margin-bottom:1.25rem;display:flex;align-items:center;gap:10px;}
+.api-field{margin-bottom:1rem;}
+.api-field-label{font-size:.67rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.45rem;}
+.api-select{width:100%;padding:11px 14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:11px;font-family:'Inter',sans-serif;font-size:.87rem;color:var(--text);outline:none;transition:border-color .2s;cursor:pointer;}
+.api-select:focus{border-color:rgba(180,141,255,0.45);}
+.api-modal-btns{display:flex;gap:.6rem;margin-top:1.25rem;}
 .more-drawer-item{display:flex;align-items:center;gap:12px;padding:13px 12px;border-radius:14px;cursor:pointer;font-size:.88rem;font-weight:500;color:rgba(255,255,255,.8);transition:background .18s,color .18s;-webkit-tap-highlight-color:transparent;}
 .more-drawer-item:hover,.more-drawer-item:active{background:rgba(180,141,255,0.1);color:#fff;}
 .more-drawer-ico{font-size:1.2rem;width:28px;text-align:center;flex-shrink:0;}
@@ -858,13 +916,40 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   </div>
 </div>
 <!-- API KEYS -->
-      <div class="dash-section" id="section-apikeys">
-        <div class="stats-page-header"><h2>🔑 API-ключи</h2><p>Управление и создание ключей доступа</p></div>
-        <div class="sec-cards">
-          <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🔧</div><div><div class="sec-card-name">Раздел в разработке</div><div class="sec-card-desc">Скоро здесь появится управление API</div></div></div></div>
-        </div>
-      </div>
+<div class="dash-section" id="section-apikeys">
+  <div class="stats-page-header"><h2>🔑 API-ключи</h2><p>Управление ключами доступа для ваших приложений</p></div>
+  <div id="apiKeysContent"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
+</div>
 
+<!-- API CREATE/EDIT MODAL -->
+<div class="api-modal-overlay" id="apiModalOverlay">
+  <div class="api-modal">
+    <div class="api-modal-title"><span id="apiModalIcon">🔑</span><span id="apiModalTitleText">Создать API-ключ</span></div>
+    <div class="api-field">
+      <label class="api-field-label">Название ключа</label>
+      <input class="gl-input" id="apiKeyNameInput" placeholder="Например: Мой сайт" maxlength="60">
+    </div>
+    <div class="api-field">
+      <label class="api-field-label">Тип приложения</label>
+      <select class="api-select" id="apiKeyTypeSelect">
+        <option value="web">🌐 Веб-сайт</option>
+        <option value="mobile">📱 Мобильное приложение</option>
+        <option value="bot">🤖 Бот</option>
+        <option value="game">🎮 Игра</option>
+        <option value="other">⚙️ Другое</option>
+      </select>
+    </div>
+    <div class="api-field">
+      <label class="api-field-label">Название приложения</label>
+      <input class="gl-input" id="apiKeyAppNameInput" placeholder="Например: MyApp" maxlength="80">
+    </div>
+    <div id="apiModalMsg" class="msg" style="color:var(--red);min-height:16px;margin-top:.25rem;"></div>
+    <div class="api-modal-btns">
+      <button class="gl-btn" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);cursor:pointer;font-size:.85rem;" onclick="closeApiModal()">Отмена</button>
+      <button class="gl-btn gl-btn-primary" style="flex:2;padding:11px;border-radius:11px;cursor:pointer;font-size:.85rem;" id="apiModalConfirmBtn" onclick="submitApiModal()">Создать</button>
+    </div>
+  </div>
+</div>
 <!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
       <div class="dash-section" id="section-admin">
         <div class="stats-page-header"><h2>👑 Панель Администратора</h2><p>Управление пользователями сайта</p></div>
@@ -901,9 +986,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
             <div class="sec-card-left"><div class="sec-card-ico-wrap">✨</div><div><div class="sec-card-name">Fernie+</div><div class="sec-card-desc">Подписка и кастомизация профиля</div></div></div>
             <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
           </div>
-          <div class="sec-card" style="cursor:pointer;" onclick="switchSection('cards')">
+          <div class="sec-card" style="cursor:pointer;" onclick="window.location.href='/CollectionCard'">
             <div class="sec-card-left"><div class="sec-card-ico-wrap">🃏</div><div><div class="sec-card-name">Коллекционные карточки</div><div class="sec-card-desc">Коллекция, паки, маркет</div></div></div>
-            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">↗</span></div>
           </div>
           <div class="sec-card" style="cursor:pointer;" onclick="switchSection('apikeys')">
             <div class="sec-card-left"><div class="sec-card-ico-wrap">🔑</div><div><div class="sec-card-name">API-ключи</div><div class="sec-card-desc">Управление и создание ключей</div></div></div>
@@ -1091,6 +1176,7 @@ function closeMoreDrawer(){
   overlay.style.display='none';drawer.style.display='none';
 }
 function switchSection(section) {
+  if(section==='apikeys') loadApiKeys();
   document.querySelectorAll('.nav-item,.mobile-nav-btn').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll(`[data-section="${section}"]`).forEach(el=>el.classList.add('active'));
@@ -2621,6 +2707,234 @@ async function doModAction() {
     showToast('❌ Ошибка удаления');
   }
 }
+// ════ API KEYS ════
+let apiKeys = [];
+let selectedApiKey = null;
+let apiModalMode = 'create'; // 'create' | 'edit'
+
+async function loadApiKeys() {
+  if (!currentUser) return;
+  const cont = $('apiKeysContent');
+  cont.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
+  try {
+    const rows = await sbFetch(`api_applications?owner_user_id=eq.${currentUser.id}&select=*&order=created_at.desc`);
+    apiKeys = rows;
+    renderApiKeys();
+  } catch(e) {
+    cont.innerHTML = '<div class="state-empty">⚠️ Ошибка загрузки</div>';
+  }
+}
+
+function renderApiKeys() {
+  const cont = $('apiKeysContent');
+  if (!apiKeys.length) {
+    cont.innerHTML = `
+      <div class="api-empty-state">
+        <div class="api-empty-icon">🔑</div>
+        <div class="api-empty-title">Нет API-ключей</div>
+        <div class="api-empty-desc">Создай первый ключ чтобы подключить своё приложение к FernieID</div>
+        <button class="gl-btn gl-btn-primary" style="padding:12px 28px;border-radius:12px;font-size:.85rem;cursor:pointer;margin-top:.5rem;" onclick="openApiModal('create')">➕ Создать ключ</button>
+      </div>`;
+    return;
+  }
+  const typeLabels = {web:'🌐 Веб-сайт',mobile:'📱 Мобильное',bot:'🤖 Бот',game:'🎮 Игра',other:'⚙️ Другое'};
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">`;
+  if(currentUser.role === 'admin' || apiKeys.length < 1) {
+    html += `<button class="gl-btn gl-btn-primary" style="padding:10px 20px;border-radius:12px;font-size:.82rem;cursor:pointer;" onclick="openApiModal('create')">➕ Создать ключ</button>`;
+  }
+  html += `</div>`;
+  apiKeys.forEach(k => {
+    const masked = k.api_key ? k.api_key.slice(0,8) + '••••••••••••••••' + k.api_key.slice(-4) : '—';
+    const isSelected = selectedApiKey?.id === k.id;
+    html += `
+    <div class="api-key-card${isSelected?' selected':''}" onclick="selectApiKey(${k.id})">
+      <div class="api-key-card-top">
+        <div class="api-key-ico">🔑</div>
+        <div style="flex:1;min-width:0;">
+          <div class="api-key-name">${k.app_name}</div>
+          <div class="api-key-app">${typeLabels[k.app_type]||'⚙️'} · ${k.app_label||'—'}</div>
+        </div>
+      </div>
+      <div class="api-key-val">
+        <span class="api-key-val-text" id="keyval-${k.id}">${masked}</span>
+        <button class="api-key-copy" onclick="event.stopPropagation();copyApiKey('${k.api_key}')">📋 Копировать</button>
+      </div>
+      <div class="api-key-meta">
+        <span class="api-key-badge active">● Активен</span>
+        <span class="api-key-badge type">${typeLabels[k.app_type]||'Другое'}</span>
+        <span class="api-key-badge date">📅 ${fmtDate(k.created_at)}</span>
+      </div>
+    </div>
+    ${isSelected ? renderApiDetail(k) : ''}`;
+  });
+  cont.innerHTML = html;
+}
+
+function renderApiDetail(k) {
+  const typeLabels = {web:'🌐 Веб-сайт',mobile:'📱 Мобильное',bot:'🤖 Бот',game:'🎮 Игра',other:'⚙️ Другое'};
+  return `
+  <div class="api-detail-panel">
+    <div class="api-detail-tabs">
+      <button class="api-detail-tab active" onclick="switchApiTab(this,'api-tab-info-${k.id}')">📋 Инфо</button>
+      <button class="api-detail-tab" onclick="switchApiTab(this,'api-tab-stats-${k.id}')">📊 Статистика</button>
+      <button class="api-detail-tab" onclick="switchApiTab(this,'api-tab-logs-${k.id}')">🗒 Логи</button>
+    </div>
+
+    <div class="api-detail-section active" id="api-tab-info-${k.id}">
+      <div class="field-row"><div class="field-label">Название ключа</div><div class="field-val-wrap"><span class="field-val-icon">🏷</span><span class="field-val-text">${k.app_name}</span></div></div>
+      <div class="field-row"><div class="field-label">Тип приложения</div><div class="field-val-wrap"><span class="field-val-icon">📦</span><span class="field-val-text">${typeLabels[k.app_type]||'—'}</span></div></div>
+      <div class="field-row"><div class="field-label">Название приложения</div><div class="field-val-wrap"><span class="field-val-icon">💻</span><span class="field-val-text">${k.app_label||'—'}</span></div></div>
+      <div class="field-row"><div class="field-label">Создан</div><div class="field-val-wrap"><span class="field-val-icon">📅</span><span class="field-val-text">${fmtDate(k.created_at)}</span></div></div>
+      <div class="api-action-btns">
+        <button class="api-action-btn edit" onclick="openApiModal('edit',${k.id})">✏️ Редактировать</button>
+        <button class="api-action-btn danger" onclick="deleteApiKey(${k.id})">🗑 Удалить ключ</button>
+      </div>
+    </div>
+
+    <div class="api-detail-section" id="api-tab-stats-${k.id}">
+      <div class="api-stat-row">
+        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-total-${k.id}">—</div><div class="api-stat-box-lbl">Запросов</div></div>
+        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-today-${k.id}">—</div><div class="api-stat-box-lbl">Сегодня</div></div>
+        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-users-${k.id}">—</div><div class="api-stat-box-lbl">Юзеров</div></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--muted);text-align:center;padding:1rem 0;">Статистика появится после первых запросов через API</div>
+    </div>
+
+    <div class="api-detail-section" id="api-tab-logs-${k.id}">
+      <div id="api-logs-${k.id}"><div class="state-loading"><div class="spinner"></div><span>Загрузка логов...</span></div></div>
+    </div>
+  </div>`;
+}
+
+function switchApiTab(btn, sectionId) {
+  const panel = btn.closest('.api-detail-panel');
+  panel.querySelectorAll('.api-detail-tab').forEach(t=>t.classList.remove('active'));
+  panel.querySelectorAll('.api-detail-section').forEach(s=>s.classList.remove('active'));
+  btn.classList.add('active');
+  const sec = document.getElementById(sectionId);
+  if(sec) {
+    sec.classList.add('active');
+    // Загрузить логи при переходе
+    if(sectionId.startsWith('api-tab-logs-')) {
+      const kid = sectionId.replace('api-tab-logs-','');
+      loadApiLogs(kid);
+    }
+  }
+}
+
+async function loadApiLogs(keyId) {
+  const cont = $(`api-logs-${keyId}`);
+  if(!cont) return;
+  try {
+    const rows = await sbFetch(`api_logs?app_id=eq.${keyId}&select=*&order=created_at.desc&limit=30`);
+    if(!rows.length){cont.innerHTML='<div class="state-empty" style="padding:1.5rem 0;">Логов пока нет</div>';return;}
+    cont.innerHTML = rows.map(l=>`
+      <div class="api-log-item">
+        <div class="api-log-dot ${l.success?'ok':'err'}"></div>
+        <div>
+          <div class="api-log-action">${l.action||'—'}</div>
+          <div class="api-log-meta">${fmtDate(l.created_at)} · ${l.success?'✓ Успешно':'✗ Ошибка'}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    cont.innerHTML='<div class="state-empty">Нет данных</div>';
+  }
+}
+
+function selectApiKey(id) {
+  selectedApiKey = selectedApiKey?.id === id ? null : apiKeys.find(k=>k.id===id);
+  renderApiKeys();
+}
+
+function copyApiKey(key) {
+  navigator.clipboard.writeText(key).then(()=>showToast('✅ Ключ скопирован'));
+}
+
+function openApiModal(mode, keyId=null) {
+  apiModalMode = mode;
+  $('apiModalMsg').textContent = '';
+  if(mode === 'edit' && keyId) {
+    const k = apiKeys.find(x=>x.id===keyId);
+    if(!k) return;
+    $('apiModalTitleText').textContent = 'Редактировать ключ';
+    $('apiModalIcon').textContent = '✏️';
+    $('apiModalConfirmBtn').textContent = 'Сохранить';
+    $('apiKeyNameInput').value = k.app_name || '';
+    $('apiKeyTypeSelect').value = k.app_type || 'web';
+    $('apiKeyAppNameInput').value = k.app_label || '';
+    $('apiModalConfirmBtn').dataset.editId = keyId;
+  } else {
+    $('apiModalTitleText').textContent = 'Создать API-ключ';
+    $('apiModalIcon').textContent = '🔑';
+    $('apiModalConfirmBtn').textContent = 'Создать';
+    $('apiKeyNameInput').value = '';
+    $('apiKeyTypeSelect').value = 'web';
+    $('apiKeyAppNameInput').value = '';
+    delete $('apiModalConfirmBtn').dataset.editId;
+  }
+  $('apiModalOverlay').classList.add('show');
+}
+
+function closeApiModal() {
+  $('apiModalOverlay').classList.remove('show');
+}
+
+async function submitApiModal() {
+  const name = $('apiKeyNameInput').value.trim();
+  const type = $('apiKeyTypeSelect').value;
+  const appLabel = $('apiKeyAppNameInput').value.trim();
+  const msg = $('apiModalMsg');
+  if(!name){msg.textContent='Введи название ключа';return;}
+  if(!appLabel){msg.textContent='Введи название приложения';return;}
+
+  const btn = $('apiModalConfirmBtn');
+  btn.textContent = '...'; btn.disabled = true;
+
+  try {
+    if(apiModalMode === 'create') {
+      // Проверяем лимит (не-админ — только 1)
+      if(currentUser.role !== 'admin' && apiKeys.length >= 1){
+        msg.textContent = 'Можно создать только 1 ключ';
+        btn.textContent='Создать';btn.disabled=false;return;
+      }
+      const apiKey = 'fid_' + Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,'0')).join('');
+      await sbFetch(`api_applications`, {
+        method:'POST',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({owner_user_id:currentUser.id,app_name:name,app_type:type,app_label:appLabel,api_key:apiKey,is_active:true})
+      });
+      showToast('✅ Ключ создан');
+    } else {
+      const editId = btn.dataset.editId;
+      await sbFetch(`api_applications?id=eq.${editId}`, {
+        method:'PATCH',
+        headers:{'Prefer':'return=minimal'},
+        body:JSON.stringify({app_name:name,app_type:type,app_label:appLabel})
+      });
+      showToast('✅ Сохранено');
+    }
+    closeApiModal();
+    selectedApiKey = null;
+    await loadApiKeys();
+  } catch(e) {
+    msg.textContent = 'Ошибка: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+async function deleteApiKey(keyId) {
+  if(!confirm('Удалить API-ключ? Все приложения использующие его потеряют доступ.')) return;
+  try {
+    await sbFetch(`api_applications?id=eq.${keyId}`, {method:'DELETE'});
+    selectedApiKey = null;
+    showToast('🗑 Ключ удалён');
+    await loadApiKeys();
+  } catch(e) {
+    showToast('❌ Ошибка удаления');
+  }
+}
+
+$('apiModalOverlay').addEventListener('click', e => { if(e.target===$('apiModalOverlay')) closeApiModal(); });
 </script>
 
 <!-- TRANSFER OVERLAY -->
