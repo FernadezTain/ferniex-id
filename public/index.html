@@ -2930,10 +2930,116 @@ async function loadApiLogs(keyId) {
 }
 function selectApiKey(id) {
   id = parseInt(id) || id;
-  const isSame = selectedApiKey?.id === id;
-  selectedApiKey = isSame ? null : apiKeys.find(k=>k.id===id);
-  renderApiKeys();
-  if(selectedApiKey) setTimeout(()=>loadApiLogs(selectedApiKey.id), 150);
+  selectedApiKey = apiKeys.find(k=>k.id===id);
+  renderApiKeyDetail();
+}
+
+function renderApiKeyDetail() {
+  const k = selectedApiKey;
+  if(!k) return;
+  const cont = $('apiKeysContent');
+  const typeLabels = {web:'🌐 Веб-сайт',mobile:'📱 Мобильное',bot:'🤖 Бот',game:'🎮 Игра',other:'⚙️ Другое'};
+  const masked = k.key ? k.key.slice(0,12) + '••••••••••••••••' + k.key.slice(-4) : '—';
+  cont.innerHTML = `
+    <!-- Назад -->
+    <button onclick="selectedApiKey=null;loadApiKeys();" style="display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:.78rem;font-weight:500;color:var(--muted);padding:7px 14px;border-radius:100px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:color .2s;margin-bottom:1.25rem;">← Назад к ключам</button>
+
+    <!-- Шапка ключа -->
+    <div class="gl-card" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div style="width:52px;height:52px;border-radius:15px;background:rgba(180,141,255,0.14);border:1px solid rgba(180,141,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🔑</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;margin-bottom:.2rem;">${k.name}</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:.65rem;font-weight:600;padding:3px 9px;border-radius:100px;background:rgba(78,205,196,0.1);border:1px solid rgba(78,205,196,0.2);color:var(--teal);">● Активен</span>
+            <span style="font-size:.65rem;font-weight:600;padding:3px 9px;border-radius:100px;background:rgba(180,141,255,0.1);border:1px solid rgba(180,141,255,0.2);color:var(--p1);">${typeLabels[k.type]||'Другое'}</span>
+            <span style="font-size:.65rem;color:var(--muted);">📅 ${fmtDate(k.created_at)}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;">
+          <button onclick="openApiModal('edit','${k.id}')" style="padding:8px 14px;border-radius:10px;background:rgba(126,184,255,0.1);border:1px solid rgba(126,184,255,0.25);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:var(--p2);cursor:pointer;transition:all .2s;">✏️ Изменить</button>
+          <button onclick="deleteApiKey('${k.id}')" style="padding:8px 14px;border-radius:10px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);font-family:'Inter',sans-serif;font-size:.75rem;font-weight:600;color:var(--red);cursor:pointer;transition:all .2s;">🗑 Удалить</button>
+        </div>
+      </div>
+
+      <!-- Ключ -->
+      <div style="font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">API Ключ</div>
+      <div style="display:flex;align-items:center;gap:8px;padding:.75rem 1rem;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);border-radius:11px;font-family:monospace;font-size:.82rem;color:rgba(255,255,255,.6);margin-bottom:1rem;">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="keyDetailVal">${masked}</span>
+        <button onclick="toggleKeyVisibility('${k.key}')" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 6px;font-size:.8rem;transition:color .2s;flex-shrink:0;" id="keyVisBtn">👁 Показать</button>
+        <button onclick="copyApiKey('${k.key}')" style="background:rgba(180,141,255,0.1);border:1px solid rgba(180,141,255,0.2);border-radius:7px;cursor:pointer;color:var(--p1);padding:4px 10px;font-family:'Inter',sans-serif;font-size:.72rem;font-weight:600;transition:all .2s;flex-shrink:0;">📋 Копировать</button>
+      </div>
+
+      <!-- Инфо -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;">
+        <div style="padding:.75rem 1rem;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;">Приложение</div>
+          <div style="font-size:.85rem;font-weight:600;">${k.app_name||'—'}</div>
+        </div>
+        <div style="padding:.75rem 1rem;border-radius:11px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.3rem;">Тип</div>
+          <div style="font-size:.85rem;font-weight:600;">${typeLabels[k.type]||'—'}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="gl-card" style="margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:1rem;">📊 Статистика</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;">
+        <div style="padding:1rem;border-radius:12px;background:rgba(180,141,255,0.07);border:1px solid rgba(180,141,255,0.15);text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--p1);">${k.requests_total||0}</div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.25rem;">Всего запросов</div>
+        </div>
+        <div style="padding:1rem;border-radius:12px;background:rgba(126,184,255,0.07);border:1px solid rgba(126,184,255,0.15);text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--p2);">${k.requests_today||0}</div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.25rem;">Сегодня</div>
+        </div>
+        <div style="padding:1rem;border-radius:12px;background:rgba(78,205,196,0.07);border:1px solid rgba(78,205,196,0.15);text-align:center;">
+          <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:800;color:var(--teal);">${k.last_used_at?fmtDateShort(k.last_used_at):'—'}</div>
+          <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.25rem;">Последний запрос</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Логи -->
+    <div class="gl-card">
+      <div style="font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:1rem;">🗒 Логи</div>
+      <div id="apiKeyLogsContainer"><div class="state-loading"><div class="spinner"></div><span>Загрузка логов...</span></div></div>
+    </div>
+  `;
+
+  // Грузим логи
+  loadApiLogsInto(k.id, 'apiKeyLogsContainer');
+}
+
+let keyVisible = false;
+function toggleKeyVisibility(key) {
+  keyVisible = !keyVisible;
+  const val = $('keyDetailVal');
+  const btn = $('keyVisBtn');
+  if(val) val.textContent = keyVisible ? key : key.slice(0,12)+'••••••••••••••••'+key.slice(-4);
+  if(btn) btn.textContent = keyVisible ? '🙈 Скрыть' : '👁 Показать';
+}
+
+async function loadApiLogsInto(keyId, containerId) {
+  const cont = $(containerId);
+  if(!cont) return;
+  try {
+    const rows = await sbFetch(`api_key_logs?api_key_id=eq.${keyId}&select=*&order=created_at.desc&limit=50`);
+    if(!rows.length){cont.innerHTML='<div class="state-empty" style="padding:1.5rem 0;"><span>📭</span><span>Логов пока нет</span></div>';return;}
+    const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос'};
+    cont.innerHTML = rows.map(l=>`
+      <div class="api-log-item">
+        <div class="api-log-dot ok"></div>
+        <div>
+          <div class="api-log-action">${actionLabels[l.action]||l.action||'—'}</div>
+          <div class="api-log-meta">${fmtDate(l.created_at)} · ${fmtTime(l.created_at)}${l.meta?.ip?' · IP: '+l.meta.ip:''}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    cont.innerHTML='<div class="state-empty">Нет данных</div>';
+  }
 }
 function copyApiKey(key) {
   navigator.clipboard.writeText(key).then(()=>showToast('✅ Ключ скопирован'));
