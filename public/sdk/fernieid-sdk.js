@@ -108,6 +108,21 @@
       font-size: 1.4rem !important; font-weight: 600 !important;
     }
 
+    #fid-tabs {
+      display: flex; gap: 6px; margin-bottom: 22px;
+      background: rgba(255,255,255,.05); border-radius: 10px; padding: 4px;
+    }
+    .fid-tab {
+      flex: 1; padding: 8px; border: none; border-radius: 8px;
+      background: transparent; color: rgba(255,255,255,.4);
+      font-family: 'Outfit', monospace; font-size: .85rem; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+    }
+    .fid-tab.active {
+      background: rgba(167,139,250,.2); color: #a78bfa;
+    }
+    .fid-tab:hover:not(.active) { color: rgba(255,255,255,.7); }
+
     @keyframes fid-fadein { from { opacity:0 } to { opacity:1 } }
     @keyframes fid-fadeout { from { opacity:1 } to { opacity:0 } }
     @keyframes fid-slidein { from { opacity:0; transform:translateY(24px) scale(.97) } to { opacity:1; transform:none } }
@@ -128,12 +143,29 @@
         <div class="fid-close" id="fid-close">✕</div>
         <div id="fid-logo">Fernie<span>ID</span></div>
 
+        <div id="fid-logo">Fernie<span>ID</span></div>
+
+        <div id="fid-tabs">
+          <button class="fid-tab active" id="fid-tab-login" onclick="fidSwitchTab('login')">Войти</button>
+          <button class="fid-tab" id="fid-tab-reg" onclick="fidSwitchTab('reg')">Регистрация</button>
+        </div>
+
         <div id="fid-s1">
           <div class="fid-label">Логин</div>
           <div class="fid-input-wrap"><input id="fid-u" placeholder="username" autocomplete="username"></div>
           <div class="fid-label">Пароль</div>
           <div class="fid-input-wrap"><input id="fid-p" type="password" placeholder="••••••••" autocomplete="current-password"></div>
           <button id="fid-btn">Войти →</button>
+        </div>
+
+        <div id="fid-s-reg" style="display:none">
+          <div class="fid-label">Логин</div>
+          <div class="fid-input-wrap"><input id="fid-ru" placeholder="username" autocomplete="username"></div>
+          <div class="fid-label">Пароль</div>
+          <div class="fid-input-wrap"><input id="fid-rp" type="password" placeholder="••••••••"></div>
+          <div class="fid-label">Повтори пароль</div>
+          <div class="fid-input-wrap"><input id="fid-rp2" type="password" placeholder="••••••••"></div>
+          <button id="fid-reg-btn">Зарегистрироваться →</button>
         </div>
 
         <div id="fid-s2" style="display:none">
@@ -150,9 +182,20 @@
 
     document.getElementById('fid-btn').onclick = doLogin;
     document.getElementById('fid-verify-btn').onclick = doVerify;
+    document.getElementById('fid-reg-btn').onclick = doRegister;
     document.getElementById('fid-close').onclick = close;
     document.getElementById('fid-p').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
     document.getElementById('fid-c').addEventListener('keydown', e => e.key === 'Enter' && doVerify());
+    document.getElementById('fid-rp2').addEventListener('keydown', e => e.key === 'Enter' && doRegister());
+
+    window.fidSwitchTab = function(tab) {
+      document.getElementById('fid-s1').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('fid-s-reg').style.display = tab === 'reg' ? 'block' : 'none';
+      document.getElementById('fid-s2').style.display = 'none';
+      document.getElementById('fid-tab-login').classList.toggle('active', tab === 'login');
+      document.getElementById('fid-tab-reg').classList.toggle('active', tab === 'reg');
+      document.getElementById('fid-err').textContent = '';
+    };
   }
 
   async function post(url, body) {
@@ -200,6 +243,32 @@
     el.textContent = msg;
     el.classList.remove('shake');
     setTimeout(() => el.classList.add('shake'), 10);
+  }
+
+  async function doRegister() {
+    const u = document.getElementById('fid-ru').value.trim();
+    const p = document.getElementById('fid-rp').value;
+    const p2 = document.getElementById('fid-rp2').value;
+    if (!u || !p || !p2) return setErr('Заполни все поля');
+    if (p !== p2) return setErr('Пароли не совпадают');
+    if (p.length < 6) return setErr('Пароль минимум 6 символов');
+    setInfo('Регистрация...');
+
+    const d = await post('/api/register', { username: u, password: p });
+    if (!d.success) return setErr(d.error);
+
+    // После регистрации сразу логиним
+    setInfo('Входим...');
+    const d2 = await post('/api/auth/login', { apiKey: KEY, username: u, password: p });
+    if (!d2.success) return setErr(d2.error);
+    if (d2.require2fa) {
+      uid = d2.userId;
+      document.getElementById('fid-s-reg').style.display = 'none';
+      document.getElementById('fid-s2').style.display = 'block';
+      document.getElementById('fid-err').textContent = '';
+    } else {
+      done(d2);
+    }
   }
 
   function setInfo(msg) {
