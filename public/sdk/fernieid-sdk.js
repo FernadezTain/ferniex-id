@@ -62,7 +62,7 @@
       background: rgba(167,139,250,.08);
       box-shadow: 0 0 0 3px rgba(167,139,250,.1);
     }
-    #fid-btn, #fid-verify-btn {
+    #fid-btn, #fid-verify-btn, #fid-reg-btn {
       width: 100%; padding: 14px;
       background: linear-gradient(135deg, #7c3aed, #a78bfa);
       border: none; border-radius: 12px;
@@ -141,8 +141,6 @@
     el.innerHTML = `
       <div id="fid-card">
         <div class="fid-close" id="fid-close">✕</div>
-        <div id="fid-logo">Fernie<span>ID</span></div>
-
         <div id="fid-logo">Fernie<span>ID</span></div>
 
         <div id="fid-tabs">
