@@ -857,6 +857,14 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     </div>
   </div>
 </div>
+<!-- API KEYS -->
+      <div class="dash-section" id="section-apikeys">
+        <div class="stats-page-header"><h2>🔑 API-ключи</h2><p>Управление и создание ключей доступа</p></div>
+        <div class="sec-cards">
+          <div class="sec-card"><div class="sec-card-left"><div class="sec-card-ico-wrap">🔧</div><div><div class="sec-card-name">Раздел в разработке</div><div class="sec-card-desc">Скоро здесь появится управление API</div></div></div></div>
+        </div>
+      </div>
+
 <!-- ADMIN PANEL ← правильное место: внутри main, после section-security -->
       <div class="dash-section" id="section-admin">
         <div class="stats-page-header"><h2>👑 Панель Администратора</h2><p>Управление пользователями сайта</p></div>
@@ -881,6 +889,33 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         <div id="adminUsersList"><div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div></div>
       </div>
 
+    <!-- ДРУГОЕ -->
+      <div class="dash-section" id="section-more">
+        <div class="stats-page-header"><h2>⋯ Другое</h2><p>Остальные разделы</p></div>
+        <div class="sec-cards">
+          <div class="sec-card" style="cursor:pointer;" onclick="switchSection('security')">
+            <div class="sec-card-left"><div class="sec-card-ico-wrap">🛡️</div><div><div class="sec-card-name">Безопасность</div><div class="sec-card-desc">Telegram, пароль, перенос аккаунта</div></div></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+          </div>
+          <div class="sec-card" style="cursor:pointer;" onclick="switchSection('fernieplus')">
+            <div class="sec-card-left"><div class="sec-card-ico-wrap">✨</div><div><div class="sec-card-name">Fernie+</div><div class="sec-card-desc">Подписка и кастомизация профиля</div></div></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+          </div>
+          <div class="sec-card" style="cursor:pointer;" onclick="switchSection('cards')">
+            <div class="sec-card-left"><div class="sec-card-ico-wrap">🃏</div><div><div class="sec-card-name">Коллекционные карточки</div><div class="sec-card-desc">Коллекция, паки, маркет</div></div></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+          </div>
+          <div class="sec-card" style="cursor:pointer;" onclick="switchSection('apikeys')">
+            <div class="sec-card-left"><div class="sec-card-ico-wrap">🔑</div><div><div class="sec-card-name">API-ключи</div><div class="sec-card-desc">Управление и создание ключей</div></div></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+          </div>
+          <div class="sec-card admin-only" id="adminMoreBtn" style="display:none;cursor:pointer;" onclick="switchSection('admin')">
+            <div class="sec-card-left"><div class="sec-card-ico-wrap">👑</div><div><div class="sec-card-name">Админ-Панель</div><div class="sec-card-desc">Управление пользователями</div></div></div>
+            <div class="sec-card-right"><span style="color:var(--muted);font-size:.8rem;">›</span></div>
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -896,21 +931,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
   <div class="mobile-nav-inner">
     <div class="mobile-nav-btn active" data-section="overview"><div class="mnav-icon-wrap"><span class="mnav-icon">🏠</span></div><span>Главная</span></div>
     <div class="mobile-nav-btn" data-section="gamestats"><div class="mnav-icon-wrap"><span class="mnav-icon">📊</span></div><span>Статистика</span></div>
-    <button class="mobile-nav-btn" id="moreNavBtn" onclick="openMoreDrawer()"><div class="mnav-icon-wrap"><span class="mnav-icon">⋯</span></div><span>Другое</span></button>
+    <div class="mobile-nav-btn" data-section="more"><div class="mnav-icon-wrap"><span class="mnav-icon">⋯</span></div><span>Другое</span></div>
   </div>
 </nav>
-
-<!-- DRAWER "ДРУГОЕ" -->
-<div id="moreDrawerOverlay" onclick="closeMoreDrawer()" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);"></div>
-<div id="moreDrawer" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:401;background:rgba(14,8,24,0.98);border:1px solid rgba(180,141,255,0.15);border-radius:24px 24px 0 0;padding:1.25rem 1rem calc(env(safe-area-inset-bottom) + 1.25rem);box-shadow:0 -8px 40px rgba(0,0,0,0.6);">
-  <div style="width:36px;height:4px;border-radius:100px;background:rgba(255,255,255,0.15);margin:0 auto .75rem;"></div>
-  <div style="font-family:'Syne',sans-serif;font-size:.8rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.2);padding:0 8px;margin-bottom:.6rem;">Разделы</div>
-  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('security')"><span class="more-drawer-ico">🛡️</span><span>Безопасность</span></div>
-  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('fernieplus')"><span class="more-drawer-ico">✨</span><span>Fernie+</span></div>
-  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('cards')"><span class="more-drawer-ico">🃏</span><span>Коллекционные карточки</span></div>
-  <div class="more-drawer-item" onclick="closeMoreDrawer();switchSection('apikeys')"><span class="more-drawer-ico">🔑</span><span>API-ключи</span></div>
-  <div class="more-drawer-item admin-only" id="adminDrawerBtn" style="display:none;" onclick="closeMoreDrawer();switchSection('admin')"><span class="more-drawer-ico">👑</span><span>Админ-Панель</span></div>
-</div>
 
 <!-- BUY MODAL -->
 <div class="buy-overlay" id="buyOverlay">
@@ -2051,7 +2074,7 @@ async function reviewApply(applyId, verdict) {
 }
 
 function checkAdminAccess(){
-  if(currentUser?.role==='admin'){$('adminNavItem').style.display='';$('adminMobileBtn').style.display='';if($('adminDrawerBtn'))$('adminDrawerBtn').style.display='flex';}
+  if(currentUser?.role==='admin'){$('adminNavItem').style.display='';if($('adminMoreBtn'))$('adminMoreBtn').style.display='';}
 }
 // ════ ПЕРЕНОС АККАУНТА ════
 function openTransferPage() {
