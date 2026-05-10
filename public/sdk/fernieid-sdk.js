@@ -2,23 +2,120 @@
   const API = 'https://ferniex-id.vercel.app';
   let KEY = null, uid = null, _resolve = null;
 
-  // ── Стили ──────────────────────────────────────────────
   const css = `
-    #fid-overlay { position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:monospace; }
-    #fid-card { background:#161616;border:1px solid #2a2a2a;border-radius:12px;padding:28px;width:300px;position:relative; }
-    #fid-card h2 { color:#b48dff;font-size:.95rem;margin-bottom:20px; }
-    #fid-card input { width:100%;padding:9px 12px;background:#1e1e1e;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-family:monospace;font-size:.85rem;outline:none;margin-bottom:10px;box-sizing:border-box; }
-    #fid-card input:focus { border-color:#b48dff; }
-    #fid-card button.fid-btn { width:100%;padding:10px;background:#b48dff;color:#000;border:none;border-radius:6px;font-family:monospace;font-weight:700;cursor:pointer;font-size:.85rem; }
-    #fid-card button.fid-btn:hover { background:#c9a8ff; }
-    #fid-card .fid-err { color:#ff6b6b;font-size:.75rem;margin-top:8px;min-height:16px; }
-    #fid-card .fid-close { position:absolute;top:14px;right:16px;cursor:pointer;color:#555;font-size:1.1rem; }
-    #fid-card .fid-close:hover { color:#e0e0e0; }
-    #fid-card .fid-footer { text-align:center;margin-top:16px;font-size:.65rem;color:#444; }
-    #fid-card .fid-footer span { color:#b48dff; }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+    #fid-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', monospace;
+      animation: fid-fadein .3s ease;
+    }
+    #fid-overlay::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(120,60,200,.25) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(80,40,180,.2) 0%, transparent 50%),
+                  rgba(0,0,0,.75);
+      backdrop-filter: blur(8px);
+    }
+    #fid-card {
+      position: relative; width: 360px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 36px 32px 28px;
+      box-shadow: 0 0 60px rgba(120,60,220,.15), 0 24px 48px rgba(0,0,0,.5);
+      animation: fid-slidein .35s cubic-bezier(.16,1,.3,1);
+    }
+    #fid-card::before {
+      content: ''; position: absolute; inset: 0; border-radius: 20px;
+      background: linear-gradient(135deg, rgba(255,255,255,.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    #fid-logo {
+      text-align: center; margin-bottom: 28px;
+      font-size: 1.4rem; font-weight: 700; letter-spacing: -.5px;
+      color: #fff;
+    }
+    #fid-logo span { color: #a78bfa; }
+    #fid-logo::before {
+      content: '•'; color: #a78bfa; margin-right: 6px;
+      animation: fid-pulse 2s infinite;
+    }
+    .fid-label {
+      font-size: .65rem; font-weight: 600; letter-spacing: 1.5px;
+      color: rgba(255,255,255,.35); text-transform: uppercase; margin-bottom: 6px;
+    }
+    .fid-input-wrap { position: relative; margin-bottom: 14px; }
+    .fid-input-wrap input {
+      width: 100%; padding: 13px 16px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 12px;
+      color: #fff; font-family: 'Outfit', monospace; font-size: .9rem;
+      outline: none; box-sizing: border-box;
+      transition: border-color .2s, background .2s, box-shadow .2s;
+    }
+    .fid-input-wrap input::placeholder { color: rgba(255,255,255,.2); }
+    .fid-input-wrap input:focus {
+      border-color: rgba(167,139,250,.6);
+      background: rgba(167,139,250,.08);
+      box-shadow: 0 0 0 3px rgba(167,139,250,.1);
+    }
+    #fid-btn, #fid-verify-btn {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, #7c3aed, #a78bfa);
+      border: none; border-radius: 12px;
+      color: #fff; font-family: 'Outfit', monospace;
+      font-size: .95rem; font-weight: 600; cursor: pointer;
+      margin-top: 6px; position: relative; overflow: hidden;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 4px 20px rgba(124,58,237,.4);
+    }
+    #fid-btn:hover, #fid-verify-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(124,58,237,.5); }
+    #fid-btn:active, #fid-verify-btn:active { transform: translateY(0); }
+    #fid-btn::after, #fid-verify-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+      transform: translateX(-100%);
+      animation: fid-shimmer 2.5s infinite;
+    }
+    .fid-err {
+      color: #f87171; font-size: .78rem; margin-top: 10px;
+      min-height: 18px; text-align: center;
+    }
+    .fid-err.shake { animation: fid-shake .3s ease; }
+    .fid-close {
+      position: absolute; top: 16px; right: 18px;
+      cursor: pointer; color: rgba(255,255,255,.25);
+      font-size: .85rem;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: rgba(255,255,255,.05);
+      transition: color .2s, background .2s;
+    }
+    .fid-close:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .fid-footer {
+      text-align: center; margin-top: 20px;
+      font-size: .68rem; color: rgba(255,255,255,.2); letter-spacing: .5px;
+    }
+    .fid-footer span { color: #a78bfa; }
+    #fid-s2-hint {
+      color: rgba(255,255,255,.4); font-size: .82rem;
+      text-align: center; margin-bottom: 16px; line-height: 1.5;
+    }
+    #fid-c {
+      text-align: center !important; letter-spacing: 8px !important;
+      font-size: 1.4rem !important; font-weight: 600 !important;
+    }
+
+    @keyframes fid-fadein { from { opacity:0 } to { opacity:1 } }
+    @keyframes fid-fadeout { from { opacity:1 } to { opacity:0 } }
+    @keyframes fid-slidein { from { opacity:0; transform:translateY(24px) scale(.97) } to { opacity:1; transform:none } }
+    @keyframes fid-shimmer { 0%{transform:translateX(-100%)} 60%,100%{transform:translateX(100%)} }
+    @keyframes fid-pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    @keyframes fid-shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
   `;
 
-  // ── HTML ───────────────────────────────────────────────
   function buildModal() {
     const style = document.createElement('style');
     style.textContent = css;
@@ -28,19 +125,21 @@
     el.id = 'fid-overlay';
     el.innerHTML = `
       <div id="fid-card">
-        <span class="fid-close" id="fid-close">✕</span>
-        <h2>🔐 FernieID</h2>
+        <div class="fid-close" id="fid-close">✕</div>
+        <div id="fid-logo">Fernie<span>ID</span></div>
 
         <div id="fid-s1">
-          <input id="fid-u" placeholder="Логин" autocomplete="username">
-          <input id="fid-p" type="password" placeholder="Пароль" autocomplete="current-password">
-          <button class="fid-btn" id="fid-login-btn">Войти</button>
+          <div class="fid-label">Логин</div>
+          <div class="fid-input-wrap"><input id="fid-u" placeholder="username" autocomplete="username"></div>
+          <div class="fid-label">Пароль</div>
+          <div class="fid-input-wrap"><input id="fid-p" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+          <button id="fid-btn">Войти →</button>
         </div>
 
         <div id="fid-s2" style="display:none">
-          <div style="color:#888;font-size:.8rem;margin-bottom:10px;">Введи код из Telegram</div>
-          <input id="fid-c" placeholder="123456" maxlength="6" style="text-align:center;letter-spacing:6px;font-size:1.1rem;">
-          <button class="fid-btn" id="fid-verify-btn">Подтвердить</button>
+          <div id="fid-s2-hint">Код отправлен в Telegram.<br>Введи его ниже.</div>
+          <div class="fid-input-wrap"><input id="fid-c" placeholder="000000" maxlength="6"></div>
+          <button id="fid-verify-btn">Подтвердить →</button>
         </div>
 
         <div class="fid-err" id="fid-err"></div>
@@ -49,14 +148,13 @@
     `;
     document.body.appendChild(el);
 
-    document.getElementById('fid-login-btn').onclick = doLogin;
+    document.getElementById('fid-btn').onclick = doLogin;
     document.getElementById('fid-verify-btn').onclick = doVerify;
     document.getElementById('fid-close').onclick = close;
     document.getElementById('fid-p').addEventListener('keydown', e => e.key === 'Enter' && doLogin());
     document.getElementById('fid-c').addEventListener('keydown', e => e.key === 'Enter' && doVerify());
   }
 
-  // ── Логика ─────────────────────────────────────────────
   async function post(url, body) {
     const r = await fetch(API + url, {
       method: 'POST',
@@ -69,18 +167,18 @@
   async function doLogin() {
     const u = document.getElementById('fid-u').value.trim();
     const p = document.getElementById('fid-p').value;
-    const err = document.getElementById('fid-err');
-    if (!u || !p) return err.textContent = 'Заполни все поля';
-    err.textContent = 'Загрузка...';
+    if (!u || !p) return setErr('Заполни все поля');
+    setInfo('Загрузка...');
 
     const d = await post('/api/auth/login', { apiKey: KEY, username: u, password: p });
-    if (!d.success) return err.textContent = d.error;
+    if (!d.success) return setErr(d.error);
 
     if (d.require2fa) {
       uid = d.userId;
       document.getElementById('fid-s1').style.display = 'none';
       document.getElementById('fid-s2').style.display = 'block';
-      err.textContent = '';
+      document.getElementById('fid-err').textContent = '';
+      setTimeout(() => document.getElementById('fid-c')?.focus(), 100);
     } else {
       done(d);
     }
@@ -88,13 +186,26 @@
 
   async function doVerify() {
     const code = document.getElementById('fid-c').value.trim();
-    const err = document.getElementById('fid-err');
-    if (!code) return err.textContent = 'Введи код';
-    err.textContent = 'Проверка...';
+    if (!code) return setErr('Введи код');
+    setInfo('Проверка...');
 
     const d = await post('/api/auth/verify-2fa', { apiKey: KEY, userId: uid, code });
-    if (!d.success) return err.textContent = d.error;
+    if (!d.success) return setErr(d.error);
     done(d);
+  }
+
+  function setErr(msg) {
+    const el = document.getElementById('fid-err');
+    el.style.color = '#f87171';
+    el.textContent = msg;
+    el.classList.remove('shake');
+    setTimeout(() => el.classList.add('shake'), 10);
+  }
+
+  function setInfo(msg) {
+    const el = document.getElementById('fid-err');
+    el.style.color = 'rgba(255,255,255,.35)';
+    el.textContent = msg;
   }
 
   function done(d) {
@@ -105,14 +216,14 @@
 
   function close() {
     const el = document.getElementById('fid-overlay');
-    if (el) el.remove();
+    if (el) {
+      el.style.animation = 'fid-fadeout .2s ease forwards';
+      setTimeout(() => el.remove(), 200);
+    }
   }
 
-  // ── Публичный API ──────────────────────────────────────
   window.FernieID = {
-    init(apiKey) {
-      KEY = apiKey;
-    },
+    init(apiKey) { KEY = apiKey; },
     login() {
       return new Promise(resolve => {
         _resolve = resolve;
@@ -123,30 +234,19 @@
           return;
         }
 
-        // Проверяем ключ в системе
         fetch(API + '/api/apikeys/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: KEY })
-        })
-        .then(r => r.json())
-        .then(d => {
-          if (!d.success) {
-            document.getElementById('fid-err').textContent = '❌ Некорректный API Key';
-            return;
-          }
+        }).then(r => r.json()).then(d => {
+          if (!d.success) { setErr('❌ Некорректный API Key'); return; }
           setTimeout(() => document.getElementById('fid-u')?.focus(), 100);
-        })
-        .catch(() => {
-          document.getElementById('fid-err').textContent = '❌ Ошибка соединения с FernieID';
+        }).catch(() => {
+          setErr('❌ Ошибка соединения с FernieID');
         });
       });
     },
-    getUser() {
-      return JSON.parse(localStorage.getItem('fernieid_user'));
-    },
-    logout() {
-      localStorage.removeItem('fernieid_user');
-    }
+    getUser() { return JSON.parse(localStorage.getItem('fernieid_user')); },
+    logout() { localStorage.removeItem('fernieid_user'); }
   };
 })();
