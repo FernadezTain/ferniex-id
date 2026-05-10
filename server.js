@@ -2305,6 +2305,63 @@ app.post('/api/trackr/verify-2fa', async (req, res) => {
   }
 });
 // ══════════════════════════════════════════
+//  TRACKR — распознавание через AudD API (веб-версия)
+// ══════════════════════════════════════════
+
+app.post('/api/trackr/recognize', async (req, res) => {
+  const { audioBase64 } = req.body;
+  if (!audioBase64) return res.json({ success: false, error: 'Нет аудио' });
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('api_token', process.env.AUDD_API_TOKEN || 'test');
+    formData.append('audio', audioBase64);
+    formData.append('return', 'spotify,apple_music,deezer');
+
+    const auddRes = await fetch('https://api.audd.io/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString()
+    });
+    const data = await auddRes.json();
+
+    if (data.status !== 'success' || !data.result) {
+      return res.json({ success: true, notFound: true });
+    }
+
+    const r = data.result;
+    const spotify = r.spotify || {};
+    const apple   = r.apple_music || {};
+
+    const cover = spotify.album?.images?.[0]?.url
+      || apple.artwork?.url?.replace('{w}','500').replace('{h}','500')
+      || '';
+
+    const spotifyUrl = spotify.external_urls?.spotify || '';
+    const appleUrl   = apple.url || '';
+    const previewUrl = spotify.preview_url || apple.previews?.[0]?.url || '';
+
+    res.json({
+      success: true,
+      title:      r.title   || '',
+      artist:     r.artist  || '',
+      album:      r.album   || '',
+      year:       r.release_date?.slice(0, 4) || '',
+      label:      r.label   || '',
+      isrc:       spotify.external_ids?.isrc || '',
+      cover,
+      previewUrl,
+      spotifyUrl,
+      appleUrl,
+      confidence: 95,
+    });
+  } catch (e) {
+    console.error('recognize error:', e);
+    res.json({ success: false, error: 'Ошибка распознавания' });
+  }
+});
+
+// ══════════════════════════════════════════
 //  TRACKR — библиотека треков в Supabase
 // ══════════════════════════════════════════
 
