@@ -2727,7 +2727,7 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
 
   try {
     // Проверяем API ключ
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status,app_name`, { headers: sbHeaders });
     const keys = await keyRes.json();
     if (!keys.length || keys[0].status !== 'active')
       return res.json({ success: false, error: 'Неверный API ключ' });
@@ -2749,9 +2749,22 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
 
     // Возвращаем данные юзера
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,role`, { headers: sbHeaders });
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,role,telegram_id`, { headers: sbHeaders });
     const users = await userRes.json();
     const user = users[0];
+
+    // Получаем appName из ключа
+    const appName = keys[0].app_name || 'FernieID';
+
+    // Уведомление об успешном входе
+    if (user.telegram_id) {
+      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+      await sendTgMessage(user.telegram_id,
+        `✅ <b>Вход выполнен через ${appName}</b>\n\n` +
+        `<blockquote>👤 Аккаунт: <b>${user.username}</b>\n🕒 Время: <b>${now} МСК</b></blockquote>\n\n` +
+        `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
+      );
+    }
 
     res.json({ success: true, userId: user.id, username: user.username, role: user.role });
 
