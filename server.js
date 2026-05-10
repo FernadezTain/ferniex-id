@@ -2420,5 +2420,191 @@ app.post('/api/trackr/library/clear', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  API KEYS — управление ключами + логи в Supabase
+// ══════════════════════════════════════════
+
+// Хелпер: генерация ключа
+function generateApiKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let key = 'fid_';
+  for (let i = 0; i < 40; i++) key += chars[Math.floor(Math.random() * chars.length)];
+  return key;
+}
+
+// Хелпер: логирование действия с API-ключом
+async function logApiKeyAction(apiKeyId, userId, action, meta = {}) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/api_key_logs`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        api_key_id: apiKeyId,
+        user_id: userId,
+        action,
+        meta,
+        created_at: new Date().toISOString()
+      })
+    });
+  } catch (e) {
+    console.error('logApiKeyAction error:', e.message);
+  }
+}
+
+// GET /api/apikeys/:userId — список ключей пользователя
+app.get('/api/apikeys/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/api_keys?user_id=eq.${userId}&order=created_at.desc`,
+      { headers: sbHeaders }
+    );
+    const keys = await r.json();
+    res.json({ success: true, keys });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/apikeys/create — создание нового ключа
+app.post('/api/apikeys/create', async (req, res) => {
+  const { userId, name, type, appName } = req.body;
+  if (!userId || !name) return res.json({ success: false, error: 'Нет обязательных полей' });
+  try {
+    // Лимит: не более 10 ключей
+    const countRes = await fetch(`${SB_URL}/rest/v1/api_keys?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const existing = await countRes.json();
+    if (existing.length >= 10) return res.json({ success: false, error: 'Максимум 10 ключей на аккаунт' });
+
+    const key = generateApiKey();
+    const insertRes = await fetch(`${SB_URL}/rest/v1/api_keys`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        user_id: userId,
+        name,
+        key,
+        type: type || 'other',
+        app_name: appName || '',
+        status: 'active',
+        requests_total: 0,
+        requests_today: 0,
+        last_used_at: null,
+        created_at: new Date().toISOString()
+      })
+    });
+    const rows = await insertRes.json();
+    const created = rows[0];
+    await logApiKeyAction(created.id, userId, 'created', { name, type, appName });
+    res.json({ success: true, key: created });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// PATCH /api/apikeys/:keyId — редактирование ключа
+app.patch('/api/apikeys/:keyId', async (req, res) => {
+  const { keyId } = req.params;
+  const { userId, name, appName } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    // Проверяем владельца
+    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+
+    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ name, app_name: appName, updated_at: new Date().toISOString() })
+    });
+    await logApiKeyAction(keyId, userId, 'edited', { name, appName });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// DELETE /api/apikeys/:keyId — удаление ключа
+app.delete('/api/apikeys/:keyId', async (req, res) => {
+  const { keyId } = req.params;
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+
+    // Удаляем логи ключа
+    await fetch(`${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${keyId}`, { method: 'DELETE', headers: sbHeaders });
+    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}`, { method: 'DELETE', headers: sbHeaders });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// GET /api/apikeys/:keyId/logs — логи конкретного ключа
+app.get('/api/apikeys/:keyId/logs', async (req, res) => {
+  const { keyId } = req.params;
+  const userId = req.query.userId;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    // Проверяем владельца
+    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+
+    const logsRes = await fetch(
+      `${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${keyId}&order=created_at.desc&limit=50`,
+      { headers: sbHeaders }
+    );
+    const logs = await logsRes.json();
+    res.json({ success: true, logs });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/apikeys/verify — проверка ключа сторонним сервисом (логирует запрос)
+app.post('/api/apikeys/verify', async (req, res) => {
+  const { key } = req.body;
+  if (!key) return res.json({ success: false, error: 'Нет ключа' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${key}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+    const apiKey = rows[0];
+    if (apiKey.status !== 'active') return res.json({ success: false, error: 'Ключ неактивен' });
+
+    // Обновляем счётчики и last_used_at
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRes = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}&select=requests_total,requests_today,last_used_date`, { headers: sbHeaders });
+    const statsRows = await statsRes.json();
+    const cur = statsRows[0] || {};
+    const sameDay = cur.last_used_date === today;
+    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        requests_total: (cur.requests_total || 0) + 1,
+        requests_today: sameDay ? (cur.requests_today || 0) + 1 : 1,
+        last_used_date: today,
+        last_used_at: new Date().toISOString()
+      })
+    });
+
+    // Лог запроса
+    await logApiKeyAction(apiKey.id, apiKey.user_id, 'request', {
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+      origin: req.headers['origin'] || req.headers['referer'] || ''
+    });
+
+    res.json({ success: true, userId: apiKey.user_id, name: apiKey.name, appName: apiKey.app_name, type: apiKey.type });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
