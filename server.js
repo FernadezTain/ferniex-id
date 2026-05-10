@@ -16,6 +16,7 @@ app.use(cors({
     'https://ferniex-minigame.vercel.app',
     'https://fernie-x-ai-chat.vercel.app',
     'https://ferniex-music.vercel.app',
+    'https://fernie-id-api-test.vercel.app/',
     
   ],
   credentials: true
