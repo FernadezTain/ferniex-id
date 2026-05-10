@@ -113,6 +113,11 @@ app.post("/api/login", async (req, res) => {
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
 
     if (user.telegram_id) {
+      // Если Telegram привязан — требуем 2FA, не пускаем сразу
+      return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
+    }
+
+    if (false && user.telegram_id) { // старый блок уведомлений — сохранён, но отключён (используется после verify-2fa)
       const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
       let device = 'неизвестно';
       if (userAgent) {
@@ -155,9 +160,9 @@ app.post("/api/login", async (req, res) => {
         `</blockquote>\n\n` +
         `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
       );
-    }
+    } // конец отключённого блока
 
-    res.json({ success: true, userId: user.id, telegramLinked: !!user.telegram_id });
+    res.json({ success: true, userId: user.id, telegramLinked: false });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
@@ -2215,5 +2220,113 @@ app.get('/api/chat/usage/:userId', async (req, res) => {
     res.json({ success: false, error: e.message });
   }
 });
+// ══════════════════════════════════════════
+//  TRACKR — 2FA через Telegram (6-значный код)
+// ══════════════════════════════════════════
+
+const twoFaCodes = new Map(); // userId -> { code, expires }
+
+app.post('/api/trackr/send-2fa', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = Date.now() + 5 * 60 * 1000; // 5 минут
+    twoFaCodes.set(String(userId), { code, expires });
+
+    await sendTgMessage(users[0].telegram_id,
+      `🎵 <b>TRACKR — Подтверждение входа</b>\n\n` +
+      `Твой код подтверждения:\n\n` +
+      `<code>${code}</code>\n\n` +
+      `⏱ Действует <b>5 минут</b>\n` +
+      `⚠️ <i>Никому не сообщай этот код!</i>`
+    );
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('send-2fa error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+app.post('/api/trackr/verify-2fa', async (req, res) => {
+  const { userId, code } = req.body;
+  if (!userId || !code) return res.json({ success: false, error: 'Нет данных' });
+
+  const entry = twoFaCodes.get(String(userId));
+  if (!entry) return res.json({ success: false, error: 'Код не найден или истёк' });
+  if (Date.now() > entry.expires) {
+    twoFaCodes.delete(String(userId));
+    return res.json({ success: false, error: 'Код истёк' });
+  }
+  if (entry.code !== String(code).trim()) return res.json({ success: false, error: 'Неверный код' });
+
+  twoFaCodes.delete(String(userId));
+  res.json({ success: true });
+});
+
+// ══════════════════════════════════════════
+//  TRACKR — библиотека треков в Supabase
+// ══════════════════════════════════════════
+
+// GET /api/trackr/library/:userId
+app.get('/api/trackr/library/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/trackr_library?user_id=eq.${userId}&select=tracks&limit=1`, { headers: sbHeaders });
+    const data = await r.json();
+    if (!data.length) return res.json({ success: true, tracks: [] });
+    res.json({ success: true, tracks: data[0].tracks || [] });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/trackr/library/save
+app.post('/api/trackr/library/save', async (req, res) => {
+  const { userId, tracks } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const check = await fetch(`${SB_URL}/rest/v1/trackr_library?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const rows = await check.json();
+    if (rows.length) {
+      await fetch(`${SB_URL}/rest/v1/trackr_library?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ tracks, updated_at: new Date().toISOString() })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/trackr_library`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, tracks })
+      });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// DELETE /api/trackr/library/clear
+app.post('/api/trackr/library/clear', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    await fetch(`${SB_URL}/rest/v1/trackr_library?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ tracks: [], updated_at: new Date().toISOString() })
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
