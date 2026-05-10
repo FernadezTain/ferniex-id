@@ -669,6 +669,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div class="nav-item" data-section="thirdparty"><span class="nav-icon">🕹️</span><span class="nav-label">Сторонние игры</span></div>
       <div class="nav-item" data-section="security"><span class="nav-icon">🛡️</span><span class="nav-label">Безопасность</span></div>
       <div class="nav-item" data-section="fernieplus"><span class="nav-icon">✨</span><span class="nav-label">Fernie+</span></div>
+      <div class="sidebar-section-label" style="margin-top:16px;">Разработчику</div>
+      <div class="nav-item" data-section="apikeys"><span class="nav-icon">🔑</span><span class="nav-label">API-ключи</span></div>
+      <div class="nav-item" data-section="collectcards"><span class="nav-icon">🃏</span><span class="nav-label">Коллекционные карты</span></div>
       <div class="nav-item admin-only" data-section="admin" id="adminNavItem" style="display:none"><span class="nav-icon">👑</span><span class="nav-label">Админ панель</span></div>
     </aside>
 
@@ -915,6 +918,42 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     </div>
   </div>
 </div>
+<!-- COLLECTION CARDS -->
+<div class="dash-section" id="section-collectcards">
+  <div class="stats-page-header"><h2>🃏 Коллекционные карты</h2><p>Твоя коллекция, паки и маркет</p></div>
+  <div class="gl-card" style="cursor:pointer;position:relative;overflow:hidden;" onclick="window.location.href='/CollectionCard.html'">
+    <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(80,40,180,0.18) 0%,rgba(160,80,255,0.10) 50%,rgba(255,120,200,0.08) 100%);pointer-events:none;"></div>
+    <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(160,80,255,0.18) 0%,transparent 70%);pointer-events:none;"></div>
+    <div class="section-head" style="position:relative;z-index:1;">
+      <div class="section-title" style="display:flex;align-items:center;gap:8px;">🃏 Открыть коллекцию</div>
+      <div class="section-badge" style="background:linear-gradient(135deg,rgba(160,80,255,0.18),rgba(120,60,200,0.12));border-color:rgba(160,80,255,0.35);color:#c084fc;">Коллекция</div>
+    </div>
+    <div style="position:relative;z-index:1;margin-top:.65rem;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:.82rem;color:var(--muted);">Инвентарь карточек, маркет и редкости</div>
+      <div style="display:flex;gap:6px;">
+        <span style="font-size:1.4rem;">🔵</span>
+        <span style="font-size:1.4rem;">🟣</span>
+        <span style="font-size:1.4rem;">🟡</span>
+        <span style="font-size:1.4rem;">⚪</span>
+      </div>
+    </div>
+    <div style="position:relative;z-index:1;margin-top:1.25rem;display:flex;gap:.6rem;">
+      <div style="flex:1;padding:.85rem;border-radius:12px;background:rgba(160,80,255,0.08);border:1px solid rgba(160,80,255,0.18);text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#c084fc;" id="ccStatOwned">—</div>
+        <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.2rem;">Карточек</div>
+      </div>
+      <div style="flex:1;padding:.85rem;border-radius:12px;background:rgba(255,200,60,0.07);border:1px solid rgba(255,200,60,0.18);text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:#ffd84d;" id="ccStatLegendary">—</div>
+        <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.2rem;">Легендарных</div>
+      </div>
+      <div style="flex:1;padding:.85rem;border-radius:12px;background:rgba(126,184,255,0.07);border:1px solid rgba(126,184,255,0.18);text-align:center;">
+        <div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--p2);" id="ccStatPacks">—</div>
+        <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:.2rem;">Паков</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- API KEYS -->
 <div class="dash-section" id="section-apikeys">
   <div class="stats-page-header"><h2>🔑 API-ключи</h2><p>Управление ключами доступа для ваших приложений</p></div>
