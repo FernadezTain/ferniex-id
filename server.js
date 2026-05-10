@@ -2224,8 +2224,6 @@ app.get('/api/chat/usage/:userId', async (req, res) => {
 //  TRACKR — 2FA через Telegram (6-значный код)
 // ══════════════════════════════════════════
 
-const twoFaCodes = new Map(); // userId -> { code, expires }
-
 app.post('/api/trackr/send-2fa', async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, error: 'Нет userId' });
@@ -2235,8 +2233,14 @@ app.post('/api/trackr/send-2fa', async (req, res) => {
     if (!users.length || !users[0].telegram_id) return res.json({ success: false, error: 'Telegram не привязан' });
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
-    const expires = Date.now() + 5 * 60 * 1000; // 5 минут
-    twoFaCodes.set(String(userId), { code, expires });
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    // Сохраняем код в Supabase (upsert)
+    await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ user_id: userId, code, expires_at: expiresAt })
+    });
 
     await sendTgMessage(users[0].telegram_id,
       `🎵 <b>TRACKR — Подтверждение входа</b>\n\n` +
@@ -2257,18 +2261,29 @@ app.post('/api/trackr/verify-2fa', async (req, res) => {
   const { userId, code } = req.body;
   if (!userId || !code) return res.json({ success: false, error: 'Нет данных' });
 
-  const entry = twoFaCodes.get(String(userId));
-  if (!entry) return res.json({ success: false, error: 'Код не найден или истёк' });
-  if (Date.now() > entry.expires) {
-    twoFaCodes.delete(String(userId));
-    return res.json({ success: false, error: 'Код истёк' });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { headers: sbHeaders });
+    const rows = await r.json();
+
+    if (!rows.length) return res.json({ success: false, error: 'Код не найден или истёк' });
+
+    const entry = rows[0];
+    if (new Date() > new Date(entry.expires_at)) {
+      await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+      return res.json({ success: false, error: 'Код истёк' });
+    }
+    if (entry.code !== String(code).trim()) {
+      return res.json({ success: false, error: 'Неверный код' });
+    }
+
+    // Удаляем использованный код
+    await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('verify-2fa error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
   }
-  if (entry.code !== String(code).trim()) return res.json({ success: false, error: 'Неверный код' });
-
-  twoFaCodes.delete(String(userId));
-  res.json({ success: true });
 });
-
 // ══════════════════════════════════════════
 //  TRACKR — библиотека треков в Supabase
 // ══════════════════════════════════════════
