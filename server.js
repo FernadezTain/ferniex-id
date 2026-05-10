@@ -2645,5 +2645,119 @@ app.post('/api/apikeys/verify', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ВНЕШНЯЯ АВТОРИЗАЦИЯ ЧЕРЕЗ API КЛЮЧ
+// ══════════════════════════════════════════
+app.post('/api/auth/login', async (req, res) => {
+  const { apiKey, username, password } = req.body;
+  if (!apiKey || !username || !password)
+    return res.json({ success: false, error: 'Нет обязательных полей' });
+
+  try {
+    // 1. Проверяем API ключ
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,user_id,status,name,app_name`, { headers: sbHeaders });
+    const keys = await keyRes.json();
+    if (!keys.length) return res.json({ success: false, error: 'Неверный API ключ' });
+    if (keys[0].status !== 'active') return res.json({ success: false, error: 'API ключ неактивен' });
+    const appName = keys[0].app_name;
+    const appKeyId = keys[0].id;
+
+    // 2. Ищем пользователя
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,password_hash,telegram_id,role`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    const user = users[0];
+
+    // 3. Проверяем пароль
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.json({ success: false, error: 'Неверный пароль' });
+
+    // 4. Логируем запрос
+    await fetch(`${SB_URL}/rest/v1/api_key_logs`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        api_key_id: appKeyId,
+        user_id: keys[0].user_id,
+        action: 'auth_request',
+        meta: { username, app: appName, has_telegram: !!user.telegram_id },
+        created_at: new Date().toISOString()
+      })
+    });
+
+    // 5. Если есть Telegram — отправляем 2FA код
+    if (user.telegram_id) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+      await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates' },
+        body: JSON.stringify({ user_id: user.id, code, expires_at: expiresAt })
+      });
+
+      await sendTgMessage(user.telegram_id,
+        `🔐 <b>Вход через ${appName}</b>\n\n` +
+        `Код подтверждения:\n<code>${code}</code>\n\n` +
+        `⏱ Действует <b>5 минут</b>\n` +
+        `⚠️ <i>Никому не сообщай этот код!</i>`
+      );
+
+      return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
+    }
+
+    // 6. Нет Telegram — сразу пускаем
+    res.json({ success: true, require2fa: false, userId: user.id, username: user.username, role: user.role });
+
+  } catch (e) {
+    console.error('auth/login error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════
+//  ПОДТВЕРЖДЕНИЕ 2FA КОДА (для внешних сервисов)
+// ══════════════════════════════════════════
+app.post('/api/auth/verify-2fa', async (req, res) => {
+  const { apiKey, userId, code } = req.body;
+  if (!apiKey || !userId || !code)
+    return res.json({ success: false, error: 'Нет обязательных полей' });
+
+  try {
+    // Проверяем API ключ
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keys = await keyRes.json();
+    if (!keys.length || keys[0].status !== 'active')
+      return res.json({ success: false, error: 'Неверный API ключ' });
+
+    // Проверяем код
+    const r = await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { headers: sbHeaders });
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: false, error: 'Код не найден или истёк' });
+
+    const entry = rows[0];
+    if (new Date() > new Date(entry.expires_at)) {
+      await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+      return res.json({ success: false, error: 'Код истёк' });
+    }
+    if (entry.code !== String(code).trim())
+      return res.json({ success: false, error: 'Неверный код' });
+
+    // Удаляем код
+    await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+
+    // Возвращаем данные юзера
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,role`, { headers: sbHeaders });
+    const users = await userRes.json();
+    const user = users[0];
+
+    res.json({ success: true, userId: user.id, username: user.username, role: user.role });
+
+  } catch (e) {
+    console.error('auth/verify-2fa error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
