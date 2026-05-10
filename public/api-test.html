@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>FernieID API Tester</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: monospace; background: #0d0d0d; color: #e0e0e0; padding: 24px; }
+h1 { font-size: 1.1rem; color: #b48dff; margin-bottom: 20px; }
+.block { background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+label { font-size: .75rem; color: #888; display: block; margin-bottom: 4px; }
+input, select { width: 100%; padding: 8px 10px; background: #1e1e1e; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-family: monospace; font-size: .85rem; outline: none; margin-bottom: 10px; }
+input:focus, select:focus { border-color: #b48dff; }
+button { padding: 9px 18px; border-radius: 6px; border: none; background: #b48dff; color: #000; font-family: monospace; font-size: .85rem; font-weight: 700; cursor: pointer; }
+button:hover { background: #c9a8ff; }
+button.sec { background: #333; color: #e0e0e0; }
+.row { display: flex; gap: 8px; align-items: flex-end; }
+.row input { margin-bottom: 0; }
+#result { white-space: pre-wrap; font-size: .8rem; line-height: 1.6; background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px; min-height: 80px; color: #7de8c0; word-break: break-all; }
+#result.err { color: #ff6b6b; }
+.status { font-size: .7rem; color: #888; margin-bottom: 8px; }
+.status span { color: #7de8c0; }
+.status span.fail { color: #ff6b6b; }
+hr { border: none; border-top: 1px solid #222; margin: 4px 0 12px; }
+.endpoints { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.ep { padding: 4px 10px; border-radius: 100px; background: #1e1e1e; border: 1px solid #333; font-size: .72rem; cursor: pointer; transition: all .15s; }
+.ep:hover, .ep.active { background: rgba(180,141,255,0.15); border-color: #b48dff; color: #b48dff; }
+</style>
+</head>
+<body>
+
+<h1>🔑 FernieID API Tester</h1>
+
+<div class="block">
+  <label>API Base URL</label>
+  <input id="baseUrl" value="https://ferniex-id.vercel.app">
+  <label>API Key (fid_...)</label>
+  <div class="row">
+    <input id="apiKey" placeholder="fid_xxxxxxxx...">
+    <button onclick="verifyKey()">Проверить ключ</button>
+  </div>
+</div>
+
+<div class="block">
+  <label>Эндпоинт</label>
+  <div class="endpoints">
+    <div class="ep active" onclick="setEndpoint(this, '/api/apikeys/verify', 'POST', '{\"key\":\"KEY\"}')">POST /verify</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/balance/USER_ID', 'GET', '')">GET /balance</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/verify-token', 'POST', '{\"userId\":\"ID\",\"username\":\"NAME\"}')">POST /verify-token</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/config', 'GET', '')">GET /config</div>
+    <div class="ep" onclick="setEndpoint(this, '/api/stats', 'POST', '{\"userId\":\"ID\",\"game\":\"pixel_snake\",\"score\":100}')">POST /stats</div>
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <select id="method" style="width:100px;margin-bottom:0;">
+      <option>GET</option>
+      <option selected>POST</option>
+      <option>PATCH</option>
+      <option>DELETE</option>
+    </select>
+    <input id="endpoint" value="/api/apikeys/verify" style="margin-bottom:0;">
+  </div>
+  <label>Body (JSON)</label>
+  <input id="body" placeholder='{"key": "fid_..."}'>
+  <div style="display:flex;gap:8px;">
+    <button onclick="sendRequest()">▶ Отправить</button>
+    <button class="sec" onclick="clearResult()">Очистить</button>
+  </div>
+</div>
+
+<div class="block">
+  <div class="status" id="statusLine">Ожидание запроса...</div>
+  <hr>
+  <div id="result">// результат появится здесь</div>
+</div>
+
+<script>
+function setEndpoint(el, url, method, body) {
+  document.querySelectorAll('.ep').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('endpoint').value = url;
+  document.getElementById('method').value = method;
+  // Подставляем ключ в body если есть
+  const key = document.getElementById('apiKey').value.trim();
+  document.getElementById('body').value = body.replace('KEY', key || 'fid_...');
+}
+
+async function sendRequest() {
+  const base = document.getElementById('baseUrl').value.trim();
+  const endpoint = document.getElementById('endpoint').value.trim();
+  const method = document.getElementById('method').value;
+  const bodyRaw = document.getElementById('body').value.trim();
+  const resultEl = document.getElementById('result');
+  const statusEl = document.getElementById('statusLine');
+
+  statusEl.innerHTML = 'Отправка...';
+  resultEl.className = '';
+  resultEl.textContent = '// загрузка...';
+
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (method !== 'GET' && bodyRaw) {
+    try { opts.body = JSON.stringify(JSON.parse(bodyRaw)); }
+    catch { resultEl.className = 'err'; resultEl.textContent = '// Ошибка: невалидный JSON в body'; return; }
+  }
+
+  const t = Date.now();
+  try {
+    const res = await fetch(base + endpoint, opts);
+    const ms = Date.now() - t;
+    const text = await res.text();
+    let pretty;
+    try { pretty = JSON.stringify(JSON.parse(text), null, 2); }
+    catch { pretty = text; }
+    resultEl.className = res.ok ? '' : 'err';
+    resultEl.textContent = pretty;
+    statusEl.innerHTML = `Статус: <span class="${res.ok?'':'fail'}">${res.status} ${res.statusText}</span> · ${ms}ms · ${new Date().toLocaleTimeString('ru-RU')}`;
+  } catch(e) {
+    resultEl.className = 'err';
+    resultEl.textContent = '// Ошибка сети: ' + e.message;
+    statusEl.innerHTML = `<span class="fail">Ошибка сети</span>`;
+  }
+}
+
+async function verifyKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  document.getElementById('endpoint').value = '/api/apikeys/verify';
+  document.getElementById('method').value = 'POST';
+  document.getElementById('body').value = JSON.stringify({ key });
+  sendRequest();
+}
+
+function clearResult() {
+  document.getElementById('result').textContent = '// результат очищен';
+  document.getElementById('result').className = '';
+  document.getElementById('statusLine').innerHTML = 'Ожидание запроса...';
+}
+
+document.getElementById('body').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendRequest();
+});
+</script>
+</body>
+</html>
