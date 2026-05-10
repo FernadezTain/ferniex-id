@@ -2278,6 +2278,24 @@ app.post('/api/trackr/verify-2fa', async (req, res) => {
 
     // Удаляем использованный код
     await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
+
+    // Уведомление о входе
+    const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    const tgId = entry.telegram_id || null;
+    // Достаём telegram_id пользователя
+    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
+    const uData = await uRes.json();
+    if (uData.length && uData[0].telegram_id) {
+      await sendTgMessage(uData[0].telegram_id,
+        `✅ <b>Вход выполнен через TRACKR</b>\n\n` +
+        `<blockquote>` +
+        `👤 Аккаунт: <b>${uData[0].username}</b>\n` +
+        `🕒 Время: <b>${now} МСК</b>` +
+        `</blockquote>\n\n` +
+        `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
+      );
+    }
+
     res.json({ success: true });
   } catch (e) {
     console.error('verify-2fa error:', e);
