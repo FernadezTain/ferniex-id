@@ -327,6 +327,12 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 .api-log-dot.err{background:var(--red);}
 .api-log-action{font-size:.78rem;color:rgba(255,255,255,.8);margin-bottom:.15rem;}
 .api-log-meta{font-size:.63rem;color:var(--muted);}
+.api-type-card{border-radius:11px;padding:.65rem .4rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;text-align:center;transition:all .18s;-webkit-tap-highlight-color:transparent;}
+.api-type-card:hover{background:rgba(180,141,255,0.08);border-color:rgba(180,141,255,0.2);}
+.api-type-card.active{background:rgba(180,141,255,0.15);border-color:rgba(180,141,255,0.4);box-shadow:0 0 12px rgba(180,141,255,0.15);}
+.api-type-ico{font-size:1.3rem;margin-bottom:.3rem;line-height:1;}
+.api-type-lbl{font-size:.58rem;font-weight:600;color:var(--muted);letter-spacing:.3px;}
+.api-type-card.active .api-type-lbl{color:var(--p1);}
 /* API CREATE MODAL */
 .api-modal-overlay{position:fixed;inset:0;z-index:998;background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .22s;}
 .api-modal-overlay.show{opacity:1;pointer-events:all;}
@@ -963,29 +969,64 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 <!-- API CREATE/EDIT MODAL -->
 <div class="api-modal-overlay" id="apiModalOverlay">
   <div class="api-modal">
-    <div class="api-modal-title"><span id="apiModalIcon">🔑</span><span id="apiModalTitleText">Создать API-ключ</span></div>
-    <div class="api-field">
-      <label class="api-field-label">Название ключа</label>
-      <input class="gl-input" id="apiKeyNameInput" placeholder="Например: Мой сайт" maxlength="60">
+
+    <!-- Заголовок -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:38px;height:38px;border-radius:11px;background:rgba(180,141,255,0.14);border:1px solid rgba(180,141,255,0.25);display:flex;align-items:center;justify-content:center;font-size:1.1rem;" id="apiModalIcon">🔑</div>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;" id="apiModalTitleText">Создать API-ключ</div>
+          <div style="font-size:.65rem;color:var(--muted);margin-top:1px;">FernieID Developer</div>
+        </div>
+      </div>
+      <button onclick="closeApiModal()" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;transition:color .2s;line-height:1;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">✕</button>
     </div>
-    <div class="api-field">
-      <label class="api-field-label">Тип приложения</label>
-      <select class="api-select" id="apiKeyTypeSelect">
-        <option value="web">🌐 Веб-сайт</option>
-        <option value="mobile">📱 Мобильное приложение</option>
-        <option value="bot">🤖 Бот</option>
-        <option value="game">🎮 Игра</option>
-        <option value="other">⚙️ Другое</option>
-      </select>
+
+    <!-- Название ключа -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">Название ключа</div>
+      <input class="gl-input" id="apiKeyNameInput" placeholder="Например: Мой сайт" maxlength="60" style="width:100%;">
     </div>
-    <div class="api-field">
-      <label class="api-field-label">Название приложения</label>
-      <input class="gl-input" id="apiKeyAppNameInput" placeholder="Например: MyApp" maxlength="80">
+
+    <!-- Тип приложения — кастомные карточки -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">Тип приложения</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.45rem;" id="apiTypeGrid">
+        <div class="api-type-card active" data-type="web" onclick="selectApiType(this)">
+          <div class="api-type-ico">🌐</div>
+          <div class="api-type-lbl">Веб</div>
+        </div>
+        <div class="api-type-card" data-type="mobile" onclick="selectApiType(this)">
+          <div class="api-type-ico">📱</div>
+          <div class="api-type-lbl">Мобайл</div>
+        </div>
+        <div class="api-type-card" data-type="bot" onclick="selectApiType(this)">
+          <div class="api-type-ico">🤖</div>
+          <div class="api-type-lbl">Бот</div>
+        </div>
+        <div class="api-type-card" data-type="game" onclick="selectApiType(this)">
+          <div class="api-type-ico">🎮</div>
+          <div class="api-type-lbl">Игра</div>
+        </div>
+        <div class="api-type-card" data-type="other" onclick="selectApiType(this)">
+          <div class="api-type-ico">⚙️</div>
+          <div class="api-type-lbl">Другое</div>
+        </div>
+      </div>
+      <input type="hidden" id="apiKeyTypeSelect" value="web">
     </div>
-    <div id="apiModalMsg" class="msg" style="color:var(--red);min-height:16px;margin-top:.25rem;"></div>
-    <div class="api-modal-btns">
-      <button class="gl-btn" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--muted);cursor:pointer;font-size:.85rem;" onclick="closeApiModal()">Отмена</button>
-      <button class="gl-btn gl-btn-primary" style="flex:2;padding:11px;border-radius:11px;cursor:pointer;font-size:.85rem;" id="apiModalConfirmBtn" onclick="submitApiModal()">Создать</button>
+
+    <!-- Название приложения -->
+    <div style="margin-bottom:1rem;">
+      <div style="font-size:.62rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">Название приложения</div>
+      <input class="gl-input" id="apiKeyAppNameInput" placeholder="Например: MyApp" maxlength="80" style="width:100%;">
+    </div>
+
+    <div id="apiModalMsg" class="msg" style="color:var(--red);min-height:16px;margin-bottom:.5rem;font-size:.78rem;"></div>
+
+    <div style="display:flex;gap:.6rem;margin-top:.25rem;">
+      <button style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .18s;" onclick="closeApiModal()">Отмена</button>
+      <button style="flex:2;padding:11px;border-radius:11px;background:linear-gradient(135deg,rgba(180,141,255,0.3),rgba(126,184,255,0.22));border:1px solid rgba(180,141,255,0.4);font-family:'Inter',sans-serif;font-size:.85rem;font-weight:600;color:rgba(255,255,255,.95);cursor:pointer;transition:all .2s;" id="apiModalConfirmBtn" onclick="submitApiModal()">Создать</button>
     </div>
   </div>
 </div>
@@ -2888,9 +2929,10 @@ async function loadApiLogs(keyId) {
   }
 }
 function selectApiKey(id) {
-  selectedApiKey = selectedApiKey?.id === id ? null : apiKeys.find(k=>k.id===id);
+  id = parseInt(id) || id;
+  const isSame = selectedApiKey?.id === id;
+  selectedApiKey = isSame ? null : apiKeys.find(k=>k.id===id);
   renderApiKeys();
-  // Подгружаем логи сразу при открытии
   if(selectedApiKey) setTimeout(()=>loadApiLogs(selectedApiKey.id), 150);
 }
 function copyApiKey(key) {
@@ -2908,6 +2950,7 @@ function openApiModal(mode, keyId=null) {
     $('apiModalConfirmBtn').textContent = 'Сохранить';
     $('apiKeyNameInput').value = k.name || '';
     $('apiKeyTypeSelect').value = k.type || 'web';
+    document.querySelectorAll('.api-type-card').forEach(c=>{c.classList.toggle('active', c.dataset.type===(k.type||'web'));});
     $('apiKeyAppNameInput').value = k.app_name || '';
     $('apiModalConfirmBtn').dataset.editId = keyId;
   } else {
@@ -2924,6 +2967,12 @@ function openApiModal(mode, keyId=null) {
 
 function closeApiModal() {
   $('apiModalOverlay').classList.remove('show');
+}
+
+function selectApiType(el) {
+  document.querySelectorAll('.api-type-card').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  $('apiKeyTypeSelect').value = el.dataset.type;
 }
 
 async function submitApiModal() {
