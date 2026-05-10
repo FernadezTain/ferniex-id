@@ -1133,10 +1133,17 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
 </div>
 
 <script>
-const SUPABASE_URL = 'https://wkuxcniydsvejcbgpfml.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_ZPY2IBGHuKpdKSBLwwtpDw_DGxDce03';
 const API = 'https://ferniex-id.vercel.app';
 const $ = id => document.getElementById(id);
+let SUPABASE_URL = '';
+let SUPABASE_KEY = '';
+
+async function initConfig() {
+  const res = await fetch(`${API}/api/config`);
+  const cfg = await res.json();
+  SUPABASE_URL = cfg.supabaseUrl;
+  SUPABASE_KEY = cfg.supabaseKey;
+}
 
 async function sbFetch(path, opts={}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -1422,6 +1429,7 @@ async function doUnlink(){
 }
 
 (async function autoLogin(){
+  await initConfig();
   try{const saved=JSON.parse(localStorage.getItem('fernieid_session'));if(!saved?.username)return;const rows=await sbFetch(`users?username=eq.${encodeURIComponent(saved.username)}&select=*`);const user=rows[0]?{...rows[0],regDate:rows[0].created_at}:saved;openDashboard(user);}
   catch{try{const saved=JSON.parse(localStorage.getItem('fernieid_session'));if(saved?.username)openDashboard(saved);}catch{}}
 })();
