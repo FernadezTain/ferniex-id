@@ -2756,14 +2756,13 @@ async function loadApiKeys() {
   const cont = $('apiKeysContent');
   cont.innerHTML = '<div class="state-loading"><div class="spinner"></div><span>Загрузка...</span></div>';
   try {
-    const rows = await sbFetch(`api_applications?owner_user_id=eq.${currentUser.id}&select=*&order=created_at.desc`);
+    const rows = await sbFetch(`api_keys?user_id=eq.${currentUser.id}&select=*&order=created_at.desc`);
     apiKeys = rows;
     renderApiKeys();
   } catch(e) {
     cont.innerHTML = '<div class="state-empty">⚠️ Ошибка загрузки</div>';
   }
 }
-
 function renderApiKeys() {
   const cont = $('apiKeysContent');
   if (!apiKeys.length) {
@@ -2778,29 +2777,29 @@ function renderApiKeys() {
   }
   const typeLabels = {web:'🌐 Веб-сайт',mobile:'📱 Мобильное',bot:'🤖 Бот',game:'🎮 Игра',other:'⚙️ Другое'};
   let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">`;
-  if(currentUser.role === 'admin' || apiKeys.length < 1) {
+  if(currentUser.role === 'admin' || apiKeys.length < 10) {
     html += `<button class="gl-btn gl-btn-primary" style="padding:10px 20px;border-radius:12px;font-size:.82rem;cursor:pointer;" onclick="openApiModal('create')">➕ Создать ключ</button>`;
   }
   html += `</div>`;
   apiKeys.forEach(k => {
-    const masked = k.api_key ? k.api_key.slice(0,8) + '••••••••••••••••' + k.api_key.slice(-4) : '—';
+    const masked = k.key ? k.key.slice(0,8) + '••••••••••••••••' + k.key.slice(-4) : '—';
     const isSelected = selectedApiKey?.id === k.id;
     html += `
-    <div class="api-key-card${isSelected?' selected':''}" onclick="selectApiKey(${k.id})">
+    <div class="api-key-card${isSelected?' selected':''}" onclick="selectApiKey('${k.id}')">
       <div class="api-key-card-top">
         <div class="api-key-ico">🔑</div>
         <div style="flex:1;min-width:0;">
-          <div class="api-key-name">${k.app_name}</div>
-          <div class="api-key-app">${typeLabels[k.app_type]||'⚙️'} · ${k.app_label||'—'}</div>
+          <div class="api-key-name">${k.name}</div>
+          <div class="api-key-app">${typeLabels[k.type]||'⚙️'} · ${k.app_name||'—'}</div>
         </div>
       </div>
       <div class="api-key-val">
         <span class="api-key-val-text" id="keyval-${k.id}">${masked}</span>
-        <button class="api-key-copy" onclick="event.stopPropagation();copyApiKey('${k.api_key}')">📋 Копировать</button>
+        <button class="api-key-copy" onclick="event.stopPropagation();copyApiKey('${k.key}')">📋 Копировать</button>
       </div>
       <div class="api-key-meta">
-        <span class="api-key-badge active">● Активен</span>
-        <span class="api-key-badge type">${typeLabels[k.app_type]||'Другое'}</span>
+        <span class="api-key-badge ${k.status==='active'?'active':'date'}">● ${k.status==='active'?'Активен':'Неактивен'}</span>
+        <span class="api-key-badge type">${typeLabels[k.type]||'Другое'}</span>
         <span class="api-key-badge date">📅 ${fmtDate(k.created_at)}</span>
       </div>
     </div>
@@ -2820,23 +2819,23 @@ function renderApiDetail(k) {
     </div>
 
     <div class="api-detail-section active" id="api-tab-info-${k.id}">
-      <div class="field-row"><div class="field-label">Название ключа</div><div class="field-val-wrap"><span class="field-val-icon">🏷</span><span class="field-val-text">${k.app_name}</span></div></div>
-      <div class="field-row"><div class="field-label">Тип приложения</div><div class="field-val-wrap"><span class="field-val-icon">📦</span><span class="field-val-text">${typeLabels[k.app_type]||'—'}</span></div></div>
-      <div class="field-row"><div class="field-label">Название приложения</div><div class="field-val-wrap"><span class="field-val-icon">💻</span><span class="field-val-text">${k.app_label||'—'}</span></div></div>
+      <div class="field-row"><div class="field-label">Название ключа</div><div class="field-val-wrap"><span class="field-val-icon">🏷</span><span class="field-val-text">${k.name}</span></div></div>
+      <div class="field-row"><div class="field-label">Тип приложения</div><div class="field-val-wrap"><span class="field-val-icon">📦</span><span class="field-val-text">${typeLabels[k.type]||'—'}</span></div></div>
+      <div class="field-row"><div class="field-label">Название приложения</div><div class="field-val-wrap"><span class="field-val-icon">💻</span><span class="field-val-text">${k.app_name||'—'}</span></div></div>
       <div class="field-row"><div class="field-label">Создан</div><div class="field-val-wrap"><span class="field-val-icon">📅</span><span class="field-val-text">${fmtDate(k.created_at)}</span></div></div>
       <div class="api-action-btns">
-        <button class="api-action-btn edit" onclick="openApiModal('edit',${k.id})">✏️ Редактировать</button>
-        <button class="api-action-btn danger" onclick="deleteApiKey(${k.id})">🗑 Удалить ключ</button>
+        <button class="api-action-btn edit" onclick="openApiModal('edit','${k.id}')">✏️ Редактировать</button>
+        <button class="api-action-btn danger" onclick="deleteApiKey('${k.id}')">🗑 Удалить ключ</button>
       </div>
     </div>
 
     <div class="api-detail-section" id="api-tab-stats-${k.id}">
       <div class="api-stat-row">
-        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-total-${k.id}">—</div><div class="api-stat-box-lbl">Запросов</div></div>
-        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-today-${k.id}">—</div><div class="api-stat-box-lbl">Сегодня</div></div>
-        <div class="api-stat-box"><div class="api-stat-box-val" id="api-stat-users-${k.id}">—</div><div class="api-stat-box-lbl">Юзеров</div></div>
+        <div class="api-stat-box"><div class="api-stat-box-val">${k.requests_total||0}</div><div class="api-stat-box-lbl">Запросов</div></div>
+        <div class="api-stat-box"><div class="api-stat-box-val">${k.requests_today||0}</div><div class="api-stat-box-lbl">Сегодня</div></div>
+        <div class="api-stat-box"><div class="api-stat-box-val">${k.last_used_at?fmtDateShort(k.last_used_at):'—'}</div><div class="api-stat-box-lbl">Последний запрос</div></div>
       </div>
-      <div style="font-size:.75rem;color:var(--muted);text-align:center;padding:1rem 0;">Статистика появится после первых запросов через API</div>
+      <div style="font-size:.75rem;color:var(--muted);text-align:center;padding:1rem 0;">Статистика обновляется при каждом запросе через API</div>
     </div>
 
     <div class="api-detail-section" id="api-tab-logs-${k.id}">
@@ -2865,26 +2864,27 @@ async function loadApiLogs(keyId) {
   const cont = $(`api-logs-${keyId}`);
   if(!cont) return;
   try {
-    const rows = await sbFetch(`api_logs?app_id=eq.${keyId}&select=*&order=created_at.desc&limit=30`);
+    const rows = await sbFetch(`api_key_logs?api_key_id=eq.${keyId}&select=*&order=created_at.desc&limit=30`);
     if(!rows.length){cont.innerHTML='<div class="state-empty" style="padding:1.5rem 0;">Логов пока нет</div>';return;}
+    const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос'};
     cont.innerHTML = rows.map(l=>`
       <div class="api-log-item">
-        <div class="api-log-dot ${l.success?'ok':'err'}"></div>
+        <div class="api-log-dot ok"></div>
         <div>
-          <div class="api-log-action">${l.action||'—'}</div>
-          <div class="api-log-meta">${fmtDate(l.created_at)} · ${l.success?'✓ Успешно':'✗ Ошибка'}</div>
+          <div class="api-log-action">${actionLabels[l.action]||l.action||'—'}</div>
+          <div class="api-log-meta">${fmtDate(l.created_at)} · ${fmtTime(l.created_at)}${l.meta?.ip?' · IP: '+l.meta.ip:''}</div>
         </div>
       </div>`).join('');
   } catch(e) {
     cont.innerHTML='<div class="state-empty">Нет данных</div>';
   }
 }
-
 function selectApiKey(id) {
   selectedApiKey = selectedApiKey?.id === id ? null : apiKeys.find(k=>k.id===id);
   renderApiKeys();
+  // Подгружаем логи сразу при открытии
+  if(selectedApiKey) setTimeout(()=>loadApiLogs(selectedApiKey.id), 150);
 }
-
 function copyApiKey(key) {
   navigator.clipboard.writeText(key).then(()=>showToast('✅ Ключ скопирован'));
 }
@@ -2898,9 +2898,9 @@ function openApiModal(mode, keyId=null) {
     $('apiModalTitleText').textContent = 'Редактировать ключ';
     $('apiModalIcon').textContent = '✏️';
     $('apiModalConfirmBtn').textContent = 'Сохранить';
-    $('apiKeyNameInput').value = k.app_name || '';
-    $('apiKeyTypeSelect').value = k.app_type || 'web';
-    $('apiKeyAppNameInput').value = k.app_label || '';
+    $('apiKeyNameInput').value = k.name || '';
+    $('apiKeyTypeSelect').value = k.type || 'web';
+    $('apiKeyAppNameInput').value = k.app_name || '';
     $('apiModalConfirmBtn').dataset.editId = keyId;
   } else {
     $('apiModalTitleText').textContent = 'Создать API-ключ';
@@ -2931,24 +2931,23 @@ async function submitApiModal() {
 
   try {
     if(apiModalMode === 'create') {
-      // Проверяем лимит (не-админ — только 1)
-      if(currentUser.role !== 'admin' && apiKeys.length >= 1){
-        msg.textContent = 'Можно создать только 1 ключ';
+      if(currentUser.role !== 'admin' && apiKeys.length >= 10){
+        msg.textContent = 'Максимум 10 ключей';
         btn.textContent='Создать';btn.disabled=false;return;
       }
       const apiKey = 'fid_' + Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b=>b.toString(16).padStart(2,'0')).join('');
-      await sbFetch(`api_applications`, {
+      await sbFetch(`api_keys`, {
         method:'POST',
         headers:{'Prefer':'return=minimal'},
-        body:JSON.stringify({owner_user_id:currentUser.id,app_name:name,app_type:type,app_label:appLabel,api_key:apiKey,is_active:true})
+        body:JSON.stringify({user_id:currentUser.id,name,type,app_name:appLabel,key:apiKey,status:'active',requests_total:0,requests_today:0})
       });
       showToast('✅ Ключ создан');
     } else {
       const editId = btn.dataset.editId;
-      await sbFetch(`api_applications?id=eq.${editId}`, {
+      await sbFetch(`api_keys?id=eq.${editId}`, {
         method:'PATCH',
         headers:{'Prefer':'return=minimal'},
-        body:JSON.stringify({app_name:name,app_type:type,app_label:appLabel})
+        body:JSON.stringify({name,type,app_name:appLabel,updated_at:new Date().toISOString()})
       });
       showToast('✅ Сохранено');
     }
@@ -2964,7 +2963,8 @@ async function submitApiModal() {
 async function deleteApiKey(keyId) {
   if(!confirm('Удалить API-ключ? Все приложения использующие его потеряют доступ.')) return;
   try {
-    await sbFetch(`api_applications?id=eq.${keyId}`, {method:'DELETE'});
+    await sbFetch(`api_key_logs?api_key_id=eq.${keyId}`, {method:'DELETE'});
+    await sbFetch(`api_keys?id=eq.${keyId}`, {method:'DELETE'});
     selectedApiKey = null;
     showToast('🗑 Ключ удалён');
     await loadApiKeys();
