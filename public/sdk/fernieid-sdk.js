@@ -117,7 +117,29 @@
       return new Promise(resolve => {
         _resolve = resolve;
         buildModal();
-        setTimeout(() => document.getElementById('fid-u')?.focus(), 100);
+
+        if (!KEY) {
+          document.getElementById('fid-err').textContent = '❌ API Key не указан';
+          return;
+        }
+
+        // Проверяем ключ в системе
+        fetch(API + '/api/apikeys/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: KEY })
+        })
+        .then(r => r.json())
+        .then(d => {
+          if (!d.success) {
+            document.getElementById('fid-err').textContent = '❌ Некорректный API Key';
+            return;
+          }
+          setTimeout(() => document.getElementById('fid-u')?.focus(), 100);
+        })
+        .catch(() => {
+          document.getElementById('fid-err').textContent = '❌ Ошибка соединения с FernieID';
+        });
       });
     },
     getUser() {
