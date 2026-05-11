@@ -925,6 +925,9 @@ if (typeof FernieID === 'undefined') {
   const s = document.createElement('script');
   s.src = '/sdk/fernieid-sdk.js';
   document.head.appendChild(s);
+  s.onload = () => FernieID.init('fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f');
+} else {
+  FernieID.init('fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f');
 }
 let currentUser = null;
 let allCards = [];
@@ -1018,10 +1021,30 @@ async function loadDC() {
   try {
     console.log('loadDC: FernieID=', typeof FernieID, 'getUser=', FernieID?.getUser?.());
     if (typeof FernieID !== 'undefined' && FernieID.getUser?.()) {
+      await new Promise(r => setTimeout(r, 200)); // ждём init
       const d = await FernieID.getBalance(['dc']);
       console.log('loadDC SDK response:', JSON.stringify(d));
       if (d.success) {
         document.getElementById('pcDC').textContent = (d.dc ?? 0).toLocaleString('ru-RU');
+        return;
+      }
+    }
+    // Fallback через fernieid_session напрямую
+    const sessionRaw = localStorage.getItem('fernieid_session') || localStorage.getItem('fernieid_user');
+    const session = sessionRaw ? JSON.parse(sessionRaw) : null;
+    if (session?.username) {
+      const res = await fetch('/api/balance/get', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          apiKey: 'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f',
+          username: session.username,
+          fields: ['dc']
+        })
+      }).then(r=>r.json());
+      console.log('loadDC balance/get response:', JSON.stringify(res));
+      if (res.success) {
+        document.getElementById('pcDC').textContent = (res.dc ?? 0).toLocaleString('ru-RU');
         return;
       }
     }
