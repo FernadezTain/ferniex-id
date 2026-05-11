@@ -2720,7 +2720,7 @@ app.post('/api/auth/login', async (req, res) => {
         api_key_id: appKeyId,
         user_id: keys[0].user_id,
         action: 'auth_request',
-        meta: { username, app: appName, has_telegram: !!user.telegram_id },
+        meta: { username, app: appName, has_telegram: !!user.telegram_id, ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '?' },
         created_at: new Date().toISOString()
       })
     });
