@@ -2917,17 +2917,51 @@ async function loadApiLogs(keyId) {
     if(!rows.length){cont.innerHTML='<div class="state-empty" style="padding:1.5rem 0;">Логов пока нет</div>';return;}
     const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос'};
     cont.innerHTML = rows.map(l=>`
-      <div class="api-log-item">
-        <div class="api-log-dot ok"></div>
-        <div>
+      <div class="api-log-item" onclick="openLogDetail(${JSON.stringify(JSON.stringify(l))})" style="cursor:pointer;transition:background .15s;border-radius:8px;padding:.65rem 8px;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''">
+        <div class="api-log-dot ${l.action==='error'?'err':'ok'}"></div>
+        <div style="flex:1;">
           <div class="api-log-action">${actionLabels[l.action]||l.action||'—'}</div>
           <div class="api-log-meta">${fmtDate(l.created_at)} · ${fmtTime(l.created_at)}${l.meta?.ip?' · IP: '+l.meta.ip:''}</div>
         </div>
+        <div style="font-size:.65rem;color:var(--muted);">›</div>
       </div>`).join('');
   } catch(e) {
     cont.innerHTML='<div class="state-empty">Нет данных</div>';
   }
 }
+function openLogDetail(jsonStr) {
+  const l = JSON.parse(jsonStr);
+  const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос',auth_request:'🔐 Запрос авторизации'};
+  const meta = l.meta ? JSON.stringify(l.meta, null, 2) : '—';
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .2s ease;';
+  overlay.innerHTML = `
+    <div style="width:100%;max-width:420px;background:rgba(14,8,28,.99);border:1px solid rgba(180,141,255,.2);border-radius:24px;padding:1.75rem;box-shadow:0 36px 72px rgba(0,0,0,.8);animation:slideUp .25s cubic-bezier(.16,1,.3,1);position:relative;">
+      <div style="position:absolute;top:0;left:8%;right:8%;height:1px;background:linear-gradient(90deg,transparent,rgba(180,141,255,.6) 40%,rgba(255,255,255,.9) 50%,rgba(180,141,255,.6) 60%,transparent);"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+        <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;">${actionLabels[l.action]||l.action||'Лог'}</div>
+        <div onclick="this.closest('[style*=fixed]').remove()" style="cursor:pointer;color:rgba(255,255,255,.3);width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:.85rem;transition:all .2s;" onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">✕</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem;">
+        <div style="display:flex;justify-content:space-between;padding:.6rem .8rem;background:rgba(255,255,255,.04);border-radius:10px;">
+          <span style="font-size:.72rem;color:var(--muted);">📅 Время</span>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.8);">${fmtDate(l.created_at)} ${fmtTime(l.created_at)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:.6rem .8rem;background:rgba(255,255,255,.04);border-radius:10px;">
+          <span style="font-size:.72rem;color:var(--muted);">⚡ Действие</span>
+          <span style="font-size:.72rem;color:rgba(255,255,255,.8);">${l.action||'—'}</span>
+        </div>
+        ${l.meta?.username?`<div style="display:flex;justify-content:space-between;padding:.6rem .8rem;background:rgba(255,255,255,.04);border-radius:10px;"><span style="font-size:.72rem;color:var(--muted);">👤 Пользователь</span><span style="font-size:.72rem;color:rgba(255,255,255,.8);">${l.meta.username}</span></div>`:''}
+        ${l.meta?.app?`<div style="display:flex;justify-content:space-between;padding:.6rem .8rem;background:rgba(255,255,255,.04);border-radius:10px;"><span style="font-size:.72rem;color:var(--muted);">📱 Приложение</span><span style="font-size:.72rem;color:rgba(255,255,255,.8);">${l.meta.app}</span></div>`:''}
+        ${l.meta?.ip?`<div style="display:flex;justify-content:space-between;padding:.6rem .8rem;background:rgba(255,255,255,.04);border-radius:10px;"><span style="font-size:.72rem;color:var(--muted);">🌐 IP</span><span style="font-size:.72rem;color:rgba(255,255,255,.8);">${l.meta.ip}</span></div>`:''}
+      </div>
+      <div style="font-size:.65rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:.5rem;">META</div>
+      <pre style="font-family:monospace;font-size:.72rem;color:rgba(255,255,255,.5);background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:.75rem;overflow-x:auto;white-space:pre-wrap;word-break:break-all;">${meta}</pre>
+    </div>`;
+  overlay.addEventListener('click', e => { if(e.target===overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
 function selectApiKey(id) {
   id = parseInt(id) || id;
   selectedApiKey = apiKeys.find(k=>k.id===id);
@@ -3049,7 +3083,7 @@ function openApiModal(mode, keyId=null) {
   apiModalMode = mode;
   $('apiModalMsg').textContent = '';
   if(mode === 'edit' && keyId) {
-    const k = apiKeys.find(x=>x.id===keyId);
+    const k = apiKeys.find(x=>String(x.id)===String(keyId));
     if(!k) return;
     $('apiModalTitleText').textContent = 'Редактировать ключ';
     $('apiModalIcon').textContent = '✏️';
