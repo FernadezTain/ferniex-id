@@ -2917,7 +2917,7 @@ async function loadApiLogs(keyId) {
     if(!rows.length){cont.innerHTML='<div class="state-empty" style="padding:1.5rem 0;">Логов пока нет</div>';return;}
     const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос'};
     cont.innerHTML = rows.map(l=>`
-      <div class="api-log-item" onclick="openLogDetail(${JSON.stringify(JSON.stringify(l))})" style="cursor:pointer;transition:background .15s;border-radius:8px;padding:.65rem 8px;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''">
+      <div class="api-log-item" onclick="openLogDetail(this)" data-log="${encodeURIComponent(JSON.stringify(l))}" style="cursor:pointer;transition:background .15s;border-radius:8px;padding:.65rem 8px;" onmouseover="this.style.background='rgba(255,255,255,.04)'" onmouseout="this.style.background=''">
         <div class="api-log-dot ${l.action==='error'?'err':'ok'}"></div>
         <div style="flex:1;">
           <div class="api-log-action">${actionLabels[l.action]||l.action||'—'}</div>
@@ -2929,8 +2929,8 @@ async function loadApiLogs(keyId) {
     cont.innerHTML='<div class="state-empty">Нет данных</div>';
   }
 }
-function openLogDetail(jsonStr) {
-  const l = JSON.parse(jsonStr);
+function openLogDetail(el) {
+  const l = JSON.parse(decodeURIComponent(el.dataset.log));
   const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос',auth_request:'🔐 Запрос авторизации'};
   const meta = l.meta ? JSON.stringify(l.meta, null, 2) : '—';
   const overlay = document.createElement('div');
