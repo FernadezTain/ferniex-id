@@ -321,6 +321,11 @@
       const d = await post('/api/balance/get', { apiKey: KEY, username: user.username, fields });
       if (d.error === 'no_telegram' && d.action) window.open(d.action.url, '_blank');
       return d;
+    },
+    async editBalance(currency, amount, action) {
+      const user = this.getUser();
+      if (!user) return { success: false, error: 'not_logged_in' };
+      return post('/api/edit/balance', { apiKey: KEY, username: user.username, currency, amount, action });
     }
   };
 })();
