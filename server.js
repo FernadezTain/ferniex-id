@@ -10,6 +10,44 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static("public"));
+
+// ── Логгер ────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  const time = new Date().toISOString();
+  const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '?';
+
+  // Логируем входящий запрос
+  if (req.method !== 'OPTIONS') {
+    const body = req.body && Object.keys(req.body).length
+      ? JSON.stringify(sanitizeLog(req.body))
+      : '—';
+    console.log(`\n📥 [${time}] ${req.method} ${req.path}`);
+    console.log(`   IP: ${ip} | UA: ${(req.headers['user-agent'] || '?').slice(0, 60)}`);
+    console.log(`   Body: ${body}`);
+  }
+
+  // Перехватываем res.json чтобы логировать ответ
+  const origJson = res.json.bind(res);
+  res.json = (data) => {
+    const ms = Date.now() - start;
+    const status = data?.success === false ? '❌' : '✅';
+    console.log(`📤 [${req.method} ${req.path}] ${status} ${ms}ms → ${JSON.stringify(data).slice(0, 200)}`);
+    return origJson(data);
+  };
+
+  next();
+});
+
+// Скрывает пароли из логов
+function sanitizeLog(body) {
+  const safe = { ...body };
+  if (safe.password) safe.password = '***';
+  if (safe.key) safe.key = safe.key.slice(0, 12) + '...';
+  if (safe.apiKey) safe.apiKey = safe.apiKey.slice(0, 12) + '...';
+  return safe;
+}
+// ─────────────────────────────────────────
 app.use(cors({
   origin: [
     'https://ferniex-id.vercel.app',
