@@ -589,26 +589,36 @@ app.get("/api/seeds/:userId", async (req, res) => {
 //  Покупка кейса
 // ══════════════════════════════════════════
 app.post("/api/cases/buy", async (req, res) => {
-  const { userId, caseSlug, quantity } = req.body;
+  // skipPayment=true означает, что клиент уже списал семена через FernieID SDK
+  const { userId, caseSlug, quantity, skipPayment } = req.body;
   if (!userId || !caseSlug || !quantity)
     return res.json({ success: false, error: "Недостаточно данных" });
+
   const PRICES = { ferniex_silver: 3000, fernie_gold: 6000, fernie_starter: 1000, fernie_crystal: 8000, fernie_royal: 15000 };
   const price = PRICES[caseSlug];
   if (!price) return res.json({ success: false, error: "Кейс не найден" });
   const total = price * quantity;
+
   try {
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,username`, { headers: sbHeaders });
     const users = await userRes.json();
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: "Telegram не привязан" });
     const { telegram_id, username } = users[0];
-    const spendRes = await fetch(`${BOT_URL}/api/seeds/spend`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegram_id, amount: total })
-    });
-    const spendData = await spendRes.json();
-    if (!spendData.success) return res.json({ success: false, error: spendData.error || "Недостаточно семян" });
+
+    // Списываем семена через бота ТОЛЬКО если skipPayment не выставлен
+    // (skipPayment=true — клиент уже списал через FernieID SDK /api/edit/balance)
+    if (!skipPayment) {
+      const spendRes = await fetch(`${BOT_URL}/api/seeds/spend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ telegram_id, amount: total })
+      });
+      const spendData = await spendRes.json();
+      if (!spendData.success) return res.json({ success: false, error: spendData.error || "Недостаточно семян" });
+    }
+
+    // Обновляем инвентарь
     const invRes = await fetch(`${SB_URL}/rest/v1/inventory?user_id=eq.${userId}&case_slug=eq.${caseSlug}`, { headers: sbHeaders });
     const invData = await invRes.json();
     if (invData.length) {
@@ -624,6 +634,7 @@ app.post("/api/cases/buy", async (req, res) => {
         body: JSON.stringify({ user_id: userId, case_slug: caseSlug, quantity })
       });
     }
+
     const caseNames = { ferniex_silver: 'Silver', fernie_gold: 'Gold', fernie_starter: 'Shadow', fernie_crystal: 'Crystal', fernie_royal: 'Royal' };
     await sendTgMessage(telegram_id,
       `🛒 <b>Покупка на сайте</b>\n\n` +
@@ -631,7 +642,8 @@ app.post("/api/cases/buy", async (req, res) => {
       `📦 Товар: <b>Кейс</b>\n` +
       `🏷 Название: <b>${caseNames[caseSlug] || caseSlug}</b>\n` +
       `🔢 Кол-во: <b>${quantity} шт.</b>\n` +
-      `💰 Сумма: <b>${total.toLocaleString('ru-RU')} 🌱</b>`
+      `💰 Сумма: <b>${total.toLocaleString('ru-RU')} 🌱</b>\n` +
+      `${skipPayment ? '✅ Оплата через FernieID SDK' : '✅ Оплата через бота'}`
     );
     res.json({ success: true, spent: total });
   } catch (e) {
