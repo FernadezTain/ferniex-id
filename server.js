@@ -2635,9 +2635,11 @@ app.post('/api/apikeys/verify', async (req, res) => {
     });
 
     // Лог запроса
-    await logApiKeyAction(apiKey.id, apiKey.user_id, 'request', {
+    await logApiKeyAction(apiKey.id, apiKey.user_id, 'verify', {
       ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
-      origin: req.headers['origin'] || req.headers['referer'] || ''
+      origin: req.headers['origin'] || req.headers['referer'] || '',
+      endpoint: '/api/apikeys/verify',
+      app: apiKey.app_name
     });
 
     res.json({ success: true, userId: apiKey.user_id, name: apiKey.name, appName: apiKey.app_name, type: apiKey.type });
@@ -2821,7 +2823,7 @@ app.post('/api/balance/get', async (req, res) => {
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status,user_id`, { headers: sbHeaders });
     const keys = await keyRes.json();
     if (!keys.length || keys[0].status !== 'active')
       return res.json({ success: false, error: 'Неверный API ключ' });
@@ -2851,6 +2853,13 @@ app.post('/api/balance/get', async (req, res) => {
     const botData = JSON.parse(botText);
     if (!botData.success)
       return res.json({ success: false, error: 'not_in_bot', message: 'Аккаунт не найден в боте.' });
+
+    await logApiKeyAction(keys[0].id, keys[0].user_id || null, 'balance_request', {
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+      origin: req.headers['origin'] || req.headers['referer'] || '',
+      username: user.username,
+      fields: fieldsParam
+    });
 
     res.json({ success: true, username: user.username, ...botData });
 
