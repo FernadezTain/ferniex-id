@@ -2750,9 +2750,16 @@ app.post('/api/auth/login', async (req, res) => {
         body: JSON.stringify({ user_id: user.id, code, expires_at: expiresAt })
       });
 
+      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
       await sendTgMessage(user.telegram_id,
-        `🔐 <b>Вход через ${appName}</b>\n\n` +
-        `Код подтверждения:\n<code>${code}</code>\n\n` +
+        `🔐 <b>Запрос на вход</b>\n` +
+        `<blockquote>` +
+        `🛡 Сервис: <b>${appName}</b>\n` +
+        `👤 Аккаунт: <b>${user.username}</b>\n` +
+        `🕒 Время: <b>${now} МСК</b>` +
+        `</blockquote>\n` +
+        `Твой код подтверждения:\n` +
+        `<blockquote><code>${code}</code></blockquote>\n` +
         `⏱ Действует <b>5 минут</b>\n` +
         `⚠️ <i>Никому не сообщай этот код!</i>`
       );
