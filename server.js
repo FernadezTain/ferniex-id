@@ -2804,9 +2804,13 @@ app.post('/api/balance/get', async (req, res) => {
       });
 
     const fieldsParam = Array.isArray(fields) ? fields.join(',') : 'dc,seeds,balance,media_coins';
-    const botRes = await fetch(`${process.env.BOT_URL}/api/balance?telegram_id=${user.telegram_id}&fields=${fieldsParam}`);
-    const botData = await botRes.json();
-
+    const botUrl = `${process.env.BOT_URL}/api/balance?telegram_id=${user.telegram_id}&fields=${fieldsParam}`;
+    console.log('BOT_URL:', process.env.BOT_URL);
+    console.log('Fetching:', botUrl);
+    const botRes = await fetch(botUrl);
+    const botText = await botRes.text();
+    console.log('Bot response:', botText);
+    const botData = JSON.parse(botText);
     if (!botData.success)
       return res.json({ success: false, error: 'not_in_bot', message: 'Аккаунт не найден в боте.' });
 
