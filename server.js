@@ -2840,18 +2840,16 @@ app.post('/api/edit/balance', async (req, res) => {
     if (!user.telegram_id)
       return res.json({ success: false, error: 'no_telegram', message: 'Telegram не привязан' });
 
-    const endpointMap = {
-      add:   { dc: '/api/dc/add',    seeds: '/api/seeds/add'   },
-      spend: { dc: '/api/dc/spend',  seeds: '/api/seeds/spend' }
-    };
-    const botEndpoint = endpointMap[action]?.[currency];
-    if (!botEndpoint) return res.json({ success: false, error: 'Неверный action или currency' });
+    const validCurrencies = ['dc', 'seeds'];
+const validActions = ['add', 'spend'];
+if (!validCurrencies.includes(currency) || !validActions.includes(action))
+  return res.json({ success: false, error: 'Неверный action или currency' });
 
-    const botRes = await fetch(`${process.env.BOT_URL}${botEndpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id: user.telegram_id, amount: Number(amount) })
-    });
+const botRes = await fetch(`${process.env.BOT_URL}/api/edit/balance`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ telegram_id: user.telegram_id, currency, amount: Number(amount), action })
+});
     const botData = await botRes.json();
 
     if (botData.success) {
