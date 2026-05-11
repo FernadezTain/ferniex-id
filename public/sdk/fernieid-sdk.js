@@ -314,6 +314,13 @@
       });
     },
     getUser() { return JSON.parse(localStorage.getItem('fernieid_user')); },
-    logout() { localStorage.removeItem('fernieid_user'); }
+    logout() { localStorage.removeItem('fernieid_user'); },
+    async getBalance(fields = ['dc', 'seeds', 'balance']) {
+      const user = this.getUser();
+      if (!user) return { success: false, error: 'not_logged_in' };
+      const d = await post('/api/balance/get', { apiKey: KEY, username: user.username, fields });
+      if (d.error === 'no_telegram' && d.action) window.open(d.action.url, '_blank');
+      return d;
+    }
   };
 })();
