@@ -1182,6 +1182,40 @@ const $ = id => document.getElementById(id);
 let SUPABASE_URL = '';
 let SUPABASE_KEY = '';
 
+// Инициализируем FernieID SDK с API ключом
+FernieID.init('fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f');
+
+// 2FA модал для логина через API
+function show2FAModal(userId){
+  let overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.innerHTML=`<div style="width:100%;max-width:360px;background:rgba(14,8,28,0.99);border:1px solid rgba(180,141,255,0.2);border-radius:20px;padding:1.75rem;box-shadow:0 36px 72px rgba(0,0,0,0.8);">
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.5rem;text-align:center;">🔐 Двухфакторная авторизация</div>
+    <div style="font-size:.78rem;color:rgba(255,255,255,.4);text-align:center;margin-bottom:1.25rem;line-height:1.6;">Код отправлен в Telegram. Введи его ниже.</div>
+    <input id="twoFaCode" class="gl-input" placeholder="000000" maxlength="6" style="text-align:center;letter-spacing:8px;font-size:1.3rem;font-weight:600;margin-bottom:.75rem;">
+    <div id="twoFaMsg" style="min-height:18px;font-size:.78rem;color:var(--red);text-align:center;margin-bottom:.75rem;"></div>
+    <button id="twoFaBtn" class="gl-btn gl-btn-primary">Подтвердить →</button>
+  </div>`;
+  document.body.appendChild(overlay);
+  const inp=overlay.querySelector('#twoFaCode'),msg=overlay.querySelector('#twoFaMsg'),btn=overlay.querySelector('#twoFaBtn');
+  setTimeout(()=>inp?.focus(),100);
+  async function doVerify(){
+    const code=inp.value.trim();if(!code){msg.textContent='Введи код';return;}
+    btn.textContent='Проверка...';btn.style.opacity='0.6';btn.style.pointerEvents='none';
+    const res=await fetch(`${API}/api/auth/verify-2fa`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f',userId,code})});
+    const d=await res.json();
+    if(d.success){
+      overlay.remove();
+      // Сохраняем через SDK как сессию
+      const user={id:d.userId,username:d.username,role:d.role,regDate:new Date().toISOString()};
+      localStorage.setItem('fernieid_user',JSON.stringify(d));
+      openDashboard(user);
+    }else{msg.textContent=d.error||'Неверный код';btn.textContent='Подтвердить →';btn.style.opacity='';btn.style.pointerEvents='';}
+  }
+  btn.addEventListener('click',doVerify);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')doVerify();});
+}
+
 async function initConfig() {
   const res = await fetch(`${API}/api/config`);
   const cfg = await res.json();
@@ -1235,8 +1269,6 @@ $('regSubmit').onclick=async()=>{
   msg.style.color='var(--muted)';msg.textContent='Создаём аккаунт...';
   const res=await fetch(`${API}/api/register`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
   const data=await res.json();
-  if(data.success){msg.style.color='var(--teal)';msg.textContent='✓ Аккаунт создан! Войди 👇';setTimeout(()=>{$('tab-login-btn').click();msg.textContent='';$('loginUsername').value=u;},1200);}
-  else{msg.style.color='var(--red)';msg.textContent=data.error||'Ошибка';}
 };
 
 $('loginSubmit').onclick=async()=>{
@@ -1249,9 +1281,14 @@ $('loginSubmit').onclick=async()=>{
   const data=await res.json();
   if(data.success){
     msg.style.color='var(--teal)';msg.textContent='✓ Входим...';
-    const rows=await sbFetch(`users?username=eq.${encodeURIComponent(u)}&select=*`);
-    const user=rows[0]?{...rows[0],regDate:rows[0].created_at}:{username:u,regDate:new Date().toISOString()};
-    setTimeout(()=>openDashboard(user),450);
+    if(data.require2fa){
+      // 2FA — показываем поле для кода
+      msg.style.color='var(--muted)';msg.textContent='';
+      show2FAModal(data.userId);
+    } else {
+      const user={id:data.userId,username:data.username,role:data.role,regDate:new Date().toISOString()};
+      setTimeout(()=>openDashboard(user),450);
+    }
   } else {msg.style.color='var(--red)';msg.textContent=data.error||'✗ Неверный логин или пароль';}
 };
 $('loginPassword').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginSubmit').click();});
@@ -1474,8 +1511,11 @@ async function doUnlink(){
 
 (async function autoLogin(){
   await initConfig();
-  try{const saved=JSON.parse(localStorage.getItem('fernieid_session'));if(!saved?.username)return;const rows=await sbFetch(`users?username=eq.${encodeURIComponent(saved.username)}&select=*`);const user=rows[0]?{...rows[0],regDate:rows[0].created_at}:saved;openDashboard(user);}
-  catch{try{const saved=JSON.parse(localStorage.getItem('fernieid_session'));if(saved?.username)openDashboard(saved);}catch{}}
+  try{
+    const saved=JSON.parse(localStorage.getItem('fernieid_session'));
+    if(!saved?.username)return;
+    openDashboard(saved);
+  }catch{}
 })();
 
 // ════ ИГРОВАЯ ПАНЕЛЬ ════
@@ -1490,7 +1530,20 @@ const CASES = {
 document.querySelectorAll('.gp-tab[data-gp]').forEach(btn=>{btn.addEventListener('click',()=>{const gp=btn.dataset.gp;document.querySelectorAll('.gp-tab[data-gp]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('#section-gamestats .gp-panel[id^="gp-"]').forEach(p=>{if(p.id==='gp-market'||p.id==='gp-inventory')return;p.classList.remove('active');});document.getElementById('gp-'+gp)?.classList.add('active');if(gp==='platform'){loadSeeds();renderCases();}if(gp==='stats')loadGameStats();});});
 document.querySelectorAll('.gp-tab[data-sub]').forEach(btn=>{btn.addEventListener('click',()=>{const sub=btn.dataset.sub;document.querySelectorAll('.gp-tab[data-sub]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');['gp-market','gp-inventory'].forEach(id=>document.getElementById(id)?.classList.remove('active'));document.getElementById('gp-'+sub)?.classList.add('active');if(sub==='inventory')loadInventory();});});
 
-async function loadSeeds(){if(!currentUser?.id){$('seedsVal').textContent='Нет Telegram';return;}$('seedsVal').textContent='...';try{const res=await fetch(`${API}/api/seeds/${currentUser.id}`);const data=await res.json();$('seedsVal').textContent=data.seeds?.toLocaleString('ru-RU')+' 🌱';}catch{$('seedsVal').textContent='Ошибка';}}
+async function loadSeeds(){
+  if(!currentUser?.username){$('seedsVal').textContent='Нет Telegram';return;}
+  $('seedsVal').textContent='...';
+  try{
+    const d=await FernieID.getBalance(['seeds']);
+    if(!d.success){
+      if(d.error==='no_telegram'){$('seedsVal').textContent='Нет Telegram';}
+      else if(d.error==='not_in_bot'){$('seedsVal').textContent='Нет в боте';}
+      else{$('seedsVal').textContent='Ошибка';}
+      return;
+    }
+    $('seedsVal').textContent=(d.seeds??0).toLocaleString('ru-RU')+' 🌱';
+  }catch{$('seedsVal').textContent='Ошибка';}
+}
 $('seedsRefreshBtn').addEventListener('click',()=>{$('seedsRefreshBtn').classList.add('spin');loadSeeds().finally(()=>setTimeout(()=>$('seedsRefreshBtn').classList.remove('spin'),500));});
 
 function renderCases(){const grid=$('casesGrid');grid.innerHTML='';Object.entries(CASES).forEach(([slug,c])=>{const div=document.createElement('div');div.className=`case-card ${c.cls}`;div.innerHTML=`<div class="case-card-bg"></div><div class="case-card-inner"><span class="case-emoji">${c.emoji}</span><div class="case-name">${c.name}</div><div class="case-items-count">${c.items.length} предметов</div><div class="case-price-row"><span class="case-price-ico">🌱</span><span class="case-price-val">${c.price.toLocaleString('ru-RU')}</span></div></div>`;div.addEventListener('click',()=>openBuyModal(slug));grid.appendChild(div);});}
@@ -1501,7 +1554,26 @@ function closeBuyModal(){$('buyOverlay').classList.remove('show');}
 $('buyOverlay').addEventListener('click',e=>{if(e.target===$('buyOverlay'))closeBuyModal();});
 $('buyQtyInput').addEventListener('input',updateBuyTotal);
 function updateBuyTotal(){if(!activeCaseSlug)return;const qty=Math.min(10000,Math.max(1,parseInt($('buyQtyInput').value)||1));$('buyQtyInput').value=qty;$('buyTotalVal').textContent=(CASES[activeCaseSlug].price*qty).toLocaleString('ru-RU')+' 🌱';}
-async function doBuyCase(){const btn=$('buyConfirmBtn'),qty=parseInt($('buyQtyInput').value)||1;btn.textContent='Покупаем...';btn.style.opacity='0.6';btn.style.pointerEvents='none';try{const res=await fetch(`${API}/api/cases/buy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:activeCaseSlug,quantity:qty})});const data=await res.json();if(data.success){closeBuyModal();loadSeeds();loadInventory();showToast(`✅ Куплено ${qty} шт. ${CASES[activeCaseSlug].name}`);}else{showToast('❌ '+(data.error||'Ошибка покупки'));}}catch{showToast('❌ Ошибка сети');}btn.textContent='Купить';btn.style.opacity='';btn.style.pointerEvents='';}
+async function doBuyCase(){
+  const btn=$('buyConfirmBtn'),qty=parseInt($('buyQtyInput').value)||1;
+  btn.textContent='Покупаем...';btn.style.opacity='0.6';btn.style.pointerEvents='none';
+  try{
+    const cost=CASES[activeCaseSlug].price*qty;
+    // Списываем семена через FernieID SDK
+    const spend=await FernieID.editBalance('seeds',cost,'spend');
+    if(!spend.success){showToast('❌ '+(spend.error||'Недостаточно семян'));btn.textContent='Купить';btn.style.opacity='';btn.style.pointerEvents='';return;}
+    // Добавляем кейсы в инвентарь
+    const res=await fetch(`${API}/api/cases/buy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,caseSlug:activeCaseSlug,quantity:qty,skipPayment:true})});
+    const data=await res.json();
+    if(data.success){closeBuyModal();loadSeeds();loadInventory();showToast(`✅ Куплено ${qty} шт. ${CASES[activeCaseSlug].name}`);}
+    else{
+      // Откат: возвращаем семена
+      await FernieID.editBalance('seeds',cost,'add');
+      showToast('❌ '+(data.error||'Ошибка покупки'));
+    }
+  }catch{showToast('❌ Ошибка сети');}
+  btn.textContent='Купить';btn.style.opacity='';btn.style.pointerEvents='';
+}
 function openCaseFromMarket(){
   closeBuyModal();
   showCaseContents(activeCaseSlug);
