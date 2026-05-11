@@ -920,6 +920,12 @@ const API = '';  // same origin
 const BOT_URL = 'https://a37690-25aa.j.d-f.pw';
 const SB_URL = ''; // не нужен напрямую — всё через /api/*
 
+// Подключаем SDK если ещё не подключён
+if (typeof FernieID === 'undefined') {
+  const s = document.createElement('script');
+  s.src = '/sdk/fernieid-sdk.js';
+  document.head.appendChild(s);
+}
 let currentUser = null;
 let allCards = [];
 let catalogCards = {}; // cardName -> { name, rarity, image_url }
@@ -958,9 +964,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Читаем userId из localStorage (как в index.html)
   let savedSession = null;
   try {
-    savedSession = JSON.parse(localStorage.getItem('fernieid_session'));
+    // Читаем из обоих хранилищ — SDK пишет в fernieid_user, сайт в fernieid_session
+    savedSession = JSON.parse(localStorage.getItem('fernieid_session'))
+                || JSON.parse(localStorage.getItem('fernieid_user'));
   } catch(e) {}
-  const userId = savedSession?.id || localStorage.getItem('userId');
+  const userId = savedSession?.id || savedSession?.userId || localStorage.getItem('userId');
   if (!userId) {
     showGate('authGate');
     return;
@@ -1008,6 +1016,15 @@ function showGate(id) {
 // ══════════════════════════════════════════
 async function loadDC() {
   try {
+    // Пробуем через FernieID SDK (getBalance), если не получается — fallback на /api/dc/
+    if (typeof FernieID !== 'undefined' && FernieID.getUser?.()) {
+      const d = await FernieID.getBalance(['dc']);
+      if (d.success) {
+        document.getElementById('pcDC').textContent = (d.dc ?? 0).toLocaleString('ru-RU');
+        return;
+      }
+    }
+    // Fallback: старый эндпоинт по userId
     const res = await fetch(`/api/dc/${currentUser.id}`).then(r=>r.json());
     document.getElementById('pcDC').textContent = (res.dc ?? res.balance ?? 0).toLocaleString('ru-RU');
   } catch(e) {
@@ -1138,7 +1155,7 @@ function filterRarity(rarity) {
 //  TABS
 // ══════════════════════════════════════════
 function switchTab(tab) {
-  document.querySelectorAll('.cc-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.cc-tab[data-tab]').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
   document.querySelectorAll('.cc-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${tab}`));
   if (tab === 'cases') {
     switchPacksTab('my');
