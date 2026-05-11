@@ -2774,5 +2774,49 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ПОЛУЧЕНИЕ БАЛАНСОВ ЧЕРЕЗ BOT API
+// ══════════════════════════════════════════
+app.post('/api/balance/get', async (req, res) => {
+  const { apiKey, username, fields } = req.body;
+  if (!apiKey || !username)
+    return res.json({ success: false, error: 'Нет обязательных полей' });
+
+  try {
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keys = await keyRes.json();
+    if (!keys.length || keys[0].status !== 'active')
+      return res.json({ success: false, error: 'Неверный API ключ' });
+
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length)
+      return res.json({ success: false, error: 'not_registered' });
+
+    const user = users[0];
+
+    if (!user.telegram_id)
+      return res.json({
+        success: false,
+        error: 'no_telegram',
+        message: 'Вы не привязали свой Telegram.',
+        action: { label: 'Привязать', url: 'https://ferniex-id.vercel.app/#security' }
+      });
+
+    const fieldsParam = Array.isArray(fields) ? fields.join(',') : 'dc,seeds,balance,media_coins';
+    const botRes = await fetch(`${process.env.BOT_URL}/api/balance?telegram_id=${user.telegram_id}&fields=${fieldsParam}`);
+    const botData = await botRes.json();
+
+    if (!botData.success)
+      return res.json({ success: false, error: 'not_in_bot', message: 'Аккаунт не найден в боте.' });
+
+    res.json({ success: true, username: user.username, ...botData });
+
+  } catch (e) {
+    console.error('balance/get error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
