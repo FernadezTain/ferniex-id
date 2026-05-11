@@ -1278,7 +1278,7 @@ $('loginSubmit').onclick=async()=>{
   msg.style.color='var(--muted)';msg.textContent='Проверяем...';
   let clientIp='неизвестен';
   try{const r=await fetch('https://api.ipify.org?format=json');const d=await r.json();clientIp=d.ip;}catch{}
-  const res=await fetch(`${API}/api/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p,clientIp,userAgent:navigator.userAgent})});
+  const res=await fetch(`${API}/api/auth/login`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f',username:u,password:p})});
   const data=await res.json();
   if(data.success){
     msg.style.color='var(--teal)';msg.textContent='✓ Входим...';
