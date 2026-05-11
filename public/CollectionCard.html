@@ -1016,18 +1016,21 @@ function showGate(id) {
 // ══════════════════════════════════════════
 async function loadDC() {
   try {
-    // Пробуем через FernieID SDK (getBalance), если не получается — fallback на /api/dc/
+    console.log('loadDC: FernieID=', typeof FernieID, 'getUser=', FernieID?.getUser?.());
     if (typeof FernieID !== 'undefined' && FernieID.getUser?.()) {
       const d = await FernieID.getBalance(['dc']);
+      console.log('loadDC SDK response:', JSON.stringify(d));
       if (d.success) {
         document.getElementById('pcDC').textContent = (d.dc ?? 0).toLocaleString('ru-RU');
         return;
       }
     }
-    // Fallback: старый эндпоинт по userId
+    console.log('loadDC fallback: userId=', currentUser.id);
     const res = await fetch(`/api/dc/${currentUser.id}`).then(r=>r.json());
+    console.log('loadDC fallback response:', JSON.stringify(res));
     document.getElementById('pcDC').textContent = (res.dc ?? res.balance ?? 0).toLocaleString('ru-RU');
   } catch(e) {
+    console.error('loadDC error:', e);
     document.getElementById('pcDC').textContent = '—';
   }
 }
