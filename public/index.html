@@ -2934,7 +2934,7 @@ async function loadApiLogs(keyId) {
 }
 function openLogDetail(el) {
   const l = JSON.parse(decodeURIComponent(el.dataset.log));
-  const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос',auth_request:'🔐 Запрос авторизации'};
+  const actionLabels = {created:'🟢 Ключ создан',edited:'✏️ Ключ изменён',deleted:'🗑 Ключ удалён',request:'🔵 API запрос',verify:'🔍 Проверка ключа',auth_request:'🔐 Авторизация',balance_request:'💰 Запрос баланса'};
   const meta = l.meta ? JSON.stringify(l.meta, null, 2) : '—';
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .2s ease;';
