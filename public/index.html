@@ -1501,7 +1501,34 @@ $('confirmOverlay').addEventListener('click',e=>{if(e.target===$('confirmOverlay
 
 async function doLinkTelegram(){
   const btn=$('linkTgBtn');btn.textContent='Генерируем...';btn.style.opacity='0.6';btn.style.pointerEvents='none';
-  try{const res=await fetch(`${API}/api/telegram/generate-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const data=await res.json();if(data.success){window.open(`https://t.me/FernieXBot?start=link_${data.token}`,'_blank');$('secTgDesc').textContent='Открой бота и отправь команду';}}catch(e){console.error(e);}
+  try{
+    const res=await fetch(`${API}/api/telegram/generate-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+    const data=await res.json();
+    if(data.success){
+      window.open(`https://t.me/FernieXBot?start=link_${data.token}`,'_blank');
+      $('secTgDesc').textContent='Открой бота и отправь команду. Ожидаем привязку...';
+      // Опрашиваем сервер каждые 3 сек, до 2 минут
+      const poll=setInterval(async()=>{
+        try{
+          const r=await fetch(`${API}/api/users/me`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+          const d=await r.json();
+          if(d.success&&d.user?.telegram_id){
+            clearInterval(poll);
+            currentUser.telegram_id=d.user.telegram_id;
+            localStorage.setItem('fernieid_session',JSON.stringify(currentUser));
+            localStorage.setItem('fernieid_user',JSON.stringify(currentUser));
+            $('secTgStatus').textContent='Привязан ✓';
+            $('secTgStatus').className='sec-status sec-on';
+            $('secTgDesc').textContent='ID: '+d.user.telegram_id;
+            $('unlinkTgBtn').style.display='inline-flex';
+            $('linkTgBtn').style.display='none';
+            showToast('✅ Telegram успешно привязан!');
+          }
+        }catch{}
+      },3000);
+      setTimeout(()=>clearInterval(poll),120000);
+    }
+  }catch(e){console.error(e);}
   btn.textContent='🔗 Привязать';btn.style.opacity='';btn.style.pointerEvents='';
 }
 
