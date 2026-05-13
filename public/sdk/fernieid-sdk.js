@@ -276,7 +276,7 @@
   }
 
   function done(d) {
-    localStorage.setItem('fernieid_user', JSON.stringify(d));
+    try { localStorage.setItem('fernieid_user', JSON.stringify(d)); } catch {}
     close();
     if (_resolve) _resolve(d);
   }
@@ -313,8 +313,8 @@
         });
       });
     },
-    getUser() { return JSON.parse(localStorage.getItem('fernieid_user')); },
-    logout() { localStorage.removeItem('fernieid_user'); },
+    getUser() { try { return JSON.parse(localStorage.getItem('fernieid_user')); } catch { return null; } },
+  logout() { try { localStorage.removeItem('fernieid_user'); } catch {} },
     async getBalance(fields = ['dc', 'seeds', 'balance']) {
       const user = this.getUser();
       if (!user) return { success: false, error: 'not_logged_in' };
