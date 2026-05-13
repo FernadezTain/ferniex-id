@@ -1510,11 +1510,11 @@ async function doLinkTelegram(){
       // Опрашиваем сервер каждые 3 сек, до 2 минут
       const poll=setInterval(async()=>{
         try{
-          const r=await fetch(`${API}/api/users/me`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+          const r=await fetch(`${API}/api/verify-token`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:currentUser.username})});
           const d=await r.json();
-          if(d.success&&d.user?.telegram_id){
+          if(d.success&&d.telegramLinked){
             clearInterval(poll);
-            currentUser.telegram_id=d.user.telegram_id;
+            currentUser.telegram_id=true;
             localStorage.setItem('fernieid_session',JSON.stringify(currentUser));
             localStorage.setItem('fernieid_user',JSON.stringify(currentUser));
             $('secTgStatus').textContent='Привязан ✓';
