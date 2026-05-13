@@ -220,7 +220,7 @@ app.post("/api/verify-token", async (req, res) => {
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
-    res.json({ success: true, userId: user.id, username: user.username, role: user.role, telegramLinked: !!user.telegram_id });
+    res.json({ success: true, userId: user.id, username: user.username, role: user.role, telegramLinked: !!user.telegram_id, telegram_id: user.telegram_id });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
