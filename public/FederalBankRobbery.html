@@ -1518,7 +1518,7 @@ async function finishRobbery(){
       // Reload bank data after success
       loadBankData();
     } else {
-      document.getElementById('success-amount').textContent='Ошибка транзакции';
+      document.getElementById('success-amount').textContent='Ошибка: '+(d.error||'неизвестно');
     }
   } catch(e){
     document.getElementById('success-amount').textContent='Ошибка сервера';
