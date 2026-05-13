@@ -1323,6 +1323,7 @@ let currentUser=null,passVisible=false,allSessions=[],sortMode='date',statsLoade
 function openDashboard(user){
   currentUser=user;
   localStorage.setItem('fernieid_session',JSON.stringify(user));
+localStorage.setItem('fernieid_user',JSON.stringify(user));
 if(window.opener){window.opener.postMessage({userId:user.id,username:user.username,role:user.role},'*');}
 if(window.opener){window.opener.postMessage({userId:user.id,username:user.username,role:user.role},'*');}
   passVisible=false;
