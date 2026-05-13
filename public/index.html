@@ -1539,11 +1539,11 @@ async function loadSeeds(){
     if(!d.success){
       if(d.error==='no_telegram'){$('seedsVal').textContent='Нет Telegram';}
       else if(d.error==='not_in_bot'){$('seedsVal').textContent='Нет в боте';}
-      else{$('seedsVal').textContent='Ошибка';}
+      else{$('seedsVal').textContent='Ошибка';alert('seeds error: '+d.error);}
       return;
     }
     $('seedsVal').textContent=(d.seeds??0).toLocaleString('ru-RU')+' 🌱';
-  }catch{$('seedsVal').textContent='Ошибка';}
+  }catch(e){$('seedsVal').textContent='Ошибка';alert('seeds catch: '+e.message);}
 }
 $('seedsRefreshBtn').addEventListener('click',()=>{$('seedsRefreshBtn').classList.add('spin');loadSeeds().finally(()=>setTimeout(()=>$('seedsRefreshBtn').classList.remove('spin'),500));});
 
