@@ -1514,12 +1514,12 @@ async function doLinkTelegram(){
           const d=await r.json();
           if(d.success&&d.telegramLinked){
             clearInterval(poll);
-            currentUser.telegram_id=true;
+            currentUser.telegram_id=d.telegram_id;
             localStorage.setItem('fernieid_session',JSON.stringify(currentUser));
             localStorage.setItem('fernieid_user',JSON.stringify(currentUser));
             $('secTgStatus').textContent='Привязан ✓';
             $('secTgStatus').className='sec-status sec-on';
-            $('secTgDesc').textContent='ID: '+d.user.telegram_id;
+            $('secTgDesc').textContent='ID: '+d.telegram_id;
             $('unlinkTgBtn').style.display='inline-flex';
             $('linkTgBtn').style.display='none';
             showToast('✅ Telegram успешно привязан!');
