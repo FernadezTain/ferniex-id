@@ -49,15 +49,7 @@ function sanitizeLog(body) {
 }
 // ─────────────────────────────────────────
 app.use(cors({
-  origin: [
-    'https://ferniex-id.vercel.app',
-    'https://ferniex-minigame.vercel.app',
-    'https://fernie-x-ai-chat.vercel.app',
-    'https://ferniex-music.vercel.app',
-    null,
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-  ],
+  origin: true,
   credentials: true
 }));
 
