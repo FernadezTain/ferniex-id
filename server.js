@@ -2206,6 +2206,21 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
+    // Логируем AI-запрос если есть apiKey в теле
+    if (req.body.apiKey) {
+      const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${req.body.apiKey}&select=id,user_id,status`, { headers: sbHeaders });
+      const keys = await keyRes.json();
+      if (keys.length && keys[0].status === 'active') {
+        await logApiKeyAction(keys[0].id, keys[0].user_id, 'ai_request', {
+          model: model,
+          userId: userId,
+          stream: !!stream,
+          ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+          origin: req.headers['origin'] || req.headers['referer'] || ''
+        });
+      }
+    }
+
     const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
