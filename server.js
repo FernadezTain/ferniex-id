@@ -2947,5 +2947,53 @@ app.post('/api/balance/get', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ПОИСК — прокси для FernieX AI
+// ══════════════════════════════════════════
+app.get('/api/search', async (req, res) => {
+  const { q } = req.query;
+  if (!q) return res.json({ success: false, error: 'Нет запроса' });
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  try {
+    const r = await fetch(
+      `https://searx.be/search?q=${encodeURIComponent(q)}&format=json&categories=general&language=ru-RU`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': 'application/json',
+          'Accept-Language': 'ru,en;q=0.9'
+        }
+      }
+    );
+    if (!r.ok) throw new Error('SearX HTTP ' + r.status);
+    const data = await r.json();
+    const results = (data.results || []).slice(0, 8).map(item => ({
+      title: item.title || '',
+      url: item.url || '',
+      snippet: item.content || ''
+    }));
+    res.json({ success: true, results, query: q });
+  } catch (e) {
+    console.error('search error:', e.message);
+    // Fallback — DuckDuckGo
+    try {
+      const ddg = await fetch(
+        `https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      const data = await ddg.json();
+      const results = [];
+      if (data.AbstractText) results.push({ title: data.AbstractTitle || q, url: data.AbstractURL || '', snippet: data.AbstractText });
+      if (data.Answer) results.push({ title: 'Ответ', url: '', snippet: data.Answer });
+      (data.RelatedTopics || []).slice(0, 6).forEach(t => {
+        if (t.Text) results.push({ title: t.Text.split(' - ')[0] || '', url: t.FirstURL || '', snippet: t.Text });
+      });
+      res.json({ success: true, results, query: q });
+    } catch (e2) {
+      res.json({ success: false, error: e2.message, results: [] });
+    }
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
