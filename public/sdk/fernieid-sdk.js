@@ -255,7 +255,6 @@
     const d = await post('/api/register', { username: u, password: p });
     if (!d.success) return setErr(d.error);
 
-    // После регистрации сразу логиним
     setInfo('Входим...');
     const d2 = await post('/api/auth/login', { apiKey: KEY, username: u, password: p });
     if (!d2.success) return setErr(d2.error);
@@ -289,8 +288,39 @@
     }
   }
 
+  // ══════════════════════════════════════════════
+  //  AI CHAT — внутренние хелперы
+  // ══════════════════════════════════════════════
+
+  /**
+   * Собирает тело запроса для /api/chat
+   * @param {object[]} messages  - массив { role, content }
+   * @param {object}   options   - model, max_tokens, stream, system
+   */
+  function buildChatBody(messages, options = {}) {
+    const user = window.FernieID.getUser();
+    const body = {
+        model:      options.model      || 'mistral-small-latest',
+        messages:   messages,
+        max_tokens: options.max_tokens || 1024,
+        stream:     options.stream     || false,
+        userId:     user ? user.userId : null,
+        apiKey:     KEY,
+      };
+    // Системный промпт — добавляем как первое сообщение если передан
+    if (options.system) {
+      body.messages = [{ role: 'system', content: options.system }, ...messages];
+    }
+    return body;
+  }
+
+  // ══════════════════════════════════════════════
+  //  PUBLIC API
+  // ══════════════════════════════════════════════
+
   window.FernieID = {
     init(apiKey) { KEY = apiKey; },
+
     login() {
       return new Promise(resolve => {
         _resolve = resolve;
@@ -313,8 +343,15 @@
         });
       });
     },
-    getUser() { try { return JSON.parse(localStorage.getItem('fernieid_user')); } catch { return null; } },
-  logout() { try { localStorage.removeItem('fernieid_user'); } catch {} },
+
+    getUser() {
+      try { return JSON.parse(localStorage.getItem('fernieid_user')); } catch { return null; }
+    },
+
+    logout() {
+      try { localStorage.removeItem('fernieid_user'); } catch {}
+    },
+
     async getBalance(fields = ['dc', 'seeds', 'balance']) {
       const user = this.getUser();
       if (!user) return { success: false, error: 'not_logged_in' };
@@ -322,10 +359,155 @@
       if (d.error === 'no_telegram' && d.action) window.open(d.action.url, '_blank');
       return d;
     },
+
     async editBalance(currency, amount, action) {
       const user = this.getUser();
       if (!user) return { success: false, error: 'not_logged_in' };
       return post('/api/edit/balance', { apiKey: KEY, username: user.username, currency, amount, action });
-    }
+    },
+
+    // ── AI: разовый запрос (не-стриминг) ─────────────────────────────
+    /**
+     * Отправляет сообщения в ИИ и возвращает полный ответ.
+     *
+     * @param {object[]} messages  - массив сообщений [{ role: 'user', content: '...' }, ...]
+     * @param {object}   options   - опции: model, max_tokens, system
+     * @returns {Promise<{ success: boolean, content: string, usage: object, error?: string }>}
+     *
+     * @example
+     * const res = await FernieID.chat([{ role: 'user', content: 'Привет!' }]);
+     * console.log(res.content); // ответ модели
+     */
+    async chat(messages, options = {}) {
+      try {
+        const body = buildChatBody(messages, { ...options, stream: false });
+        const res = await fetch(API + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          return { success: false, error: err?.error?.message || `HTTP ${res.status}` };
+        }
+
+        const data = await res.json();
+
+        // Ошибка лимита токенов
+        if (data.error) {
+          return { success: false, error: data.error.message || 'Ошибка API' };
+        }
+
+        const content = data.choices?.[0]?.message?.content ?? '';
+        return {
+          success: true,
+          content,
+          role:  data.choices?.[0]?.message?.role ?? 'assistant',
+          model: data.model ?? body.model,
+          usage: data.usage ?? {}
+        };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    },
+
+    // ── AI: стриминг ─────────────────────────────────────────────────
+    /**
+     * Отправляет сообщения в ИИ и возвращает ответ потоком (SSE).
+     *
+     * @param {object[]} messages   - массив сообщений
+     * @param {object}   callbacks  - { onToken(chunk), onDone(fullText), onError(msg) }
+     * @param {object}   options    - model, max_tokens, system
+     * @returns {Promise<void>}
+     *
+     * @example
+     * await FernieID.streamChat(
+     *   [{ role: 'user', content: 'Расскажи анекдот' }],
+     *   {
+     *     onToken: (chunk) => process.stdout.write(chunk),
+     *     onDone:  (full)  => console.log('\n[done]', full),
+     *     onError: (msg)   => console.error(msg)
+     *   }
+     * );
+     */
+    async streamChat(messages, callbacks = {}, options = {}) {
+      const { onToken, onDone, onError } = callbacks;
+
+      try {
+        const body = buildChatBody(messages, { ...options, stream: true });
+        const res = await fetch(API + '/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          const msg = err?.error?.message || `HTTP ${res.status}`;
+          if (onError) onError(msg);
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let fullText = '';
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          // Обрабатываем SSE построчно
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // последняя неполная строка остаётся в буфере
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (raw === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(raw);
+              const delta = parsed.choices?.[0]?.delta?.content;
+              if (delta) {
+                fullText += delta;
+                if (onToken) onToken(delta);
+              }
+            } catch {
+              // невалидный JSON-чанк — пропускаем
+            }
+          }
+        }
+
+        if (onDone) onDone(fullText);
+
+      } catch (e) {
+        if (onError) onError(e.message);
+      }
+    },
+
+    // ── AI: получить лимиты токенов текущего пользователя ────────────
+    /**
+     * Возвращает информацию о расходе токенов за сегодня.
+     *
+     * @returns {Promise<{ success: boolean, used: number, limit: number, remaining: number, has_plus: boolean }>}
+     *
+     * @example
+     * const usage = await FernieID.getChatUsage();
+     * console.log(`Осталось токенов: ${usage.remaining}`);
+     */
+    async getChatUsage() {
+      const user = this.getUser();
+      if (!user) return { success: false, error: 'not_logged_in' };
+      try {
+        const res = await fetch(`${API}/api/chat/usage/${user.userId}`);
+        return await res.json();
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    },
   };
 })();
