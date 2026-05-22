@@ -2955,17 +2955,19 @@ app.get('/api/search', async (req, res) => {
   if (!q) return res.json({ success: false, error: 'Нет запроса' });
   res.setHeader('Access-Control-Allow-Origin', '*');
   try {
-    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-    const GOOGLE_CX = process.env.GOOGLE_CX;
-    if (!GOOGLE_API_KEY || !GOOGLE_CX) throw new Error('Google API keys not configured');
-    const r = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(q)}&num=8&hl=ru`,
-      );
-    if (!r.ok) throw new Error('Google API HTTP ' + r.status);
+    const SERPER_API_KEY = process.env.SERPER_API_KEY;
+    if (!SERPER_API_KEY) throw new Error('Serper API key not configured');
+    const r = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': SERPER_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ q, hl: 'ru', num: 8 })
+    });
+    if (!r.ok) throw new Error('Serper API HTTP ' + r.status);
     const data = await r.json();
-    console.log('Google search response:', JSON.stringify(data).slice(0, 500));
-    if (data.error) throw new Error(data.error.message);
-    const results = (data.items || []).map(item => ({
+    const results = (data.organic || []).map(item => ({
       title: item.title || '',
       url: item.link || '',
       snippet: item.snippet || ''
