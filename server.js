@@ -2955,22 +2955,19 @@ app.get('/api/search', async (req, res) => {
   if (!q) return res.json({ success: false, error: 'Нет запроса' });
   res.setHeader('Access-Control-Allow-Origin', '*');
   try {
+    const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+    const GOOGLE_CX = process.env.GOOGLE_CX;
+    if (!GOOGLE_API_KEY || !GOOGLE_CX) throw new Error('Google API keys not configured');
     const r = await fetch(
-      `https://searx.be/search?q=${encodeURIComponent(q)}&format=json&categories=general&language=ru-RU`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/json',
-          'Accept-Language': 'ru,en;q=0.9'
-        }
-      }
-    );
-    if (!r.ok) throw new Error('SearX HTTP ' + r.status);
+      `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(q)}&num=8&hl=ru`,
+      );
+    if (!r.ok) throw new Error('Google API HTTP ' + r.status);
     const data = await r.json();
-    const results = (data.results || []).slice(0, 8).map(item => ({
+    if (data.error) throw new Error(data.error.message);
+    const results = (data.items || []).map(item => ({
       title: item.title || '',
-      url: item.url || '',
-      snippet: item.content || ''
+      url: item.link || '',
+      snippet: item.snippet || ''
     }));
     res.json({ success: true, results, query: q });
   } catch (e) {
