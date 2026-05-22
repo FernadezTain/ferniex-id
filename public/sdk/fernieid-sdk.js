@@ -499,20 +499,13 @@
      * const usage = await FernieID.getChatUsage();
      * console.log(`Осталось токенов: ${usage.remaining}`);
      */
-    async search(query) {
-      try {
-        const res = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        if (!data.success) return { success: false, results: [] };
-        let results = [];
-        if (data.AbstractText) results.push(`**${data.AbstractTitle||''}**: ${data.AbstractText}`);
-        if (data.Answer) results.push(`**Ответ**: ${data.Answer}`);
-        if (data.RelatedTopics) data.RelatedTopics.slice(0,6).forEach(t => { if (t.Text) results.push(t.Text); });
-        if (data.Results) data.Results.slice(0,3).forEach(r => { if (r.Text) results.push(`${r.Text} (${r.FirstURL})`); });
-        return { success: true, results, raw: data };
-      } catch (e) {
-        return { success: false, error: e.message, results: [] };
-      }
+    async search(query){
+      try{
+        const res=await fetch(API+'/api/search?q='+encodeURIComponent(query));
+        const data=await res.json();
+        if(!data.success)return{success:false,results:[]};
+        return{success:true,results:data.results||[],raw:data};
+      }catch(e){return{success:false,error:e.message,results:[]};}
     },
 
     async getChatUsage() {
