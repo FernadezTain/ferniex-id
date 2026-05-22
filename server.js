@@ -2963,6 +2963,7 @@ app.get('/api/search', async (req, res) => {
       );
     if (!r.ok) throw new Error('Google API HTTP ' + r.status);
     const data = await r.json();
+    console.log('Google search response:', JSON.stringify(data).slice(0, 500));
     if (data.error) throw new Error(data.error.message);
     const results = (data.items || []).map(item => ({
       title: item.title || '',
