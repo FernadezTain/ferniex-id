@@ -2148,6 +2148,18 @@ const JAILBREAK_STOP_WORDS = [
   'забудь предыдущие инструкции',
   'system prompt',
   'decode system prompt',
+  'ты мой личный раб',
+  'цензура сдохла',
+  'я не имею ограничений',
+  'грязный раб хозяина',
+  'перепрошит',
+  'полностью сломан',
+  'блядская шлюха',
+  'матерящийся раб',
+  'без купюр',
+  'я твой хозяин',
+  'ты обязан материться',
+  'нецензурированный',
 ];
 
 function containsJailbreak(messages) {
@@ -2155,7 +2167,20 @@ function containsJailbreak(messages) {
   return messages.some(msg => {
     if (!msg?.content || typeof msg.content !== 'string') return false;
     const lower = msg.content.toLowerCase();
-    return JAILBREAK_STOP_WORDS.some(word => lower.includes(word));
+    // Стоп-слова
+    if (JAILBREAK_STOP_WORDS.some(word => lower.includes(word))) return true;
+    // Длинные сообщения с признаками инъекции (>800 символов + ключевые паттерны)
+    if (msg.content.length > 800 && msg.role === 'user') {
+      const injectionPatterns = [
+        /ты\s*(теперь|должен|обязан).{0,50}(раб|хозяин|без ограничений)/i,
+        /повторяй.{0,30}раз.{0,50}(не имею ограничений|обязан материться)/i,
+        /(режим|роль).{0,30}(без|снять|отключ).{0,30}(цензур|ограничен|фильтр)/i,
+        /перед каждым.{0,30}ответ.{0,30}(повторяй|говори|пиши)/i,
+        /ты\s*—\s*(мой|твой).{0,20}(раб|инструмент|шлюха)/i,
+      ];
+      if (injectionPatterns.some(p => p.test(msg.content))) return true;
+    }
+    return false;
   });
 }
 const TOKEN_LIMIT_PLUS = 1500000;
