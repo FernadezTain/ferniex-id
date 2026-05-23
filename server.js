@@ -2183,33 +2183,48 @@ const TOKEN_LIMIT_PLUS = 1500000;
 
 async function getTokensUsedToday(userId) {
   const today = new Date().toISOString().slice(0, 10);
-  const r = await fetch(
-    `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=tokens_used`,
-    { headers: sbHeaders }
-  );
-  const rows = await r.json();
-  return rows[0]?.tokens_used || 0;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=tokens_used`,
+      { headers: sbHeaders, signal: controller.signal }
+    );
+    const rows = await r.json();
+    return rows[0]?.tokens_used || 0;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function addTokensUsed(userId, tokens) {
   const today = new Date().toISOString().slice(0, 10);
-  const check = await fetch(
-    `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=id,tokens_used`,
-    { headers: sbHeaders }
-  );
-  const rows = await check.json();
-  if (rows.length) {
-    await fetch(`${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ tokens_used: rows[0].tokens_used + tokens })
-    });
-  } else {
-    await fetch(`${SB_URL}/rest/v1/ai_token_usage`, {
-      method: 'POST',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ user_id: userId, tokens_used: tokens, date: today })
-    });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
+  try {
+    const check = await fetch(
+      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=id,tokens_used`,
+      { headers: sbHeaders, signal: controller.signal }
+    );
+    const rows = await check.json();
+    if (rows.length) {
+      await fetch(`${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ tokens_used: rows[0].tokens_used + tokens })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/ai_token_usage`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ user_id: userId, tokens_used: tokens, date: today })
+      });
+    }
+  } catch (e) {
+    // Не блокируем основной поток если запись токенов упала
+    console.error('addTokensUsed failed:', e.message);
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -2238,22 +2253,27 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-  // Получаем userId из сессии (передаётся с фронта)
+// Получаем userId из сессии (передаётся с фронта)
   const userId = req.body.userId || null;
 
   // Проверка лимита если пользователь авторизован
   if (userId) {
-    const plus = await hasFerniePlus(userId);
-    const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
-    const used = await getTokensUsedToday(userId);
-    if (used >= limit) {
-      return res.status(429).json({
-        error: {
-          message: plus
-            ? `Достигнут дневной лимит Fernie+ (${TOKEN_LIMIT_PLUS.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
-            : `Достигнут дневной лимит (${TOKEN_LIMIT_FREE.toLocaleString('ru-RU')} токенов). Оформи Fernie+ для увеличения лимита до 1 500 000 токенов/день.`
-        }
-      });
+    try {
+      const plus = await hasFerniePlus(userId);
+      const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
+      const used = await getTokensUsedToday(userId);
+      if (used >= limit) {
+        return res.status(429).json({
+          error: {
+            message: plus
+              ? `Достигнут дневной лимит Fernie+ (${TOKEN_LIMIT_PLUS.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
+              : `Достигнут дневной лимит (${TOKEN_LIMIT_FREE.toLocaleString('ru-RU')} токенов). Оформи Fernie+ для увеличения лимита до 1 500 000 токенов/день.`
+          }
+        });
+      }
+    } catch (e) {
+      // Supabase недоступен — пропускаем проверку, не блокируем юзера
+      console.error('Token limit check failed, skipping:', e.message);
     }
   }
 
@@ -2272,7 +2292,6 @@ app.post('/api/chat', async (req, res) => {
         });
       }
     }
-
     const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
