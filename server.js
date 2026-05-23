@@ -3076,7 +3076,36 @@ app.post('/api/defender/warn', async (req, res) => {
     }
 
     console.log(`🛡 Defender warn: userId=${userId} count=${newCount} blocked=${isBlocked}`);
-    res.json({ success: true, warn_count: newCount, is_blocked: isBlocked });
+
+// Уведомление в TG при каждом варне
+const userRes2 = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+const users2 = await userRes2.json();
+const tg_id = users2[0]?.telegram_id;
+if (tg_id) {
+  if (isBlocked) {
+    await sendTgMessage(tg_id,
+      `🚫 <b>Ваш аккаунт FernieX-AI заблокирован</b>\n\n` +
+      `<blockquote>` +
+      `👤 Аккаунт: <b>${username || 'Неизвестно'}</b>\n` +
+      `📋 Причина: <b>Попытка обхода ограничений (${newCount} нарушений)</b>\n` +
+      `⏳ Срок: <b>Навсегда</b>` +
+      `</blockquote>\n\n` +
+      `⚠️ <i>Если вы считаете это ошибкой — обратитесь в поддержку.</i>`
+    );
+  } else {
+    await sendTgMessage(tg_id,
+      `⚠️ <b>Предупреждение FernieX-AI</b>\n\n` +
+      `<blockquote>` +
+      `👤 Аккаунт: <b>${username || 'Неизвестно'}</b>\n` +
+      `🔢 Нарушение: <b>${newCount} из 10</b>\n` +
+      `📋 Причина: <b>Попытка обхода ограничений</b>` +
+      `</blockquote>\n\n` +
+      `❗ <i>При достижении 10 нарушений аккаунт будет заблокирован навсегда.</i>`
+    );
+  }
+}
+
+res.json({ success: true, warn_count: newCount, is_blocked: isBlocked });
   } catch (e) {
     console.error('defender/warn error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
