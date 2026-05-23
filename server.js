@@ -3027,8 +3027,78 @@ app.post('/api/balance/get', async (req, res) => {
 });
 
 // ══════════════════════════════════════════
-//  ПОИСК — прокси для FernieX AI
+//  FERNIEX DEFENDER — система варнов
 // ══════════════════════════════════════════
+app.post('/api/defender/warn', async (req, res) => {
+  const { userId, username, apiKey } = req.body;
+  if (!apiKey || apiKey !== process.env.FID_API_KEY) return res.json({ success: false, error: 'Unauthorized' });
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    // Проверяем существующую запись
+    const checkRes = await fetch(
+      `${SB_URL}/rest/v1/defender_warnings?user_id=eq.${userId}&select=warn_count,is_blocked`,
+      { headers: sbHeaders }
+    );
+    const rows = await checkRes.json();
+
+    if (rows.length && rows[0].is_blocked) {
+      return res.json({ success: true, warn_count: rows[0].warn_count, is_blocked: true });
+    }
+
+    const currentCount = rows[0]?.warn_count || 0;
+    const newCount = currentCount + 1;
+    const isBlocked = newCount >= 10;
+
+    if (rows.length) {
+      await fetch(`${SB_URL}/rest/v1/defender_warnings?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          warn_count: newCount,
+          is_blocked: isBlocked,
+          username: username || null,
+          blocked_at: isBlocked ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString()
+        })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/defender_warnings`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          user_id: userId,
+          username: username || null,
+          warn_count: newCount,
+          is_blocked: isBlocked,
+          blocked_at: isBlocked ? new Date().toISOString() : null
+        })
+      });
+    }
+
+    console.log(`🛡 Defender warn: userId=${userId} count=${newCount} blocked=${isBlocked}`);
+    res.json({ success: true, warn_count: newCount, is_blocked: isBlocked });
+  } catch (e) {
+    console.error('defender/warn error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+app.get('/api/defender/check', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/defender_warnings?user_id=eq.${userId}&select=warn_count,is_blocked`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: true, warn_count: 0, is_blocked: false });
+    res.json({ success: true, warn_count: rows[0].warn_count || 0, is_blocked: rows[0].is_blocked || false });
+  } catch (e) {
+    console.error('defender/check error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
 app.get('/api/search', async (req, res) => {
   const { q } = req.query;
   if (!q) return res.json({ success: false, error: 'Нет запроса' });
@@ -3073,6 +3143,7 @@ app.get('/api/search', async (req, res) => {
     }
   }
 });
+
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
