@@ -518,5 +518,20 @@
         return { success: false, error: e.message };
       }
     },
+
+    /**
+     * Проверяет наличие Fernie+ Pro подписки у текущего пользователя.
+     * @returns {Promise<{ success: boolean, active: boolean, plan: string|null }>}
+     */
+    async getProPlusStatus() {
+      const user = this.getUser();
+      if (!user) return { success: false, active: false, error: 'not_logged_in' };
+      try {
+        const res = await fetch(`${API}/api/fernieplus/pro/${user.userId}`);
+        return await res.json();
+      } catch (e) {
+        return { success: false, active: false, error: e.message };
+      }
+    },
   };
 })();
