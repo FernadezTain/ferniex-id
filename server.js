@@ -3224,5 +3224,45 @@ app.get('/api/search', async (req, res) => {
 });
 
 
+// ══════════════════════════════════════════
+//  Fernie+ ACTIVATE — активация через сайт
+// ══════════════════════════════════════════
+app.post('/api/fernieplus/activate', async (req, res) => {
+  const { telegram_id, plan_key, method, amount, username } = req.body;
+  if (!telegram_id || !plan_key || !method || !amount)
+    return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id, plan_key, method, amount, username })
+    });
+    const data = await botRes.json();
+    res.json(data);
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Fernie+ Pro — проверка статуса оплаты
+// ══════════════════════════════════════════
+app.post('/api/fernieplus/pro/check-payment', async (req, res) => {
+  const { pay_id, telegram_id } = req.body;
+  if (!pay_id || !telegram_id)
+    return res.json({ success: false, paid: false });
+  try {
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/check-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pay_id, telegram_id })
+    });
+    const data = await botRes.json();
+    res.json(data);
+  } catch (e) {
+    res.json({ success: false, paid: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
