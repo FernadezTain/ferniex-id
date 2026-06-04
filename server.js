@@ -1056,6 +1056,22 @@ app.post('/api/admin/delete-user', async (req, res) => {
 // ══════════════════════════════════════════
 //  Fernie+ — подписка
 // ══════════════════════════════════════════
+// Fernie+ Pro — отдельный тариф
+app.get('/api/fernieplus/pro/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length || !users[0].telegram_id)
+      return res.json({ success: false, error: 'Telegram не привязан', active: false });
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/status?telegram_id=${users[0].telegram_id}`);
+    const data = await botRes.json();
+    res.json({ success: true, active: !!data.active, plan: data.plan || null });
+  } catch (e) {
+    res.json({ success: false, error: e.message, active: false });
+  }
+});
+
 app.get('/api/fernieplus/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
