@@ -533,5 +533,31 @@
         return { success: false, active: false, error: e.message };
       }
     },
+
+    async activateFerniePlus({ telegram_id, plan_key, method, amount, username }) {
+      try {
+        const res = await fetch(`${API}/api/fernieplus/activate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id, plan_key, method, amount, username })
+        });
+        return await res.json();
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    },
+
+    async checkProPayment({ pay_id, telegram_id }) {
+      try {
+        const res = await fetch(`${API}/api/fernieplus/pro/check-payment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pay_id, telegram_id })
+        });
+        return await res.json();
+      } catch (e) {
+        return { success: false, paid: false, error: e.message };
+      }
+    },
   };
 })();
