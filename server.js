@@ -1845,6 +1845,47 @@ app.post('/api/cards/craft', async (req, res) => {
   }
 });
 
+// ── Скупщик: мгновенная выкупка карточек ─────────────────────────
+app.post('/api/card-market/bulk-sell-to-buyer', async (req, res) => {
+  const { userId, cardIds, totalPrice } = req.body;
+  if (!userId || !cardIds?.length) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    // Начисляем DC пользователю через бота
+    const addRes = await fetch(`${BOT_URL}/api/dc/add`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, amount: totalPrice })
+    }).then(r => r.json());
+
+    if (!addRes.success) return res.json({ success: false, error: addRes.error || 'Ошибка начисления DC' });
+
+    // Удаляем карточки через бота
+    const deleteRes = await fetch(`${BOT_URL}/api/cards/delete-bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, card_ids: cardIds })
+    }).then(r => r.json());
+
+    if (!deleteRes.success) {
+      // Откатываем DC если карточки не удалились
+      await fetch(`${BOT_URL}/api/dc/spend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: telegramId, amount: totalPrice })
+      });
+      return res.json({ success: false, error: deleteRes.error || 'Ошибка удаления карточек' });
+    }
+
+    res.json({ success: true, dc_added: totalPrice, cards_sold: cardIds.length });
+  } catch (e) {
+    console.error('bulk-sell-to-buyer error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ── Роут для CollectionCard без .html ────────────────────────────
 app.get('/CollectionCard', (req, res) => {
   res.sendFile('CollectionCard.html', { root: 'public' });
