@@ -1866,23 +1866,21 @@ app.post('/api/card-market/bulk-sell-to-buyer', async (req, res) => {
     catch (e) { return res.json({ success: false, error: `Бот вернул не JSON: ${addText.slice(0, 80)}` }); }
 
     if (!addRes.success) return res.json({ success: false, error: addRes.error || 'Ошибка начисления DC' });
-
-    // Удаляем карточки через /api/cards/craft (используем существующий механизм удаления)
-    // Бота нет delete-bulk — удаляем через craft endpoint поочерёдно напрямую в БД бота не можем,
-    // поэтому выставляем карточки на маркет по 1 DC и сразу снимаем — они исчезнут из инвентаря
-    // Правильный путь: добавить эндпоинт в бота. Пока — просто начисляем DC, карточки помечаем проданными
-    const deleteRes = { success: true }; // заглушка — нужно добавить /api/cards/delete-bulk в бота
+    const deleteRes = await fetch(`${BOT_URL}/api/cards/delete-bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: telegramId, fernie_user_id: userId, card_ids: cardIds })
+    }).then(r => r.json()).catch(() => ({ success: false, error: 'Бот недоступен' }));
 
     if (!deleteRes.success) {
       // Откатываем DC если карточки не удалились
-      await fetch(`${BOT_URL}/api/dc/spend`, {
+      await fetch(`${BOT_URL}/api/edit/balance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegram_id: telegramId, amount: totalPrice })
+        body: JSON.stringify({ telegram_id: telegramId, currency: 'dc', amount: totalPrice, action: 'spend' })
       });
       return res.json({ success: false, error: deleteRes.error || 'Ошибка удаления карточек' });
     }
-
     res.json({ success: true, dc_added: totalPrice, cards_sold: cardIds.length });
   } catch (e) {
     console.error('bulk-sell-to-buyer error:', e);
