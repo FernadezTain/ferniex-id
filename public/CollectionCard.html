@@ -1433,11 +1433,6 @@ function renderMarket() {
           </div>
         </div>
 
-        <!-- Panel: Скупщик -->
-        <div class="market-subpanel ${marketSubTab==='buyer'?'active':''}">
-          <div id="buyerPanelContent"></div>
-        </div>
-
         <!-- Panel: Мои лоты -->
         <div class="market-subpanel ${marketSubTab==='my'?'active':''}">
           <div class="market-meta-list">
@@ -1452,10 +1447,14 @@ function renderMarket() {
           </div>
         </div>
 
+        <!-- Panel: Скупщик -->
+        <div class="market-subpanel ${marketSubTab==='buyer'?'active':''}">
+          <div id="buyerPanelContent"></div>
+        </div>
+
       </div>
     </div>
   `;
-
   const inp = document.getElementById('marketOrderPrice');
   if (inp && window._savedOrderPrice) inp.value = window._savedOrderPrice;
 }
