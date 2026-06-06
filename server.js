@@ -1854,20 +1854,30 @@ app.post('/api/card-market/bulk-sell-to-buyer', async (req, res) => {
     if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
 
     // Начисляем DC пользователю через бота
-    const addRes = await fetch(`${BOT_URL}/api/dc/add`, {
+    const addRaw = await fetch(`${BOT_URL}/api/dc/add`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id: telegramId, amount: totalPrice })
-    }).then(r => r.json());
+    });
+    const addText = await addRaw.text();
+    console.log('dc/add response:', addText.slice(0, 200));
+    let addRes;
+    try { addRes = JSON.parse(addText); }
+    catch (e) { return res.json({ success: false, error: `Бот вернул не JSON: ${addText.slice(0, 80)}` }); }
 
     if (!addRes.success) return res.json({ success: false, error: addRes.error || 'Ошибка начисления DC' });
 
     // Удаляем карточки через бота
-    const deleteRes = await fetch(`${BOT_URL}/api/cards/delete-bulk`, {
+    const deleteRaw = await fetch(`${BOT_URL}/api/cards/delete-bulk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id: telegramId, card_ids: cardIds })
-    }).then(r => r.json());
+    });
+    const deleteText = await deleteRaw.text();
+    console.log('cards/delete-bulk response:', deleteText.slice(0, 200));
+    let deleteRes;
+    try { deleteRes = JSON.parse(deleteText); }
+    catch (e) { return res.json({ success: false, error: `Бот вернул не JSON на delete: ${deleteText.slice(0, 80)}` }); }
 
     if (!deleteRes.success) {
       // Откатываем DC если карточки не удалились
