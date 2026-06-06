@@ -885,11 +885,11 @@ body{
     Скупщик берёт карточки по <b>30% от минимальной цены на маркете</b>.<br>
     Если карточки нет на маркете — цена договорная (минимум 10 DC).
   </div>
-  <div class="craft-slots" id="buyerSlots" style="max-height:120px;overflow-y:auto;"></div>
+  <div class="craft-slots" id="buyerSlots" style="max-height:96px;overflow-y:auto;gap:4px;"></div>
   <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#c084fc;margin-bottom:12px;" id="buyerTotalPrice">Итого: 0 DC</div>
   <div style="display:flex;gap:10px;margin-bottom:16px;width:100%;max-width:600px;">
-    <button class="craft-do-btn" id="buyerSellBtn" onclick="doBuyerSell()" style="margin:0;flex:2;">💸 Продать</button>
-    <button class="craft-do-btn" onclick="closeBuyerOverlay()" style="margin:0;flex:1;background:rgba(255,255,255,0.08);box-shadow:none;">Отмена</button>
+    <button class="craft-do-btn ready" id="buyerSellBtn" style="margin:0;flex:2;pointer-events:all;opacity:0.4;">💸 Продать</button>
+    <button class="craft-do-btn ready" id="buyerCancelBtn" style="margin:0;flex:1;background:rgba(255,255,255,0.08);box-shadow:none;pointer-events:all;">Отмена</button>
   </div>
   <div style="width:100%;max-width:600px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="font-size:.8rem;color:var(--muted);">Выбрано: <span id="buyerSelectedCount">0</span></div>
@@ -2355,10 +2355,15 @@ function renderBuyerPanel() {
 function openBuyerOverlay() {
   buyerSelected = [];
   document.getElementById('buyerOverlay').classList.add('open');
-  // Небольшая задержка — DOM должен быть видим до построения грида
-  requestAnimationFrame(() => buildBuyerUI());
+  requestAnimationFrame(() => {
+    buildBuyerUI();
+    // Вешаем обработчики после того как DOM точно готов
+    const sellBtn = document.getElementById('buyerSellBtn');
+    const cancelBtn = document.getElementById('buyerCancelBtn');
+    if (sellBtn) sellBtn.onclick = doBuyerSell;
+    if (cancelBtn) cancelBtn.onclick = closeBuyerOverlay;
+  });
 }
-
 function closeBuyerOverlay() {
   document.getElementById('buyerOverlay').classList.remove('open');
   buyerSelected = [];
@@ -2519,9 +2524,9 @@ function updateBuyerSlots() {
     const rarity = (card.rarity || '').toLowerCase();
     const slot = document.createElement('div');
     slot.className = `craft-slot filled ${rarity}-slot`;
-    slot.style.cursor = 'pointer';
-    slot.title = `${card.name} — нажми чтобы убрать`;
-    slot.innerHTML = `<div class="craft-slot-img" style="background-image:url('${imgUrl}');"></div>`;
+  slot.style.cssText = 'cursor:pointer;width:44px;height:66px;min-width:44px;flex-shrink:0;';
+  slot.title = `${card.name} — нажми чтобы убрать`;
+  slot.innerHTML = `<div class="craft-slot-img" style="background-image:url('${imgUrl}');border-radius:8px;"></div>`;
     slot.addEventListener('click', () => {
       const gridEl = document.querySelector(`#buyerPickGrid [data-card-id="${card.card_id}"]`);
       if (gridEl) toggleBuyerCard(gridEl, card);
@@ -2546,10 +2551,8 @@ function updateBuyerTotal() {
   if (el) el.textContent = `Итого: ${total.toLocaleString('ru-RU')} DC`;
   const btn = document.getElementById('buyerSellBtn');
   if (btn) {
-    btn.classList.toggle('ready', buyerSelected.length > 0);
-    btn.textContent = buyerSelected.length > 0
-      ? `💸 Продать за ${total.toLocaleString('ru-RU')} DC`
-      : '💸 Продать';
+    btn.style.opacity = buyerSelected.length > 0 ? '1' : '0.4';
+    btn.textContent = '💸 Продать';
   }
 }
 
