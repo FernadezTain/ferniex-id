@@ -875,6 +875,36 @@ body{
   </div>
 </div>
 
+<!-- BUYER OVERLAY -->
+<div class="craft-overlay" id="buyerOverlay">
+  <div class="craft-header">
+    <div class="craft-title">🤑 Скупщик <span id="buyerTitleSub">— выбери карточки</span></div>
+    <button class="craft-close" onclick="closeBuyerOverlay()">✕</button>
+  </div>
+  <div class="craft-desc">
+    Скупщик берёт карточки по <b>30% от минимальной цены на маркете</b>.<br>
+    Если карточки нет на маркете — цена договорная (минимум 10 DC).
+  </div>
+  <div class="craft-slots" id="buyerSlots" style="max-height:120px;overflow-y:auto;"></div>
+  <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:#c084fc;margin-bottom:12px;" id="buyerTotalPrice">Итого: 0 DC</div>
+  <div style="display:flex;gap:10px;margin-bottom:16px;width:100%;max-width:600px;">
+    <button class="craft-do-btn" id="buyerSellBtn" onclick="doBuyerSell()" style="margin:0;flex:2;">💸 Продать</button>
+    <button class="craft-do-btn" onclick="closeBuyerOverlay()" style="margin:0;flex:1;background:rgba(255,255,255,0.08);box-shadow:none;">Отмена</button>
+  </div>
+  <div style="width:100%;max-width:600px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:.8rem;color:var(--muted);">Выбрано: <span id="buyerSelectedCount">0</span></div>
+    <button onclick="buyerToggleSelectAll()" style="
+      display:flex;align-items:center;gap:6px;
+      padding:7px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.1);
+      background:rgba(255,255,255,0.05);color:var(--text);cursor:pointer;
+      font-size:.78rem;font-weight:600;-webkit-tap-highlight-color:transparent;
+    " id="buyerSelectAllBtn">
+      <span id="buyerSelectAllIcon">☐</span> Выбрать все
+    </button>
+  </div>
+  <div class="craft-pick-grid" id="buyerPickGrid"></div>
+</div>
+
 <!-- CRAFT PICKER OVERLAY -->
 <div class="craft-overlay" id="craftOverlay">
   <div class="craft-header">
@@ -1383,6 +1413,7 @@ function renderMarket() {
         <div class="market-subtabs">
           <button class="market-subtab ${marketSubTab==='listings'?'active':''}" onclick="switchMarketSubTab('listings')">🏪 Площадка</button>
           <button class="market-subtab ${marketSubTab==='my'?'active':''}" onclick="switchMarketSubTab('my')">📋 Мои лоты</button>
+          <button class="market-subtab ${marketSubTab==='buyer'?'active':''}" onclick="switchMarketSubTab('buyer')">🤑 Скупщик</button>
         </div>
 
         <!-- Panel: Площадка -->
@@ -1398,6 +1429,11 @@ function renderMarket() {
               <div class="market-mini-list">${historyHtml}</div>
             </div>
           </div>
+        </div>
+
+        <!-- Panel: Скупщик -->
+        <div class="market-subpanel ${marketSubTab==='buyer'?'active':''}">
+          <div id="buyerPanelContent"></div>
         </div>
 
         <!-- Panel: Мои лоты -->
@@ -1424,9 +1460,14 @@ function renderMarket() {
 
 function switchMarketSubTab(tab) {
   marketSubTab = tab;
-  // Just toggle visibility without full re-render
-  document.querySelectorAll('.market-subtab').forEach(b => b.classList.toggle('active', b.textContent.includes(tab === 'listings' ? 'Площадка' : 'Мои')));
-  document.querySelectorAll('.market-subpanel').forEach((p, i) => p.classList.toggle('active', tab === 'listings' ? i === 0 : i === 1));
+  document.querySelectorAll('.market-subtab').forEach(b => {
+    const labels = { listings: 'Площадка', my: 'Мои', buyer: 'Скупщик' };
+    b.classList.toggle('active', b.textContent.includes(labels[tab]));
+  });
+  document.querySelectorAll('.market-subpanel').forEach((p, i) => {
+    p.classList.toggle('active', (tab === 'listings' && i === 0) || (tab === 'my' && i === 1) || (tab === 'buyer' && i === 2));
+  });
+  if (tab === 'buyer') renderBuyerPanel();
 }
 
 // ─── STACKS ──────────────────────────────────
@@ -2263,6 +2304,255 @@ function closeCraftAnim() {
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ══════════════════════════════════════════
+//  BUYER (СКУПЩИК)
+// ══════════════════════════════════════════
+let buyerSelected = []; // { card, price }
+
+function renderBuyerPanel() {
+  const cont = document.getElementById('buyerPanelContent');
+  if (!cont) return;
+  const total = allCards.length;
+  cont.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:2rem 0;text-align:center;">
+      <div style="font-size:2.5rem;">🤑</div>
+      <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;">Скупщик карточек</div>
+      <div style="color:var(--muted);font-size:.85rem;max-width:280px;line-height:1.6;">
+        Выбери карточки — скупщик предложит <b style="color:#c084fc;">30%</b> от цены маркета за каждую.
+      </div>
+      <button onclick="openBuyerOverlay()" style="
+        padding:12px 28px;border-radius:14px;border:none;cursor:pointer;
+        font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+        background:linear-gradient(135deg,rgba(160,80,255,0.4),rgba(90,40,180,0.55));
+        border:1px solid rgba(192,132,252,0.35);color:#fff;
+        transition:all .18s;
+      ">Выбрать карточки (${total})</button>
+    </div>
+  `;
+}
+
+function openBuyerOverlay() {
+  buyerSelected = [];
+  buildBuyerUI();
+  document.getElementById('buyerOverlay').classList.add('open');
+}
+
+function closeBuyerOverlay() {
+  document.getElementById('buyerOverlay').classList.remove('open');
+  buyerSelected = [];
+}
+
+function getMarketMedianByRarity(rarity) {
+  const listings = marketState.listings || [];
+  const same = listings
+    .filter(x => (x.rarity || '').toLowerCase() === rarity.toLowerCase())
+    .map(x => Number(x.price))
+    .filter(p => p > 0)
+    .sort((a, b) => a - b);
+  if (!same.length) return null;
+  const mid = Math.floor(same.length / 2);
+  return same.length % 2 !== 0 ? same[mid] : (same[mid - 1] + same[mid]) / 2;
+}
+
+function getBuyerCardPrice(card) {
+  const listings = marketState.listings || [];
+  const rarity = (card.rarity || '').toLowerCase();
+
+  // Медиана по редкости — защита от аномалий
+  const medianByRarity = getMarketMedianByRarity(rarity);
+
+  // Ищем лоты этой карточки
+  const relevant = listings.filter(x =>
+    (x.name || '').toLowerCase() === (card.name || '').toLowerCase() ||
+    String(x.catalog_card_id) === String(card.catalog_card_id || '')
+  );
+
+  if (relevant.length) {
+    const prices = relevant.map(x => Number(x.price)).filter(p => p > 0).sort((a, b) => a - b);
+
+    // Фильтруем аномальные цены
+    // Если есть медиана по редкости — отсекаем всё что выше медианы * 10
+    const sanePrices = medianByRarity
+      ? prices.filter(p => p <= medianByRarity * 10)
+      : prices;
+
+    if (sanePrices.length) {
+      // Берём медиану среди адекватных цен (не минимум — он тоже может быть аномально низким)
+      const mid = Math.floor(sanePrices.length / 2);
+      const fairPrice = sanePrices.length % 2 !== 0
+        ? sanePrices[mid]
+        : (sanePrices[mid - 1] + sanePrices[mid]) / 2;
+      return Math.max(10, Math.floor(fairPrice * 0.3));
+    }
+    // Все цены оказались аномальными — падаем на медиану по редкости
+  }
+
+  // Нет адекватных лотов — используем медиану по редкости если есть
+  if (medianByRarity) {
+    return Math.max(10, Math.floor(medianByRarity * 0.3));
+  }
+
+  // Совсем нет данных — базовая цена по редкости
+  const rarityBase = { rare: 300, epic: 1200, legend: 5000, ultima: 20000 };
+  return Math.max(10, Math.floor((rarityBase[rarity] || 100) * 0.3));
+}
+
+function buildBuyerUI() {
+  // Slots (выбранные карточки)
+  updateBuyerSlots();
+  updateBuyerTotal();
+
+  // Грид карточек
+  const grid = document.getElementById('buyerPickGrid');
+  grid.innerHTML = '';
+
+  if (!allCards.length) {
+    grid.innerHTML = `<div style="color:var(--muted);font-size:.85rem;grid-column:1/-1;text-align:center;padding:2rem;">Нет карточек в инвентаре</div>`;
+    return;
+  }
+
+  allCards.forEach(card => {
+    const cat = catalogCards[card.name] || {};
+    const imgUrl = card.image_url || cat.image_url || '';
+    const rarity = (card.rarity || '').toLowerCase();
+    const price = getBuyerCardPrice(card);
+    const isPicked = buyerSelected.some(x => x.card.card_id === card.card_id);
+
+    const el = document.createElement('div');
+    el.className = `craft-pick-card ${rarity}${isPicked ? ' picked' : ''}`;
+    el.dataset.cardId = card.card_id;
+    el.innerHTML = `
+      <div class="craft-pick-img" style="background-image:url('${imgUrl}');"></div>
+      <div class="craft-pick-id">${card.card_id || ''}</div>
+      <div class="craft-pick-info">${card.name || '—'}</div>
+      <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center;font-family:'Syne',sans-serif;font-size:.6rem;font-weight:700;color:#c084fc;pointer-events:none;padding:0 4px;">
+        ${price.toLocaleString('ru-RU')} DC
+      </div>
+      <div class="craft-pick-check">✓</div>
+    `;
+    el.addEventListener('click', () => toggleBuyerCard(el, card));
+    grid.appendChild(el);
+  });
+
+  document.getElementById('buyerSelectedCount').textContent = buyerSelected.length;
+  updateBuyerSelectAllBtn();
+}
+
+function toggleBuyerCard(el, card) {
+  const idx = buyerSelected.findIndex(x => x.card.card_id === card.card_id);
+  if (idx >= 0) {
+    buyerSelected.splice(idx, 1);
+    el.classList.remove('picked');
+  } else {
+    const price = getBuyerCardPrice(card);
+    buyerSelected.push({ card, price });
+    el.classList.add('picked');
+  }
+  document.getElementById('buyerSelectedCount').textContent = buyerSelected.length;
+  updateBuyerSlots();
+  updateBuyerTotal();
+  updateBuyerSelectAllBtn();
+}
+
+function buyerToggleSelectAll() {
+  const allSelected = buyerSelected.length === allCards.length;
+  buyerSelected = [];
+  document.querySelectorAll('#buyerPickGrid .craft-pick-card').forEach(el => el.classList.remove('picked'));
+
+  if (!allSelected) {
+    allCards.forEach(card => {
+      const price = getBuyerCardPrice(card);
+      buyerSelected.push({ card, price });
+    });
+    document.querySelectorAll('#buyerPickGrid .craft-pick-card').forEach(el => el.classList.add('picked'));
+  }
+
+  document.getElementById('buyerSelectedCount').textContent = buyerSelected.length;
+  updateBuyerSlots();
+  updateBuyerTotal();
+  updateBuyerSelectAllBtn();
+}
+
+function updateBuyerSelectAllBtn() {
+  const icon = document.getElementById('buyerSelectAllIcon');
+  if (!icon) return;
+  icon.textContent = buyerSelected.length === allCards.length && allCards.length > 0 ? '☑' : '☐';
+}
+
+function updateBuyerSlots() {
+  const slotsEl = document.getElementById('buyerSlots');
+  if (!slotsEl) return;
+  slotsEl.innerHTML = '';
+  document.getElementById('buyerTitleSub').textContent =
+    buyerSelected.length ? `— выбрано ${buyerSelected.length} карт` : '— выбери карточки';
+
+  if (!buyerSelected.length) {
+    slotsEl.innerHTML = '<div style="color:rgba(255,255,255,0.2);font-size:.8rem;padding:8px;">Карточки не выбраны</div>';
+    return;
+  }
+
+  buyerSelected.forEach(({ card }) => {
+    const cat = catalogCards[card.name] || {};
+    const imgUrl = card.image_url || cat.image_url || '';
+    const rarity = (card.rarity || '').toLowerCase();
+    const slot = document.createElement('div');
+    slot.className = `craft-slot filled ${rarity}-slot`;
+    slot.style.cursor = 'pointer';
+    slot.title = `${card.name} — нажми чтобы убрать`;
+    slot.innerHTML = `<div class="craft-slot-img" style="background-image:url('${imgUrl}');"></div>`;
+    slot.addEventListener('click', () => {
+      const gridEl = document.querySelector(`#buyerPickGrid [data-card-id="${card.card_id}"]`);
+      if (gridEl) toggleBuyerCard(gridEl, card);
+      else {
+        const idx = buyerSelected.findIndex(x => x.card.card_id === card.card_id);
+        if (idx >= 0) {
+          buyerSelected.splice(idx, 1);
+          document.getElementById('buyerSelectedCount').textContent = buyerSelected.length;
+          updateBuyerSlots();
+          updateBuyerTotal();
+          updateBuyerSelectAllBtn();
+        }
+      }
+    });
+    slotsEl.appendChild(slot);
+  });
+}
+
+function updateBuyerTotal() {
+  const total = buyerSelected.reduce((s, x) => s + x.price, 0);
+  const el = document.getElementById('buyerTotalPrice');
+  if (el) el.textContent = `Итого: ${total.toLocaleString('ru-RU')} DC`;
+  const btn = document.getElementById('buyerSellBtn');
+  if (btn) {
+    btn.classList.toggle('ready', buyerSelected.length > 0);
+    btn.textContent = buyerSelected.length > 0
+      ? `💸 Продать за ${total.toLocaleString('ru-RU')} DC`
+      : '💸 Продать';
+  }
+}
+
+async function doBuyerSell() {
+  if (!buyerSelected.length) return showToast('Выбери карточки');
+  const total = buyerSelected.reduce((s, x) => s + x.price, 0);
+  const cardIds = buyerSelected.map(x => x.card.card_id);
+
+  const data = await marketPost('/api/card-market/bulk-sell-to-buyer', {
+    userId: currentUser.id,
+    cardIds,
+    totalPrice: total
+  });
+
+  if (!data.success) {
+    showToast(data.error || 'Ошибка продажи скупщику');
+    return;
+  }
+
+  showToast(`✅ Продано за ${total.toLocaleString('ru-RU')} DC`);
+  closeBuyerOverlay();
+  await Promise.all([loadInventory(), loadDC()]);
+  renderBuyerPanel();
+}
 
 // ══════════════════════════════════════════
 //  TOAST
