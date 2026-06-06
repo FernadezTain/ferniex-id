@@ -2555,29 +2555,50 @@ function updateBuyerTotal() {
     btn.textContent = '💸 Продать';
   }
 }
-
 async function doBuyerSell() {
   if (!buyerSelected.length) return showToast('Выбери карточки');
+
   const total = buyerSelected.reduce((s, x) => s + x.price, 0);
   const cardIds = buyerSelected.map(x => x.card.card_id);
 
-  const data = await marketPost('/api/card-market/bulk-sell-to-buyer', {
-    userId: currentUser.id,
-    cardIds,
-    totalPrice: total
-  });
+  const btn = document.getElementById('buyerSellBtn');
+  if (btn) { btn.style.opacity = '0.5'; btn.textContent = '⏳ Продаём...'; btn.onclick = null; }
 
-  if (!data.success) {
-    showToast(data.error || 'Ошибка продажи скупщику');
-    return;
+  try {
+    const res = await fetch('/api/card-market/bulk-sell-to-buyer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, cardIds, totalPrice: total })
+    });
+
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('Non-JSON response:', text.slice(0, 200));
+      showToast('Ошибка сервера — неверный ответ');
+      if (btn) { btn.style.opacity = '1'; btn.textContent = '💸 Продать'; btn.onclick = doBuyerSell; }
+      return;
+    }
+
+    if (!data.success) {
+      showToast(data.error || 'Ошибка продажи скупщику');
+      if (btn) { btn.style.opacity = '1'; btn.textContent = '💸 Продать'; btn.onclick = doBuyerSell; }
+      return;
+    }
+
+    showToast(`✅ Продано ${cardIds.length} карт за ${total.toLocaleString('ru-RU')} DC`);
+    closeBuyerOverlay();
+    await Promise.all([loadInventory(), loadDC()]);
+    renderBuyerPanel();
+
+  } catch (e) {
+    console.error('doBuyerSell error:', e);
+    showToast('Ошибка соединения');
+    if (btn) { btn.style.opacity = '1'; btn.textContent = '💸 Продать'; btn.onclick = doBuyerSell; }
   }
-
-  showToast(`✅ Продано за ${total.toLocaleString('ru-RU')} DC`);
-  closeBuyerOverlay();
-  await Promise.all([loadInventory(), loadDC()]);
-  renderBuyerPanel();
 }
-
 // ══════════════════════════════════════════
 //  TOAST
 // ══════════════════════════════════════════
