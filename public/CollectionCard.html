@@ -1270,6 +1270,8 @@ async function loadMarket(silent = false) {
 }
 
 function renderMarket() {
+  // Если открыт скупщик — не перерисовываем маркет
+  if (marketSubTab === 'buyer') return;
   const container = document.getElementById('marketContent');
   const listings = marketState.listings || [];
   const myListings = marketState.my_listings || [];
