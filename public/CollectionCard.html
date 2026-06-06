@@ -1121,6 +1121,8 @@ async function loadInventory() {
     }
     allCards = cardsRes.cards;
     renderCards(allCards);
+    // Обновляем панель скупщика если она открыта
+    if (marketSubTab === 'buyer') renderBuyerPanel();
   } catch(e) {
     console.error(e);
     container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><h3>Ошибка загрузки</h3><p>${e.message}</p></div>`;
@@ -2313,29 +2315,47 @@ let buyerSelected = []; // { card, price }
 function renderBuyerPanel() {
   const cont = document.getElementById('buyerPanelContent');
   if (!cont) return;
-  const total = allCards.length;
+
+  if (!allCards.length) {
+    cont.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:2rem 0;text-align:center;">
+        <div style="font-size:2.5rem;">🤑</div>
+        <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;">Скупщик карточек</div>
+        <div style="color:var(--muted);font-size:.85rem;max-width:280px;line-height:1.6;">
+          Нет карточек в инвентаре. Открой паки или купи на маркете.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Считаем предварительную сумму за все карточки
+  const previewTotal = allCards.reduce((s, c) => s + getBuyerCardPrice(c), 0);
+
   cont.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:2rem 0;text-align:center;">
       <div style="font-size:2.5rem;">🤑</div>
       <div style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;">Скупщик карточек</div>
-      <div style="color:var(--muted);font-size:.85rem;max-width:280px;line-height:1.6;">
-        Выбери карточки — скупщик предложит <b style="color:#c084fc;">30%</b> от цены маркета за каждую.
+      <div style="color:var(--muted);font-size:.85rem;max-width:300px;line-height:1.6;">
+        Скупщик предлагает <b style="color:#c084fc;">30%</b> от цены маркета.<br>
+        Карточек в инвентаре: <b style="color:#fff;">${allCards.length}</b><br>
+        Макс. за все: <b style="color:#c084fc;">${previewTotal.toLocaleString('ru-RU')} DC</b>
       </div>
       <button onclick="openBuyerOverlay()" style="
         padding:12px 28px;border-radius:14px;border:none;cursor:pointer;
         font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
         background:linear-gradient(135deg,rgba(160,80,255,0.4),rgba(90,40,180,0.55));
         border:1px solid rgba(192,132,252,0.35);color:#fff;
-        transition:all .18s;
-      ">Выбрать карточки (${total})</button>
+        transition:all .18s;-webkit-tap-highlight-color:transparent;
+      ">🃏 Выбрать карточки</button>
     </div>
   `;
 }
 
 function openBuyerOverlay() {
   buyerSelected = [];
-  buildBuyerUI();
   document.getElementById('buyerOverlay').classList.add('open');
+  // Небольшая задержка — DOM должен быть видим до построения грида
+  requestAnimationFrame(() => buildBuyerUI());
 }
 
 function closeBuyerOverlay() {
