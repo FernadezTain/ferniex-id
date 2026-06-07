@@ -644,6 +644,9 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
       <div><label class="input-label">Пароль</label><div class="input-with-eye"><input class="gl-input" type="password" id="loginPassword" placeholder="Введите пароль" autocomplete="current-password"><button class="eye-btn" onclick="toggleVis('loginPassword',this)" tabindex="-1"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
       <div class="msg" id="loginMsg" style="color:var(--red)"></div>
       <button class="gl-btn gl-btn-primary" id="loginSubmit">Войти →</button>
+      <div style="text-align:center;margin-top:10px;">
+        <a href="password.html" style="font-size:.72rem;color:rgba(180,141,255,0.55);text-decoration:none;letter-spacing:.2px;transition:color .2s;" onmouseover="this.style.color='rgba(180,141,255,1)'" onmouseout="this.style.color='rgba(180,141,255,0.55)'">Забыли пароль?</a>
+      </div>
     </div>
     <div class="form-section" id="section-reg">
       <div><label class="input-label">Логин</label><input class="gl-input" type="text" id="regUsername" placeholder="Придумайте логин" autocomplete="username"></div>
