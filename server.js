@@ -3307,5 +3307,170 @@ app.post('/api/fernieplus/pro/check-payment', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  Сброс пароля — шаг 1: отправить код
+// ══════════════════════════════════════════
+app.post('/api/password-reset/send-code', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.json({ success: false, error: 'Введи никнейм' });
+
+  try {
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`,
+      { headers: sbHeaders }
+    );
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Аккаунт не найден' });
+
+    const user = users[0];
+    if (!user.telegram_id) {
+      return res.json({ success: false, error: 'К аккаунту не привязан Telegram. Обратись в поддержку.' });
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    // Удаляем старые коды сброса этого юзера
+    await fetch(`${SB_URL}/rest/v1/password_reset_codes?user_id=eq.${user.id}`, {
+      method: 'DELETE',
+      headers: sbHeaders
+    });
+
+    // Сохраняем новый код
+    const insertRes = await fetch(`${SB_URL}/rest/v1/password_reset_codes`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ user_id: user.id, code, expires_at: expires })
+    });
+
+    if (!insertRes.ok) {
+      console.error('password_reset insert error:', await insertRes.text());
+      return res.json({ success: false, error: 'Ошибка сохранения кода' });
+    }
+
+    const sent = await sendTgMessage(
+      user.telegram_id,
+      `🔑 <b>Восстановление пароля FernieID</b>\n\n` +
+      `<blockquote>` +
+      `👤 Аккаунт: <b>${user.username}</b>\n` +
+      `🔢 Код подтверждения: <b>${code}</b>\n` +
+      `⏳ Действителен: <b>10 минут</b>` +
+      `</blockquote>\n\n` +
+      `⚠️ <i>Если это не ты — проигнорируй это сообщение.</i>`
+    );
+
+    if (!sent) return res.json({ success: false, error: 'Не удалось отправить сообщение в Telegram. Убедись, что ты писал боту.' });
+
+    res.json({ success: true, userId: user.id });
+  } catch (e) {
+    console.error('password-reset/send-code error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Сброс пароля — шаг 2: проверить код
+// ══════════════════════════════════════════
+app.post('/api/password-reset/verify-code', async (req, res) => {
+  const { userId, code } = req.body;
+  if (!userId || !code) return res.json({ success: false, error: 'Нет данных' });
+
+  try {
+    const codeRes = await fetch(
+      `${SB_URL}/rest/v1/password_reset_codes?user_id=eq.${userId}&code=eq.${code}&select=id,expires_at`,
+      { headers: sbHeaders }
+    );
+    const codes = await codeRes.json();
+
+    if (!codes.length) return res.json({ success: false, error: 'Неверный код' });
+    if (new Date(codes[0].expires_at) < new Date()) {
+      return res.json({ success: false, error: 'Код истёк. Запроси новый.' });
+    }
+
+    // Генерируем одноразовый токен для шага 3
+    const resetToken = Math.random().toString(36).slice(2, 18) + Math.random().toString(36).slice(2, 18);
+
+    await fetch(`${SB_URL}/rest/v1/password_reset_codes?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ reset_token: resetToken })
+    });
+
+    res.json({ success: true, resetToken });
+  } catch (e) {
+    console.error('password-reset/verify-code error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════
+//  Сброс пароля — шаг 3: сменить пароль
+// ══════════════════════════════════════════
+app.post('/api/password-reset/change', async (req, res) => {
+  const { userId, resetToken, newPassword } = req.body;
+  if (!userId || !resetToken || !newPassword)
+    return res.json({ success: false, error: 'Нет данных' });
+  if (newPassword.length < 6)
+    return res.json({ success: false, error: 'Пароль минимум 6 символов' });
+
+  try {
+    // Проверяем токен
+    const codeRes = await fetch(
+      `${SB_URL}/rest/v1/password_reset_codes?user_id=eq.${userId}&reset_token=eq.${resetToken}&select=id,expires_at`,
+      { headers: sbHeaders }
+    );
+    const codes = await codeRes.json();
+    if (!codes.length) return res.json({ success: false, error: 'Сессия сброса истекла. Начни заново.' });
+    if (new Date(codes[0].expires_at) < new Date()) {
+      return res.json({ success: false, error: 'Сессия сброса истекла. Начни заново.' });
+    }
+
+    // Хешируем и сохраняем новый пароль
+    const hash = await bcrypt.hash(newPassword, 10);
+    const patchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ password_hash: hash })
+    });
+    if (!patchRes.ok) {
+      console.error('password change patch error:', await patchRes.text());
+      return res.json({ success: false, error: 'Ошибка при сохранении пароля' });
+    }
+
+    // Удаляем использованный код
+    await fetch(`${SB_URL}/rest/v1/password_reset_codes?user_id=eq.${userId}`, {
+      method: 'DELETE',
+      headers: sbHeaders
+    });
+
+    // Получаем данные юзера для уведомления
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${userId}&select=username,telegram_id`,
+      { headers: sbHeaders }
+    );
+    const users = await userRes.json();
+    const user = users[0];
+
+    if (user?.telegram_id) {
+      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+      await sendTgMessage(
+        user.telegram_id,
+        `🔐 <b>Смена пароля</b>\n\n` +
+        `<blockquote>` +
+        `👤 Аккаунт: <b>${user.username}</b>\n` +
+        `🔑 Новый пароль: <b>${newPassword}</b>\n` +
+        `🕒 Дата и время: <b>${now} МСК</b>` +
+        `</blockquote>\n\n` +
+        `⚠️ <i>Если это не ты — немедленно обратись в поддержку!</i>`
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('password-reset/change error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
