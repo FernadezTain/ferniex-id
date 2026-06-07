@@ -154,6 +154,9 @@
           <div class="fid-label">Пароль</div>
           <div class="fid-input-wrap"><input id="fid-p" type="password" placeholder="••••••••" autocomplete="current-password"></div>
           <button id="fid-btn">Войти →</button>
+          <div style="text-align:center;margin-top:12px">
+            <a href="password.html" style="font-size:.75rem;color:rgba(167,139,250,.6);text-decoration:none;letter-spacing:.3px;transition:color .2s" onmouseover="this.style.color='#a78bfa'" onmouseout="this.style.color='rgba(167,139,250,.6)'">Забыли пароль?</a>
+          </div>
         </div>
 
         <div id="fid-s-reg" style="display:none">
