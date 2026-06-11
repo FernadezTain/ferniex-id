@@ -3472,5 +3472,64 @@ app.post('/api/password-reset/change', async (req, res) => {
   }
 });
 
+app.get('/api/webfetch', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.json({ success: false, error: 'Нет URL' });
+
+  // Базовая защита — только http/https
+  if (!/^https?:\/\//i.test(url))
+    return res.json({ success: false, error: 'Неверный URL' });
+
+  // Блокируем локальные адреса
+  if (/localhost|127\.|192\.168\.|10\.|0\.0\.0\.0/i.test(url))
+    return res.json({ success: false, error: 'Локальные адреса запрещены' });
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; FernieX-Bot/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,*/*'
+      }
+    });
+    clearTimeout(timeout);
+
+    if (!r.ok) return res.json({ success: false, error: `HTTP ${r.status}` });
+
+    const contentType = r.headers.get('content-type') || '';
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain'))
+      return res.json({ success: false, error: 'Страница не является HTML' });
+
+    let html = await r.text();
+
+    // Чистим HTML — убираем скрипты, стили, теги
+    html = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s{3,}/g, '\n\n')
+      .trim();
+
+    // Лимит — не больше 12000 символов (чтобы не перегружать контекст)
+    if (html.length > 12000) html = html.slice(0, 12000) + '\n\n[...текст обрезан]';
+
+    res.json({ success: true, text: html, url });
+  } catch (e) {
+    const msg = e.name === 'AbortError' ? 'Сайт не ответил (таймаут)' : e.message;
+    res.json({ success: false, error: msg });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
