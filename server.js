@@ -3533,25 +3533,7 @@ app.get('/api/webfetch', async (req, res) => {
 
 // ── Image Generation via HuggingFace ──
 app.get('/api/imggen', async (req, res) => {
-  const { prompt, seed } = req.query;
-  if (!prompt) return res.status(400).json({ error: 'No prompt' });
-  try {
-    const r = await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.HF_TOKEN}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ inputs: prompt, parameters: { width: 1024, height: 1024, seed: Number(seed) || Math.floor(Math.random()*99999) } })
-    });
-    if (!r.ok) return res.status(r.status).json({ error: await r.text() });
-    const buf = await r.arrayBuffer();
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.send(Buffer.from(buf));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  res.status(503).json({ error: 'Генерация изображений временно недоступна' });
 });
 
 const port = process.env.PORT || 3000;
