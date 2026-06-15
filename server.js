@@ -1535,12 +1535,15 @@ app.get('/api/card-market/state/:userId', async (req, res) => {
 app.post('/api/card-market/sell', async (req, res) => {
   try {
     const { userId, cardId, price } = req.body;
+    const parsedPrice = Math.floor(Number(price));
+    if (!parsedPrice || parsedPrice <= 0 || parsedPrice > 50_000_000)
+      return res.json({ success: false, error: 'Недопустимая цена (1 – 50 000 000 DC)' });
     const telegramId = await resolveTelegramId(userId);
     if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
     const r = await fetch(`${BOT_URL}/api/market/sell`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id: telegramId, fernie_user_id: userId, card_id: cardId, price })
+      body: JSON.stringify({ telegram_id: telegramId, fernie_user_id: userId, card_id: cardId, price: parsedPrice })
     });
     res.json(await r.json());
   } catch (e) {
