@@ -1077,6 +1077,7 @@ app.get('/api/fernieplus/:userId', async (req, res) => {
   try {
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
     const users = await userRes.json();
+    console.log('[backgrounds/set] userId:', userId, 'telegram_id:', users[0]?.telegram_id);
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: 'Telegram не привязан' });
     const botRes = await fetch(`${BOT_URL}/api/fernieplus/status?telegram_id=${users[0].telegram_id}`);
