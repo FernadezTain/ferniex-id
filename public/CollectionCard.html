@@ -1843,8 +1843,13 @@ function closeSellPriceModal() {
 async function confirmSellPrice() {
   const inp = document.getElementById('sellPriceInput');
   if (!inp) return;
-  const price = Number(inp.value);
-  if (!price || price <= 0) return showToast('Некорректная цена');
+  const price = Math.floor(Number(inp.value));
+if (!price || price <= 0) return showToast('Некорректная цена');
+const MAX_PRICE = 50_000_000;
+const PRICE_CAPS = { rare: 300000, epic: 1200000, legend: 5000000, ultima: 20000000 };
+  const cardRarity = (currentModalCard?.rarity || '').toLowerCase();
+  const priceCap = PRICE_CAPS[cardRarity] || 10_000_000;
+  if (price > priceCap) return showToast(`Максимальная цена для ${cardRarity} — ${priceCap.toLocaleString('ru-RU')} DC`);
   if (!currentModalCard?.card_id) return;
 
   const btn = document.getElementById('sellConfirmBtn');
@@ -2593,7 +2598,7 @@ function getBuyerCardPrice(card) {
     // Фильтруем аномальные цены
     // Если есть медиана по редкости — отсекаем всё что выше медианы * 10
     const sanePrices = medianByRarity
-      ? prices.filter(p => p <= medianByRarity * 10)
+      ? prices.filter(p => p <= medianByRarity * 3)
       : prices;
 
     if (sanePrices.length) {
@@ -2602,14 +2607,18 @@ function getBuyerCardPrice(card) {
       const fairPrice = sanePrices.length % 2 !== 0
         ? sanePrices[mid]
         : (sanePrices[mid - 1] + sanePrices[mid]) / 2;
-      return Math.max(10, Math.floor(fairPrice * 0.3));
+      const hardCap = { rare: 300000, epic: 1500000, legend: 5000000, ultima: 20000000 };
+      const cap = hardCap[rarity] || 30000;
+      return Math.max(10, Math.min(Math.floor(fairPrice * 0.3), cap));
     }
     // Все цены оказались аномальными — падаем на медиану по редкости
   }
 
   // Нет адекватных лотов — используем медиану по редкости если есть
   if (medianByRarity) {
-    return Math.max(10, Math.floor(medianByRarity * 0.3));
+    const hardCap = { rare: 300000, epic: 1500000, legend: 5000000, ultima: 20000000 };
+    const cap = hardCap[rarity] || 30000;
+    return Math.max(10, Math.min(Math.floor(medianByRarity * 0.3), cap));
   }
 
   // Совсем нет данных — базовая цена по редкости
