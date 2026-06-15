@@ -78,7 +78,9 @@ async function notifyBot(url, body, retries = 2) {
         signal: controller.signal
       });
       clearTimeout(timeout);
-      return await res.json();
+      const rawText = await res.text();
+      console.log(`[notifyBot] raw response from ${url}:`, rawText);
+      return JSON.parse(rawText);
     } catch (e) {
       if (i === retries) {
         console.error(`notifyBot failed (${url}):`, e.message);
