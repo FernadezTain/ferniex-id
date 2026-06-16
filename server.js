@@ -2845,6 +2845,22 @@ app.post('/api/apikeys/verify', async (req, res) => {
   }
 });
 
+app.get('/api/version', async (req, res) => {
+  try {
+    const appName = req.query.app;
+if (!appName) return res.json({ success: false, error: 'Не указан app' });
+    const r = await fetch(
+      `${SB_URL}/rest/v1/app_versions?app_name=eq.${appName}&order=id.desc&limit=1`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+    if (!rows.length) return res.json({ success: false, error: 'Нет данных' });
+    res.json({ success: true, ...rows[0] });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl: process.env.SUPABASE_URL,
