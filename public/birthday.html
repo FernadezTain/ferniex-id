@@ -6,7 +6,7 @@
 <title>С Днём Рождения</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
-<!-- сессия читается из localStorage, отдельный SDK здесь не нужен -->
+<script src="fernieid-sdk.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -611,6 +611,26 @@
   }
   .congrats-footer span { color: rgba(167,139,250,0.5); }
 
+  .congrats-status {
+    font-size: 0.85rem;
+    padding: 13px 18px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    text-align: left;
+    line-height: 1.55;
+    animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .congrats-status.status-success {
+    background: rgba(245,200,66,0.08);
+    border: 1px solid rgba(245,200,66,0.25);
+    color: var(--gold);
+  }
+  .congrats-status.status-warning {
+    background: rgba(232,84,122,0.08);
+    border: 1px solid rgba(232,84,122,0.25);
+    color: var(--rose);
+  }
+
   /* ── ANIMATIONS ── */
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
@@ -652,20 +672,21 @@
 <div class="dot-grid"></div>
 <canvas id="confetti-canvas"></canvas>
 
-<!-- SCREEN 1: LOGIN (только проверка существующей сессии, без пароля) -->
+<!-- SCREEN 1: LOGIN -->
 <div class="screen active" id="screen-login">
   <div class="login-box">
     <div class="login-badge">Специальный доступ</div>
     <h1 class="login-title">Добро пожаловать</h1>
-    <p class="login-sub" id="login-sub-text">Для тебя приготовлено кое-что особенное.<br>Войди в FernieX, чтобы открыть.</p>
+    <p class="login-sub">Для тебя приготовлено кое-что особенное.<br>Войди, чтобы открыть.</p>
     <div class="login-divider"></div>
-    <p class="login-prompt" id="login-status">Проверяем твой аккаунт...</p>
-    <a class="btn-login" id="btn-open-login" href="https://ferniex-id.vercel.app/" style="display:none">
+    <p class="login-prompt">Войдите в свой аккаунт FernieID, чтобы продолжить</p>
+    <button class="btn-login" id="btn-open-login">
       <span class="btn-icon">F</span>
-      Войти в FernieX
-    </a>
+      Войти через FernieID
+    </button>
   </div>
 </div>
+
 <!-- SCREEN 2: WELCOME -->
 <div class="screen" id="screen-welcome">
   <div class="welcome-inner">
@@ -715,6 +736,8 @@
     <div class="congrats-badge">Поздравляем</div>
     <h2 class="congrats-title">Квест пройден</h2>
     <p class="congrats-sub">Ты получаешь заслуженные награды — держи их крепче.</p>
+
+    <div class="congrats-status" id="congrats-status" style="display:none"></div>
 
     <div class="rewards-grid">
       <div class="reward-item">
@@ -766,6 +789,8 @@
 // ════════════════════════════════════
 //  CONFIG
 // ════════════════════════════════════
+const API_KEY = 'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f'; // замени на свой
+const FID_API = 'https://ferniex-id.vercel.app';
 
 // ════════════════════════════════════
 //  QUESTIONS
@@ -792,6 +817,31 @@ const questions = [
     options: ['Телепортация куда угодно', 'Знание всего на свете', 'Остановить время', 'Бесконечная энергия']
   },
   {
+    type: 'options',
+    question: 'Как думаешь, в каком году впервые запустился FernieX?',
+    options: ['2023', '2024', '2025', '2026']
+  },
+  {
+    type: 'options',
+    question: 'Как думаешь, в каком году впервые запустился FernieID?',
+    options: ['2024', '2025', '2026', '2027', '2028']
+  },
+  {
+    type: 'options',
+    question: 'Какая фишка FernieX тебе нравится больше всего?',
+    options: ['Кейсы и их открытие', 'Карточки и маркет', 'AI-функционал', 'Экономика и переводы']
+  },
+  {
+    type: 'options',
+    question: 'Сколько разных команд, как думаешь, сейчас умеет бот?',
+    options: ['Меньше 10', '10–30', '30–60', 'Больше 60']
+  },
+  {
+    type: 'options',
+    question: 'Какую фичу ты бы хотел увидеть в FernieX следующей?',
+    options: ['Новые кейсы', 'Турниры между игроками', 'Больше AI-функций', 'Мини-игры']
+  },
+  {
     type: 'text',
     question: 'Оставь своё поздравление или пожелание — оно появится в финале.',
     placeholder: 'Напиши что-нибудь тёплое...'
@@ -816,13 +866,13 @@ function showScreen(id) {
 // ════════════════════════════════════
 //  LOGIN
 // ════════════════════════════════════
-function getFernieUser() {
-  try {
-    return JSON.parse(localStorage.getItem('fid_user'));
-  } catch {
-    return null;
+document.getElementById('btn-open-login').addEventListener('click', async () => {
+  FernieID.init(API_KEY);
+  const user = await FernieID.login();
+  if (user && user.success !== false) {
+    onLoggedIn(user);
   }
-}
+});
 
 function onLoggedIn(user) {
   const name = user.username || 'Пользователь';
@@ -831,15 +881,12 @@ function onLoggedIn(user) {
   showScreen('screen-welcome');
 }
 
-// Проверяем существующую сессию FernieX — без формы пароля на этой странице
+// auto-login if session exists
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = getFernieUser();
-  if (saved && saved.userId) {
+  FernieID.init(API_KEY);
+  const saved = FernieID.getUser();
+  if (saved) {
     onLoggedIn(saved);
-  } else {
-    document.getElementById('login-status').textContent =
-      'Сначала войди в свой аккаунт FernieX, затем вернись на эту страницу.';
-    document.getElementById('btn-open-login').style.display = 'inline-flex';
   }
 });
 
@@ -908,24 +955,30 @@ function renderQuestion() {
   }
 }
 
-document.getElementById('btn-next').addEventListener('click', () => {
-  currentQ++;
-  if (currentQ < questions.length) {
+document.getElementById('btn-next').addEventListener('click', async () => {
+  const isLast = currentQ === questions.length - 1;
+  if (!isLast) {
+    currentQ++;
     renderQuestion();
-  } else {
-    finishQuest();
+    return;
   }
+  await finishQuest();
 });
 
 // ════════════════════════════════════
 //  FINISH
 // ════════════════════════════════════
-function finishQuest() {
-  // progress to 100
+async function finishQuest() {
+  const btn = document.getElementById('btn-next');
+  btn.disabled = true;
+  btn.textContent = 'Отправляем...';
   document.getElementById('quest-progress').style.width = '100%';
+
+  const result = await submitBirthdayQuest();
 
   setTimeout(() => {
     showScreen('screen-congrats');
+    applyCongratsStatus(result);
     launchConfetti();
 
     if (userMessage) {
@@ -935,6 +988,52 @@ function finishQuest() {
   }, 300);
 }
 
+async function submitBirthdayQuest() {
+  const user = FernieID.getUser();
+  if (!user) return { success: false, error: 'not_logged_in' };
+
+  const answersPayload = {};
+  questions.forEach((q, i) => {
+    if (q.type === 'options') answersPayload[q.question] = answers[i] || null;
+  });
+
+  try {
+    const res = await fetch(FID_API + '/api/birthday/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: API_KEY,
+        username: user.username,
+        answers: answersPayload,
+        wish: userMessage
+      })
+    });
+    return await res.json();
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+function applyCongratsStatus(result) {
+  const el = document.getElementById('congrats-status');
+  if (!el) return;
+  el.className = 'congrats-status';
+
+  if (result.error === 'already_completed') {
+    el.textContent = '💛 Ты уже проходил этот квест ранее — но мы всё равно рады тебя видеть!';
+    el.classList.add('status-warning');
+  } else if (result.success && result.rewardGiven) {
+    el.textContent = '🎉 Награды уже зачислены на твой баланс в FernieX!';
+    el.classList.add('status-success');
+  } else if (result.success && !result.rewardGiven) {
+    el.textContent = '⚠️ Привяжи Telegram в настройках FernieID, чтобы получить награды на баланс. Поздравление мы уже сохранили!';
+    el.classList.add('status-warning');
+  } else {
+    el.textContent = '⚠️ Не удалось сохранить результат — попробуй пройти квест ещё раз чуть позже.';
+    el.classList.add('status-warning');
+  }
+  el.style.display = 'block';
+}
 // ════════════════════════════════════
 //  CONFETTI
 // ════════════════════════════════════
