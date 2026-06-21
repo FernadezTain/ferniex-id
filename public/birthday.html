@@ -6,7 +6,7 @@
 <title>С Днём Рождения</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
-<script src="fernieid-sdk.js"></script>
+<!-- сессия читается из localStorage, отдельный SDK здесь не нужен -->
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -652,21 +652,20 @@
 <div class="dot-grid"></div>
 <canvas id="confetti-canvas"></canvas>
 
-<!-- SCREEN 1: LOGIN -->
+<!-- SCREEN 1: LOGIN (только проверка существующей сессии, без пароля) -->
 <div class="screen active" id="screen-login">
   <div class="login-box">
     <div class="login-badge">Специальный доступ</div>
     <h1 class="login-title">Добро пожаловать</h1>
-    <p class="login-sub">Для тебя приготовлено кое-что особенное.<br>Войди, чтобы открыть.</p>
+    <p class="login-sub" id="login-sub-text">Для тебя приготовлено кое-что особенное.<br>Войди в FernieX, чтобы открыть.</p>
     <div class="login-divider"></div>
-    <p class="login-prompt">Войдите в свой аккаунт FernieID, чтобы продолжить</p>
-    <button class="btn-login" id="btn-open-login">
+    <p class="login-prompt" id="login-status">Проверяем твой аккаунт...</p>
+    <a class="btn-login" id="btn-open-login" href="https://ferniex-id.vercel.app/" style="display:none">
       <span class="btn-icon">F</span>
-      Войти через FernieID
-    </button>
+      Войти в FernieX
+    </a>
   </div>
 </div>
-
 <!-- SCREEN 2: WELCOME -->
 <div class="screen" id="screen-welcome">
   <div class="welcome-inner">
@@ -767,7 +766,6 @@
 // ════════════════════════════════════
 //  CONFIG
 // ════════════════════════════════════
-const API_KEY = 'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f'; // замени на свой
 
 // ════════════════════════════════════
 //  QUESTIONS
@@ -818,13 +816,13 @@ function showScreen(id) {
 // ════════════════════════════════════
 //  LOGIN
 // ════════════════════════════════════
-document.getElementById('btn-open-login').addEventListener('click', async () => {
-  FernieID.init(API_KEY);
-  const user = await FernieID.login();
-  if (user && user.success !== false) {
-    onLoggedIn(user);
+function getFernieUser() {
+  try {
+    return JSON.parse(localStorage.getItem('fid_user'));
+  } catch {
+    return null;
   }
-});
+}
 
 function onLoggedIn(user) {
   const name = user.username || 'Пользователь';
@@ -833,12 +831,15 @@ function onLoggedIn(user) {
   showScreen('screen-welcome');
 }
 
-// auto-login if session exists
+// Проверяем существующую сессию FernieX — без формы пароля на этой странице
 window.addEventListener('DOMContentLoaded', () => {
-  FernieID.init(API_KEY);
-  const saved = FernieID.getUser();
-  if (saved) {
+  const saved = getFernieUser();
+  if (saved && saved.userId) {
     onLoggedIn(saved);
+  } else {
+    document.getElementById('login-status').textContent =
+      'Сначала войди в свой аккаунт FernieX, затем вернись на эту страницу.';
+    document.getElementById('btn-open-login').style.display = 'inline-flex';
   }
 });
 
