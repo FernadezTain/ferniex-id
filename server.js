@@ -3494,6 +3494,126 @@ app.post('/api/password-reset/change', async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  ДЕНЬ РОЖДЕНИЯ — приём квеста и поздравлений
+// ══════════════════════════════════════════
+app.post('/api/birthday/submit', async (req, res) => {
+  const { apiKey, username, answers, wish } = req.body;
+  if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
+
+  try {
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keys = await keyRes.json();
+    if (!keys.length || keys[0].status !== 'active')
+      return res.json({ success: false, error: 'Неверный API ключ' });
+
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    const user = users[0];
+
+    // не даём пройти квест повторно
+    const existing = await fetch(`${SB_URL}/rest/v1/birthday_wishes?user_id=eq.${user.id}&select=id`, { headers: sbHeaders });
+    const existingData = await existing.json();
+    if (existingData.length) {
+      return res.json({ success: false, error: 'already_completed' });
+    }
+
+    // сохраняем поздравление
+    const insertRes = await fetch(`${SB_URL}/rest/v1/birthday_wishes`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        user_id: user.id,
+        username: user.username,
+        telegram_id: user.telegram_id || null,
+        answers: answers || {},
+        wish: wish || ''
+      })
+    });
+
+    if (!insertRes.ok) {
+      console.error('birthday_wishes insert error:', await insertRes.text());
+      return res.json({ success: false, error: 'Ошибка сохранения' });
+    }
+
+    // начисляем награды напрямую через бота (если привязан Telegram)
+    let rewardGiven = false;
+    let cardGiven = false;
+    if (user.telegram_id) {
+      const dcRes = await fetch(`${BOT_URL}/api/edit/balance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: user.telegram_id, currency: 'dc', amount: 15000, action: 'add' })
+      }).then(r => r.json()).catch(() => null);
+
+      const seedsRes = await fetch(`${BOT_URL}/api/edit/balance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: user.telegram_id, currency: 'seeds', amount: 1000000, action: 'add' })
+      }).then(r => r.json()).catch(() => null);
+
+      rewardGiven = !!(dcRes?.success && seedsRes?.success);
+
+      // выдаём особую карточку «Создатель» (id=20) из cards_catalog
+      try {
+        const catalogRes = await fetch(`${SB_URL}/rest/v1/cards_catalog?id=eq.20&select=id,name,rarity,image_url`, { headers: sbHeaders });
+        const catalogData = await catalogRes.json();
+        const cardMeta = catalogData[0] || { name: 'Создатель', rarity: 'Legend', image_url: '' };
+
+        const cardRes = await fetch(`${BOT_URL}/api/cards/give`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telegram_id: user.telegram_id,
+            catalog_card_id: 20,
+            name: cardMeta.name,
+            rarity: cardMeta.rarity,
+            image_url: cardMeta.image_url || ''
+          })
+        }).then(r => r.json()).catch(() => null);
+
+        cardGiven = !!cardRes?.success;
+      } catch (e) {
+        console.error('birthday card give error:', e);
+      }
+    }
+
+    res.json({ success: true, rewardGiven, cardGiven, hasTelegram: !!user.telegram_id });
+  } catch (e) {
+    console.error('birthday/submit error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════
+//  ДЕНЬ РОЖДЕНИЯ — проверка, проходил ли уже квест
+// ══════════════════════════════════════════
+app.post('/api/birthday/check', async (req, res) => {
+  const { apiKey, username } = req.body;
+  if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
+
+  try {
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keys = await keyRes.json();
+    if (!keys.length || keys[0].status !== 'active')
+      return res.json({ success: false, error: 'Неверный API ключ' });
+
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, { headers: sbHeaders });
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    const user = users[0];
+
+    const existing = await fetch(`${SB_URL}/rest/v1/birthday_wishes?user_id=eq.${user.id}&select=wish`, { headers: sbHeaders });
+    const existingData = await existing.json();
+
+    res.json({ success: true, completed: existingData.length > 0, wish: existingData[0]?.wish || null });
+  } catch (e) {
+    console.error('birthday/check error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 app.get('/api/webfetch', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.json({ success: false, error: 'Нет URL' });
