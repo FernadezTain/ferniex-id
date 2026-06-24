@@ -3690,7 +3690,19 @@ app.get('/api/docsearch', async (req, res) => {
     let text = await r.text();
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
-    const idx = lowerText.indexOf(lowerQuery);
+    // Пробуем точное совпадение
+    let idx = lowerText.indexOf(lowerQuery);
+    // Если не нашли — пробуем без пробелов и точек
+    if (idx === -1) {
+      const flexQuery = lowerQuery.replace(/[\s.]/g, '');
+      let bestIdx = -1;
+      for (let i = 0; i < lowerText.length; i++) {
+        if (lowerText.slice(i).replace(/[\s.]/g, '').startsWith(flexQuery)) {
+          bestIdx = i; break;
+        }
+      }
+      idx = bestIdx;
+    }
     if (idx === -1) return res.json({ success: false, error: 'Не найдено', query });
     const start = Math.max(0, idx - 200);
     const end = Math.min(text.length, idx + 3000);
