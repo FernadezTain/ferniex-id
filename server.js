@@ -3665,8 +3665,8 @@ app.get('/api/webfetch', async (req, res) => {
       .replace(/\s{3,}/g, '\n\n')
       .trim();
 
-    // Лимит — не больше 60000 символов (чтобы не перегружать контекст)
-    if (html.length > 60000) html = html.slice(0, 60000) + '\n\n[...текст обрезан]';
+    // Лимит — не больше 150000 символов (чтобы не перегружать контекст)
+    if (html.length > 150000) html = html.slice(0, 150000) + '\n\n[...текст обрезан]';
 
     res.json({ success: true, text: html, url });
   } catch (e) {
