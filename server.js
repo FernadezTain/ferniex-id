@@ -3644,7 +3644,7 @@ app.get('/api/webfetch', async (req, res) => {
     if (!r.ok) return res.json({ success: false, error: `HTTP ${r.status}` });
 
     const contentType = r.headers.get('content-type') || '';
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain'))
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain') && !contentType.includes('application/octet-stream') && !contentType.includes('application/pdf') && !contentType.includes('application/json'))
       return res.json({ success: false, error: 'Страница не является HTML' });
 
     let html = await r.text();
