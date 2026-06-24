@@ -2195,6 +2195,7 @@ app.post('/api/ai-chats/save', async (req, res) => {
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const TOKEN_LIMIT_FREE = 200000;
+const TOKEN_LIMIT_MAJESTIC = 10000000;
 
 // ══════════════════════════════════════════
 //  FernieAI-CrackDefender
@@ -2354,7 +2355,8 @@ app.post('/api/chat', async (req, res) => {
   if (userId) {
     try {
       const plus = await hasFerniePlus(userId);
-      const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
+      const isMajestic = req.body.model === 'mistral-medium-latest';
+      const limit = isMajestic ? TOKEN_LIMIT_MAJESTIC : plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
       const used = await getTokensUsedToday(userId);
       if (used >= limit) {
         return res.status(429).json({
