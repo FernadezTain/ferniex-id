@@ -3680,5 +3680,25 @@ app.get('/api/imggen', async (req, res) => {
   res.status(503).json({ error: 'Генерация изображений временно недоступна' });
 });
 
+app.get('/api/docsearch', async (req, res) => {
+  const { url, query } = req.query;
+  if (!url || !query) return res.json({ success: false, error: 'Нет url или query' });
+  if (!/^https?:\/\//i.test(url)) return res.json({ success: false, error: 'Неверный URL' });
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return res.json({ success: false, error: `HTTP ${r.status}` });
+    let text = await r.text();
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) return res.json({ success: false, error: 'Не найдено', query });
+    const start = Math.max(0, idx - 200);
+    const end = Math.min(text.length, idx + 3000);
+    return res.json({ success: true, excerpt: text.slice(start, end), query, found_at: idx });
+  } catch (e) {
+    return res.json({ success: false, error: e.message });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
