@@ -3687,7 +3687,11 @@ app.get('/api/docsearch', async (req, res) => {
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     if (!r.ok) return res.json({ success: false, error: `HTTP ${r.status}` });
-    let text = await r.text();
+    const buf = await r.arrayBuffer();
+    let text = new TextDecoder('utf-8').decode(buf);
+    if (text.includes('Р') || /[\uFFFD]/.test(text)) {
+      text = new TextDecoder('windows-1251').decode(buf);
+    }
     const lowerText = text.toLowerCase();
     const lowerQuery = query.toLowerCase();
     let idx = lowerText.indexOf(lowerQuery);
