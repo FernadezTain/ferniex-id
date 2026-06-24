@@ -3668,7 +3668,7 @@ app.get('/api/webfetch', async (req, res) => {
     // Лимит — не больше 150000 символов (чтобы не перегружать контекст)
     if (html.length > 150000000) html = html.slice(0, 150000) + '\n\n[...текст обрезан]';
 
-    res.json({ success: true, text: html, url });
+    res.json({ success: true, text: html, url, total_length: html.length });
   } catch (e) {
     const msg = e.name === 'AbortError' ? 'Сайт не ответил (таймаут)' : e.message;
     res.json({ success: false, error: msg });
