@@ -3666,7 +3666,7 @@ app.get('/api/webfetch', async (req, res) => {
       .trim();
 
     // Лимит — не больше 150000 символов (чтобы не перегружать контекст)
-    if (html.length > 150000) html = html.slice(0, 150000) + '\n\n[...текст обрезан]';
+    if (html.length > 150000000) html = html.slice(0, 150000) + '\n\n[...текст обрезан]';
 
     res.json({ success: true, text: html, url });
   } catch (e) {
