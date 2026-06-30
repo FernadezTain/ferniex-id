@@ -850,6 +850,11 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
         <div id="applydetail-content"></div>
       </div>
 
+      <!-- TICKET DETAIL -->
+      <div class="dash-section" id="section-ticketdetail">
+        <div id="ticketdetail-content"></div>
+      </div>
+
       <!-- FERNIE+ -->
 <div class="dash-section" id="section-fernieplus">
   <div class="stats-page-header"><h2>✨ Fernie+</h2><p>Подписка и кастомизация профиля</p></div>
@@ -1054,6 +1059,14 @@ tbody td{padding:.7rem 1rem;font-size:.79rem;color:rgba(255,255,255,.8);vertical
     <span id="adminApplyArrow" style="margin-left:4px;color:var(--muted);font-size:.85rem;transition:transform .2s;">▼</span>
   </button>
   <div id="adminApplyList" style="display:none;"></div>
+</div>
+        <div id="adminTicketsSection" style="margin-bottom:1.5rem;">
+  <button onclick="toggleAdminTickets()" style="display:flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;padding:10px 18px;border-radius:14px;background:rgba(180,141,255,0.1);border:1px solid rgba(180,141,255,0.25);color:var(--text);cursor:pointer;transition:all .2s;margin-bottom:.85rem;-webkit-tap-highlight-color:transparent;" id="adminTicketsToggleBtn">
+    📩 Обращения
+    <span class="nav-badge" id="ticketsBadge">0</span>
+    <span id="adminTicketsArrow" style="margin-left:4px;color:var(--muted);font-size:.85rem;transition:transform .2s;">▼</span>
+  </button>
+  <div id="adminTicketsList" style="display:none;"></div>
 </div>
         <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.75rem;">👥 Пользователи</div>
         <div class="admin-search-wrap"><input class="admin-search-input" id="adminSearchInput" placeholder="🔍 Поиск по имени..." oninput="filterAdminUsers()"></div>
@@ -1895,6 +1908,7 @@ async function loadAdminPanel(){
   if(adminLoaded)return;
   await loadAdminStats();
   await loadAdminApplies();
+  await loadAdminTickets();
   await loadAdminUsers();
   adminLoaded=true;
 }
@@ -2352,6 +2366,262 @@ async function reviewApply(applyId, verdict) {
     btn.textContent = verdict === 'accepted' ? '✓ Принять' : '✗ Отклонить';
     btn.style.opacity = ''; btn.style.pointerEvents = '';
   }
+}
+
+// ════ ОБРАЩЕНИЯ (SUPPORT TICKETS) ════
+async function loadAdminTickets() {
+  const section = $('adminTicketsSection');
+  const list = $('adminTicketsList');
+  if (!section || !list) return;
+  try {
+    const r = await fetch(`${API}/api/admin/tickets?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) { $('ticketsBadge').textContent = '0'; section._ticketsData = []; return; }
+    $('ticketsBadge').textContent = d.tickets.filter(t => t.status === 'open').length;
+    section._ticketsData = d.tickets;
+  } catch(e) { console.error('loadAdminTickets error:', e); section._ticketsData = []; }
+}
+
+function toggleAdminTickets() {
+  const list = $('adminTicketsList');
+  const arrow = $('adminTicketsArrow');
+  const section = $('adminTicketsSection');
+  const data = section._ticketsData || [];
+  const isOpen = list.style.display !== 'none';
+  if (isOpen) {
+    list.style.display = 'none';
+    arrow.style.transform = 'rotate(0deg)';
+  } else {
+    list.style.display = '';
+    arrow.style.transform = 'rotate(180deg)';
+    renderAdminTickets(data);
+  }
+}
+
+function renderAdminTickets(data) {
+  const list = $('adminTicketsList');
+  if (!data.length) { list.innerHTML = '<div class="state-empty"><span>📭</span><span>Обращений нет</span></div>'; return; }
+  const statusMap = { open: ['apply-status-new','Открыто'], in_progress: ['apply-status-accepted','На рассмотрении'], closed: ['apply-status-rejected','Закрыто'] };
+  const frag = document.createDocumentFragment();
+  data.forEach(t => {
+    const dt = new Date(t.created_at).toLocaleString('ru-RU', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const [sc, sl] = statusMap[t.status] || statusMap.open;
+    const div = document.createElement('div');
+    div.className = 'apply-card';
+    div.innerHTML = `
+      <div class="apply-card-ico">📩</div>
+      <div class="apply-card-info">
+        <div class="apply-card-id">${t.ticket_num} · ${t.type || '—'}</div>
+        <div class="apply-card-meta">👤 ${t.user_nick || '—'} · 📅 ${dt}</div>
+      </div>
+      <span class="apply-card-status ${sc}">${sl}</span>
+    `;
+    div.addEventListener('click', () => openTicketDetail(t));
+    frag.appendChild(div);
+  });
+  list.innerHTML = '';
+  list.appendChild(frag);
+}
+
+let activeTicketNum = null;
+
+function openTicketDetail(t) {
+  activeTicketNum = t.ticket_num;
+  switchSection('ticketdetail');
+  renderTicketDetail(t);
+}
+
+async function refreshTicketDetail(ticketNum) {
+  try {
+    const r = await fetch(`${API}/api/admin/tickets?adminId=${currentUser.id}`);
+    const d = await r.json();
+    if (!d.success) return;
+    const t = d.tickets.find(x => x.ticket_num === ticketNum);
+    if (t) renderTicketDetail(t);
+    const section = $('adminTicketsSection');
+    if (section) { section._ticketsData = d.tickets; $('ticketsBadge').textContent = d.tickets.filter(x => x.status === 'open').length; }
+  } catch(e) { console.error('refreshTicketDetail error:', e); }
+}
+
+function renderTicketDetail(t) {
+  const dt = new Date(t.created_at).toLocaleString('ru-RU', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const statusMap = { open: ['#ffd84d','Открыто'], in_progress: ['var(--teal)','На рассмотрении'], closed: ['var(--red)','Закрыто'] };
+  const [sc, sl] = statusMap[t.status] || statusMap.open;
+  const history = (typeof t.history === 'string' ? JSON.parse(t.history) : t.history) || [];
+
+  const timelineHTML = [
+    { status: 'Обращение создано', date: new Date(t.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) },
+    ...history
+  ].map(h => `
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:.9rem;">
+      <div style="width:9px;height:9px;border-radius:50%;background:var(--teal);margin-top:5px;flex-shrink:0;"></div>
+      <div>
+        <div style="font-size:.85rem;font-weight:700;">${h.status}</div>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:.15rem;">${h.date}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const labelsHTML = history.map((h, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.7rem 1rem;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:.5rem;">
+      <div>
+        <div style="font-size:.8rem;font-weight:600;">${h.status}</div>
+        <div style="font-size:.65rem;color:var(--muted);margin-top:.15rem;">${h.date}</div>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-shrink:0;">
+        <button onclick="openEditLabelModal('${t.ticket_num}', ${i}, '${h.status.replace(/'/g,"\\'")}')" style="padding:6px 12px;border-radius:9px;background:rgba(180,141,255,0.12);border:1px solid rgba(180,141,255,0.28);color:var(--text);font-size:.72rem;font-weight:600;cursor:pointer;">✏️ Редактировать</button>
+        <button onclick="openDeleteLabelModal('${t.ticket_num}', ${i})" style="padding:6px 12px;border-radius:9px;background:rgba(255,107,107,0.12);border:1px solid rgba(255,107,107,0.28);color:var(--red);font-size:.72rem;font-weight:600;cursor:pointer;">🗑 Удалить</button>
+      </div>
+    </div>
+  `).join('');
+
+  $('ticketdetail-content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;">📩 Обращение ${t.ticket_num}</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:.2rem;">${dt}</div>
+      </div>
+      <button onclick="switchSection('admin');adminLoaded=false;loadAdminPanel();" style="display:inline-flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:500;color:var(--muted);padding:7px 14px;border-radius:100px;cursor:pointer;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);transition:color .2s;">✕ Закрыть</button>
+    </div>
+
+    <div class="gl-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">📋 Детали</div>
+      <div style="margin-bottom:.6rem;"><div style="font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.2rem;">Пользователь</div><div style="font-size:.8rem;">${t.user_nick || '—'} ${t.telegram_id ? '· TG: '+t.telegram_id : ''}</div></div>
+      <div style="margin-bottom:.6rem;"><div style="font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.2rem;">Тип обращения</div><div style="font-size:.8rem;">${t.type || '—'}</div></div>
+      <div style="margin-bottom:.6rem;"><div style="font-size:.6rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:.2rem;">Описание</div><div style="font-size:.8rem;line-height:1.5;color:rgba(255,255,255,.85);">${t.description || '—'}</div></div>
+      <div style="padding:.6rem .85rem;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);font-size:.72rem;color:var(--muted);">Текущий статус: <b style="color:${sc};">${sl}</b>${t.admin_nick ? ' · Ведёт: '+t.admin_nick : ''}</div>
+    </div>
+
+    <div class="gl-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:1rem;">🕒 Отслеживание</div>
+      ${timelineHTML}
+    </div>
+
+    <div class="gl-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">⚙️ Смена статуса обращения</div>
+      <div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.85rem;">
+        <button onclick="changeTicketStatus('${t.ticket_num}','open')" style="flex:1;min-width:110px;padding:11px;border-radius:11px;background:${t.status==='open'?'rgba(255,216,77,0.22)':'rgba(255,216,77,0.1)'};border:1px solid rgba(255,216,77,0.28);font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;color:#ffd84d;cursor:pointer;">🔓 Открыто</button>
+        <button onclick="changeTicketStatus('${t.ticket_num}','in_progress')" style="flex:1;min-width:110px;padding:11px;border-radius:11px;background:${t.status==='in_progress'?'rgba(78,205,196,0.24)':'rgba(78,205,196,0.1)'};border:1px solid rgba(78,205,196,0.32);font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;color:var(--teal);cursor:pointer;">🔄 На рассмотрении</button>
+        <button onclick="changeTicketStatus('${t.ticket_num}','closed')" style="flex:1;min-width:110px;padding:11px;border-radius:11px;background:${t.status==='closed'?'rgba(255,107,107,0.22)':'rgba(255,107,107,0.1)'};border:1px solid rgba(255,107,107,0.28);font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;color:var(--red);cursor:pointer;">✅ Закрыто</button>
+      </div>
+      <button onclick="openAddLabelModal('${t.ticket_num}')" style="width:100%;padding:11px;border-radius:11px;background:rgba(180,141,255,0.14);border:1px solid rgba(180,141,255,0.3);color:var(--text);font-size:.82rem;font-weight:700;cursor:pointer;">🏷 Добавить метку</button>
+    </div>
+
+    <div class="gl-card" style="padding:1.25rem;">
+      <div style="font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:.85rem;">🏷 Текущие метки</div>
+      ${labelsHTML || '<div style="color:var(--muted);font-size:.8rem;">Меток пока нет</div>'}
+    </div>
+  `;
+}
+
+function openModalGeneric(html) {
+  let overlay = $('genericModalOverlay');
+  if (overlay) overlay.remove();
+  overlay = document.createElement('div');
+  overlay.id = 'genericModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.innerHTML = `<div style="width:100%;max-width:380px;background:rgba(14,8,28,0.99);border:1px solid rgba(180,141,255,0.2);border-radius:20px;padding:1.75rem;box-shadow:0 36px 72px rgba(0,0,0,0.8);">${html}</div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function closeGenericModal() { const o = $('genericModalOverlay'); if (o) o.remove(); }
+
+function openAddLabelModal(ticketNum) {
+  openModalGeneric(`
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:1rem;text-align:center;">🏷 Добавление метки</div>
+    <div style="font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem;">Название метки</div>
+    <input id="labelNameInput" class="gl-input" placeholder="Например: Передано руководству" style="margin-bottom:1.25rem;">
+    <div style="display:flex;gap:.6rem;">
+      <button onclick="closeGenericModal()" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;">Отмена</button>
+      <button onclick="submitAddLabel('${ticketNum}')" style="flex:1;padding:11px;border-radius:11px;background:rgba(78,205,196,0.18);border:1px solid rgba(78,205,196,0.35);color:var(--teal);font-size:.8rem;font-weight:700;cursor:pointer;">Добавить</button>
+    </div>
+  `);
+  setTimeout(() => $('labelNameInput')?.focus(), 50);
+}
+
+function openEditLabelModal(ticketNum, index, currentText) {
+  openModalGeneric(`
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:1rem;text-align:center;">✏️ Редактирование метки</div>
+    <div style="font-size:.7rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:.4rem;">Название метки</div>
+    <input id="labelNameInput" class="gl-input" value="${currentText.replace(/"/g,'&quot;')}" style="margin-bottom:1.25rem;">
+    <div style="display:flex;gap:.6rem;">
+      <button onclick="closeGenericModal()" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;">Отмена</button>
+      <button onclick="submitEditLabel('${ticketNum}', ${index})" style="flex:1;padding:11px;border-radius:11px;background:rgba(180,141,255,0.18);border:1px solid rgba(180,141,255,0.35);color:var(--text);font-size:.8rem;font-weight:700;cursor:pointer;">Сохранить</button>
+    </div>
+  `);
+  setTimeout(() => $('labelNameInput')?.focus(), 50);
+}
+
+function openDeleteLabelModal(ticketNum, index) {
+  openModalGeneric(`
+    <div style="font-size:2rem;text-align:center;margin-bottom:.5rem;">⚠️</div>
+    <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;margin-bottom:.5rem;text-align:center;">Удалить метку?</div>
+    <div style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:1.25rem;line-height:1.5;">Это действие нельзя отменить. Пользователь получит уведомление об изменении.</div>
+    <div style="display:flex;gap:.6rem;">
+      <button onclick="closeGenericModal()" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;">Отмена</button>
+      <button onclick="submitDeleteLabel('${ticketNum}', ${index})" style="flex:1;padding:11px;border-radius:11px;background:rgba(255,107,107,0.18);border:1px solid rgba(255,107,107,0.35);color:var(--red);font-size:.8rem;font-weight:700;cursor:pointer;">Удалить</button>
+    </div>
+  `);
+}
+
+async function changeTicketStatus(ticketNum, status) {
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${ticketNum}/system-status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Статус обновлён'); refreshTicketDetail(ticketNum); }
+    else showToast('❌ ' + (d.error || 'Ошибка'));
+  } catch(e) { console.error('changeTicketStatus error:', e); showToast('❌ Ошибка сети'); }
+}
+
+async function submitAddLabel(ticketNum) {
+  const input = $('labelNameInput');
+  const text = input.value.trim();
+  if (!text) return showToast('❌ Введите название метки');
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${ticketNum}/add-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Метка добавлена'); closeGenericModal(); refreshTicketDetail(ticketNum); }
+    else showToast('❌ ' + (d.error || 'Ошибка'));
+  } catch(e) { console.error('submitAddLabel error:', e); showToast('❌ Ошибка сети'); }
+}
+
+async function submitEditLabel(ticketNum, index) {
+  const input = $('labelNameInput');
+  const text = input.value.trim();
+  if (!text) return showToast('❌ Введите название метки');
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${ticketNum}/history/${index}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Метка изменена'); closeGenericModal(); refreshTicketDetail(ticketNum); }
+    else showToast('❌ ' + (d.error || 'Ошибка'));
+  } catch(e) { console.error('submitEditLabel error:', e); showToast('❌ Ошибка сети'); }
+}
+
+async function submitDeleteLabel(ticketNum, index) {
+  try {
+    const r = await fetch(`${API}/api/admin/tickets/${ticketNum}/history/${index}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminId: currentUser.id, adminNick: currentUser.username })
+    });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Метка удалена'); closeGenericModal(); refreshTicketDetail(ticketNum); }
+    else showToast('❌ ' + (d.error || 'Ошибка'));
+  } catch(e) { console.error('submitDeleteLabel error:', e); showToast('❌ Ошибка сети'); }
 }
 
 function checkAdminAccess(){
