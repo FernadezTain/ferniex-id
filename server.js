@@ -1900,6 +1900,98 @@ app.get('/CollectionCard', (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════
+//  CUSTOM COMMANDS — персональные алиасы команд бота
+//  Схема: custom_commands(telegram_id, action_key, custom_command)
+//  unique(telegram_id, action_key) — 1 алиас на команду
+// ══════════════════════════════════════════════════════════════
+
+const CUSTOM_CMD_ALLOWED_KEYS = new Set([
+  'profile','balance','help','top','seeds','dc','market',
+  'inventory','cases','packs','craft','cards','minecraft',
+  'transfer','ferniex_id'
+]);
+
+app.get('/api/customcommands/:telegramId', async (req, res) => {
+  const { telegramId } = req.params;
+  if (!telegramId) return res.json({ success: false, error: 'telegramId обязателен' });
+
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/custom_commands?telegram_id=eq.${telegramId}&select=action_key,custom_command`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+
+    const config = {};
+    (rows || []).forEach(row => {
+      config[row.action_key] = [row.custom_command];
+    });
+
+    res.json({ success: true, telegram_id: telegramId, config });
+  } catch (e) {
+    console.error('customcommands GET error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+app.post('/api/customcommands/save', async (req, res) => {
+  const { telegram_id, config } = req.body;
+  if (!telegram_id || !config || typeof config !== 'object')
+    return res.json({ success: false, error: 'telegram_id и config обязательны' });
+
+  const rowsToUpsert = [];
+  const keysToDelete = [];
+
+  for (const [key, aliases] of Object.entries(config)) {
+    if (!CUSTOM_CMD_ALLOWED_KEYS.has(key))
+      return res.json({ success: false, error: `Неизвестный action_key: ${key}` });
+    if (!Array.isArray(aliases))
+      return res.json({ success: false, error: `Алиасы для ${key} должны быть массивом` });
+
+    if (aliases.length === 0) {
+      keysToDelete.push(key);
+      continue;
+    }
+    const alias = aliases[aliases.length - 1];
+    if (typeof alias !== 'string' || !alias.startsWith('/') || alias.length > 32)
+      return res.json({ success: false, error: `Некорректный алиас: ${alias}` });
+
+    rowsToUpsert.push({
+      telegram_id: String(telegram_id),
+      action_key: key,
+      custom_command: alias,
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  try {
+    if (rowsToUpsert.length) {
+      const upsertRes = await fetch(`${SB_URL}/rest/v1/custom_commands?on_conflict=telegram_id,action_key`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+        body: JSON.stringify(rowsToUpsert)
+      });
+      if (!upsertRes.ok) {
+        console.error('customcommands upsert error:', await upsertRes.text());
+        return res.json({ success: false, error: 'Ошибка сохранения в базу' });
+      }
+    }
+
+    for (const key of keysToDelete) {
+      await fetch(
+        `${SB_URL}/rest/v1/custom_commands?telegram_id=eq.${telegram_id}&action_key=eq.${key}`,
+        { method: 'DELETE', headers: sbHeaders }
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) {
+    console.error('customcommands SAVE error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
 //  SUPPORT TICKETS — система обращений
 // ══════════════════════════════════════════════════════════════
 
