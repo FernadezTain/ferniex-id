@@ -601,10 +601,11 @@ function renderCommands(){
             ${aliases.length ? aliases.map((al,i)=>`<span class="alias-chip">${escapeHtml(al)}<button onclick="removeAlias('${a.key}',${i})"><span class="ci ci-x"></span></button></span>`).join('')
               : '<span class="alias-empty">Персональных алиасов пока нет</span>'}
           </div>
+          ${aliases.length ? '' : `
           <div class="alias-add-row">
             <input class="alias-input" id="input-${a.key}" placeholder="/моякоманда" maxlength="32">
             <button class="alias-add-btn" onclick="addAlias('${a.key}')"><span class="ci ci-plus" style="margin-right:5px"></span>Добавить</button>
-          </div>
+          </div>`}
         </div>`;
     });
     html += '</div>';
@@ -631,9 +632,8 @@ window.addAlias = function(key){
   const inp = $('input-'+key);
   const val = normalizeAlias(inp.value);
   if (!val) { showToast('Введи корректную команду, например /я'); return; }
-  userConfig[key] = userConfig[key] || [];
-  if (userConfig[key].includes(val)) { showToast('Такой алиас уже добавлен'); return; }
-  userConfig[key].push(val);
+  if (userConfig[key] && userConfig[key][0] === val) { showToast('Такой алиас уже установлен'); return; }
+  userConfig[key] = [val]; // только 1 алиас на команду — заменяет предыдущий
   inp.value = '';
   dirty = true;
   updateSaveStatus();
