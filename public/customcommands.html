@@ -119,6 +119,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .save-btn{padding:10px 22px;border-radius:11px;background:linear-gradient(135deg,rgba(180,141,255,0.3),rgba(126,184,255,0.22));border:1px solid rgba(180,141,255,0.42);color:#fff;font-family:'Inter',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .save-btn:hover{box-shadow:0 6px 20px rgba(180,141,255,0.25);}
 .save-btn:disabled{opacity:.5;cursor:default;}
+.reset-btn{padding:10px 16px;border-radius:11px;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.25);color:var(--red);font-family:'Inter',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0;}
+.reset-btn:hover{background:rgba(255,107,107,0.18);}
+.reset-btn:disabled{opacity:.5;cursor:default;}
 
 .spinner{width:26px;height:26px;border-radius:50%;border:2px solid rgba(180,141,255,0.14);border-top-color:var(--p1);animation:spin .85s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -258,6 +261,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="save-bar">
     <div class="save-bar-inner">
       <div class="save-status" id="saveStatus">Изменения не сохранены</div>
+      <button class="reset-btn" id="resetBtn">Сбросить</button>
       <button class="save-btn" id="saveBtn"><span class="ci ci-save" style="margin-right:6px"></span>Сохранить</button>
     </div>
   </div>
@@ -278,18 +282,13 @@ const ACTION_DEFS = [
   { key:'profile',   name:'Профиль',        icon:'ico-profile',   def:'/я',        group:'Основное' },
   { key:'balance',   name:'Баланс',         icon:'ico-balance',   def:'/баланс',   group:'Основное' },
   { key:'help',      name:'Помощь',         icon:'ico-help',      def:'/help',     group:'Основное' },
-  { key:'top',       name:'Топ игроков',    icon:'ico-top',       def:'/top',      group:'Основное' },
-  { key:'seeds',     name:'Семена',         icon:'ico-seeds',     def:'/seeds',    group:'Экономика' },
+  { key:'top',       name:'Топ игроков',    icon:'ico-top',       def:'топ',      group:'Основное' },
   { key:'dc',        name:'DC-баланс',      icon:'ico-dc',        def:'/dc',       group:'Экономика' },
-  { key:'market',    name:'Рынок',          icon:'ico-market',    def:'/market',   group:'Экономика' },
-  { key:'inventory', name:'Инвентарь',      icon:'ico-inventory', def:'/inventory',group:'Экономика' },
-  { key:'cases',     name:'Кейсы',          icon:'ico-cases',     def:'/cases',    group:'Экономика' },
-  { key:'packs',     name:'Паки карточек',  icon:'ico-packs',     def:'/packs',    group:'Коллекция' },
-  { key:'craft',     name:'Крафт карточек', icon:'ico-craft',     def:'/craft',    group:'Коллекция' },
-  { key:'cards',     name:'Мои карточки',   icon:'ico-cards',     def:'/cards',    group:'Коллекция' },
-  { key:'minecraft', name:'Minecraft-стата',icon:'ico-minecraft', def:'/mc',       group:'Игры' },
-  { key:'transfer',  name:'Перенос аккаунта',icon:'ico-transfer', def:'/transfer',group:'Аккаунт' },
+  { key:'shop',      name:'Магазин',        icon:'ico-market',    def:'магаз',   group:'Экономика' },
+  { key:'cases',     name:'Кейсы',          icon:'ico-cases',     def:'кейсы',    group:'Экономика' },
+  { key:'cards',     name:'Мои карточки',   icon:'ico-cards',     def:'карты',    group:'Коллекция' },
   { key:'ferniex_id',name:'FernieID',       icon:'ico-ferniex_id',def:'/id',       group:'Аккаунт' },
+  { key:'bug_report',name:'Сообщить о ошибке',icon:'ico-bug',       def:'/баг',      group:'Поддержка' },
 ];
 
 let currentUser = null;
@@ -500,6 +499,16 @@ function updateSaveStatus(){
   $('saveStatus').textContent = dirty ? 'Есть несохранённые изменения' : 'Все изменения сохранены';
   $('saveStatus').style.color = dirty ? 'var(--orange)' : 'var(--muted)';
 }
+
+$('resetBtn').onclick = () => {
+  if (!Object.keys(userConfig).length) { showToast('Уже пусто'); return; }
+  if (!confirm('Сбросить все алиасы? Команды вернутся к стандартным. Изменение применится только после нажатия «Сохранить».')) return;
+  userConfig = {};
+  dirty = true;
+  updateSaveStatus();
+  renderCommands();
+  showToast('Алиасы сброшены — не забудь сохранить');
+};
 
 $('saveBtn').onclick = async () => {
   const btn = $('saveBtn');
