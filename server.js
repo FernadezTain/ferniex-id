@@ -1961,15 +1961,30 @@ app.post('/api/customcommands/save', async (req, res) => {
   }
 
   try {
+    const flatCommands = {};
+    for (const [key, aliases] of Object.entries(config)) {
+      if (Array.isArray(aliases) && aliases.length) {
+        flatCommands[key] = aliases[aliases.length - 1];
+      } else if (typeof aliases === 'string') {
+        flatCommands[key] = aliases;
+      } else {
+        flatCommands[key] = '';
+      }
+    }
+
     const botRes = await fetch(`${BOT_URL}/api/commands/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id, commands: config })
+      body: JSON.stringify({ telegram_id, commands: flatCommands })
     });
     const botData = await botRes.json();
     if (!botRes.ok || botData.success === false) {
       console.error('customcommands bot update error:', botData);
       return res.json({ success: false, error: botData.error || 'Ошибка сохранения в бота' });
+    }
+    if (botData.warnings && botData.warnings.length) {
+      console.error('customcommands bot warnings:', botData.warnings);
+      return res.json({ success: false, error: botData.warnings.join('; ') });
     }
 
     res.json({ success: true });
