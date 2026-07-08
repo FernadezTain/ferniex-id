@@ -1916,17 +1916,13 @@ app.get('/api/customcommands/:telegramId', async (req, res) => {
   if (!telegramId) return res.json({ success: false, error: 'telegramId обязателен' });
 
   try {
-    const r = await fetch(
-      `${SB_URL}/rest/v1/custom_commands?telegram_id=eq.${telegramId}&select=action_key,custom_command`,
-      { headers: sbHeaders }
-    );
-    const rows = await r.json();
+    const r = await fetch(`${BOT_URL}/api/commands/list?telegram_id=${telegramId}`);
+    const data = await r.json();
 
     const config = {};
-    (rows || []).forEach(row => {
-      config[row.action_key] = [row.custom_command];
+    (data.actions || []).forEach(row => {
+      if (row.custom_command) config[row.action_key] = [`/${row.custom_command}`];
     });
-
     res.json({ success: true, telegram_id: telegramId, config });
   } catch (e) {
     console.error('customcommands GET error:', e);
@@ -1965,23 +1961,15 @@ app.post('/api/customcommands/save', async (req, res) => {
   }
 
   try {
-    if (rowsToUpsert.length) {
-      const upsertRes = await fetch(`${SB_URL}/rest/v1/custom_commands?on_conflict=telegram_id,action_key`, {
-        method: 'POST',
-        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(rowsToUpsert)
-      });
-      if (!upsertRes.ok) {
-        console.error('customcommands upsert error:', await upsertRes.text());
-        return res.json({ success: false, error: 'Ошибка сохранения в базу' });
-      }
-    }
-
-    for (const key of keysToDelete) {
-      await fetch(
-        `${SB_URL}/rest/v1/custom_commands?telegram_id=eq.${telegram_id}&action_key=eq.${key}`,
-        { method: 'DELETE', headers: sbHeaders }
-      );
+    const botRes = await fetch(`${BOT_URL}/api/commands/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id, commands: config })
+    });
+    const botData = await botRes.json();
+    if (!botRes.ok || botData.success === false) {
+      console.error('customcommands bot update error:', botData);
+      return res.json({ success: false, error: botData.error || 'Ошибка сохранения в бота' });
     }
 
     res.json({ success: true });
