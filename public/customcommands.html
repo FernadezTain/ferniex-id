@@ -201,6 +201,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 
 .ico-ferniex_id>span::before{left:5px;top:8px;width:10px;height:8px;border-radius:2px;}
 .ico-ferniex_id>span::after{left:7px;top:2px;width:6px;height:8px;border:2px solid var(--p1);border-bottom:none;border-radius:5px 5px 0 0;background:transparent;}
+
+.ico-generic>span::before{left:5px;top:5px;width:10px;height:10px;border-radius:50%;background:transparent;border:2px solid var(--p1);}
+.ico-generic>span::after{left:9px;top:9px;width:2px;height:2px;border-radius:50%;}
 .state-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;gap:.7rem;color:var(--muted);font-size:.82rem;}
 
 .tfa-overlay{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:1rem;}
@@ -278,17 +281,168 @@ const $ = id => document.getElementById(id);
 // что диспетчер команд бота использует для резолва алиасов.
 // Добавляй свои по аналогии — остальное подтянется автоматически.
 // ══════════════════════════════════════════════════════════════
+const G = 'ico-generic'; // общая иконка для новых пунктов
 const ACTION_DEFS = [
-  { key:'profile',   name:'Профиль',        icon:'ico-profile',   def:'/я',        group:'Основное' },
-  { key:'balance',   name:'Баланс',         icon:'ico-balance',   def:'/баланс',   group:'Основное' },
-  { key:'help',      name:'Помощь',         icon:'ico-help',      def:'/help',     group:'Основное' },
-  { key:'top',       name:'Топ игроков',    icon:'ico-top',       def:'топ',      group:'Основное' },
-  { key:'dc',        name:'DC-баланс',      icon:'ico-dc',        def:'/dc',       group:'Экономика' },
-  { key:'shop',      name:'Магазин',        icon:'ico-market',    def:'магаз',   group:'Экономика' },
-  { key:'cases',     name:'Кейсы',          icon:'ico-cases',     def:'кейсы',    group:'Экономика' },
-  { key:'cards',     name:'Мои карточки',   icon:'ico-cards',     def:'карты',    group:'Коллекция' },
-  { key:'ferniex_id',name:'FernieID',       icon:'ico-ferniex_id',def:'/id',       group:'Аккаунт' },
-  { key:'bug_report',name:'Сообщить о ошибке',icon:'ico-bug',       def:'/баг',      group:'Поддержка' },
+  // Основное
+  { key:'profile',   name:'Профиль',        icon:'ico-profile', def:'/я',            group:'Основное' },
+  { key:'top',       name:'Топ игроков',    icon:'ico-top',     def:'/топ',          group:'Основное' },
+  { key:'role',      name:'Роль',           icon:G,             def:'/роль',         group:'Основное' },
+  { key:'bot_version',name:'Версия бота',   icon:G,             def:'бот',           group:'Основное' },
+
+  // Дни рождения
+  { key:'birthday_show',        name:'Показать ДР',      icon:G, def:'/др',    group:'Дни рождения' },
+  { key:'birthday_set',         name:'Установить ДР',    icon:G, def:'/др+',   group:'Дни рождения' },
+  { key:'birthday_del',         name:'Удалить ДР',       icon:G, def:'/др-',   group:'Дни рождения' },
+  { key:'birthday_notify_on',   name:'Уведомления ДР вкл', icon:G, def:'/рдр+', group:'Дни рождения' },
+  { key:'birthday_notify_off',  name:'Уведомления ДР выкл', icon:G, def:'/рдр-', group:'Дни рождения' },
+  { key:'birthday_post',        name:'Пост ДР',          icon:G, def:'/дрпост', group:'Дни рождения' },
+
+  // Модерация
+  { key:'resign',            name:'Снять полномочия',  icon:G, def:'снять полномочия', group:'Модерация' },
+  { key:'kick_left_admins',  name:'Снять вышедших',     icon:G, def:'снять вышедших',   group:'Модерация' },
+  { key:'warns_list',        name:'Список варнов',      icon:G, def:'варны',        group:'Модерация' },
+  { key:'unwarn',            name:'Снять варн',         icon:G, def:'-варн',        group:'Модерация' },
+  { key:'warn',              name:'Выдать варн',        icon:G, def:'варн',         group:'Модерация' },
+  { key:'admins_list',       name:'Список админов',     icon:G, def:'админы',       group:'Модерация' },
+  { key:'unmoder',           name:'Разжаловать',        icon:G, def:'разжаловать',  group:'Модерация' },
+  { key:'mute',              name:'Мут',                icon:G, def:'мут',          group:'Модерация' },
+  { key:'unmute',            name:'Размут',             icon:G, def:'размут',       group:'Модерация' },
+  { key:'ban',               name:'Бан',                icon:G, def:'бан',          group:'Модерация' },
+  { key:'unban',             name:'Разбан',             icon:G, def:'разбан',       group:'Модерация' },
+  { key:'kick',              name:'Кик',                icon:G, def:'кик',          group:'Модерация' },
+  { key:'kick_new',          name:'Кик новых',          icon:G, def:'/кик_новые',   group:'Модерация' },
+  { key:'check_admin',       name:'Проверка админа',    icon:G, def:'/админ',       group:'Модерация' },
+  { key:'raising',           name:'Повысить ранг',      icon:G, def:'ранг',         group:'Модерация' },
+  { key:'unraising',         name:'Понизить ранг',      icon:G, def:'-ранг',        group:'Модерация' },
+  { key:'reset_account',     name:'Восстановить аккаунт', icon:G, def:'/восстановить', group:'Модерация' },
+
+  // Чат / правила
+  { key:'chat_close',        name:'Закрыть чат',       icon:G, def:'/-чат',       group:'Чат и правила' },
+  { key:'chat_open',         name:'Открыть чат',       icon:G, def:'/+чат',       group:'Чат и правила' },
+  { key:'chat_info',         name:'Инфо о чате',       icon:G, def:'/чат',        group:'Чат и правила' },
+  { key:'remove_prefix',     name:'Убрать префикс',    icon:G, def:'/-префикс',   group:'Чат и правила' },
+  { key:'add_prefix',        name:'Добавить префикс',  icon:G, def:'/+префикс',   group:'Чат и правила' },
+  { key:'show_rules',        name:'Правила',           icon:G, def:'правила',     group:'Чат и правила' },
+  { key:'delete_rules',      name:'Удалить правила',   icon:G, def:'-правила',    group:'Чат и правила' },
+  { key:'add_rule',          name:'Добавить правило',  icon:G, def:'+правила',    group:'Чат и правила' },
+  { key:'chat_verification', name:'Верификация чата',  icon:G, def:'/вчат',       group:'Чат и правила' },
+
+  // Сетки / кланы
+  { key:'grid_create',   name:'Создать сетку',     icon:G, def:'сетка создать', group:'Сетки и кланы' },
+  { key:'grid_delete',   name:'Удалить сетку',     icon:G, def:'сетка удалить', group:'Сетки и кланы' },
+  { key:'grid_ban_info', name:'Инфо бана сетки',   icon:G, def:'сетка бан инфо', group:'Сетки и кланы' },
+  { key:'grid_ban',      name:'Забанить в сетке',  icon:G, def:'сетка бан',     group:'Сетки и кланы' },
+  { key:'grid_unban',    name:'Разбанить в сетке', icon:G, def:'сетка разбан',  group:'Сетки и кланы' },
+  { key:'grid_add',      name:'Добавить чат в сетку', icon:G, def:'/+сетка',   group:'Сетки и кланы' },
+  { key:'grid_remove',   name:'Убрать чат из сетки', icon:G, def:'/-сетка',    group:'Сетки и кланы' },
+  { key:'my_grids',      name:'Мои сетки',         icon:G, def:'/сетки',        group:'Сетки и кланы' },
+  { key:'grid_chats',    name:'Чаты сетки',        icon:G, def:'/чаты',         group:'Сетки и кланы' },
+  { key:'clan',          name:'Клан',              icon:G, def:'клан',          group:'Сетки и кланы' },
+
+  // Экономика
+  { key:'shop',        name:'Магазин',        icon:'ico-market', def:'магаз',      group:'Экономика' },
+  { key:'cases',       name:'Кейсы',          icon:'ico-cases',  def:'кейсы',      group:'Экономика' },
+  { key:'case_open',   name:'Открыть кейс',   icon:G, def:'кейс',        group:'Экономика' },
+  { key:'deposit',     name:'Депозит',        icon:G, def:'депозит',     group:'Экономика' },
+  { key:'give_currency', name:'Передать валюту', icon:G, def:'передать',  group:'Экономика' },
+  { key:'pay',         name:'Дать',           icon:G, def:'дать',        group:'Экономика' },
+  { key:'give',        name:'Выдать',         icon:G, def:'выдать',      group:'Экономика' },
+  { key:'take',        name:'Изъять',         icon:G, def:'изъять',      group:'Экономика' },
+  { key:'treasury',    name:'Казна',          icon:G, def:'казна',       group:'Экономика' },
+  { key:'bonus',       name:'Бонус',          icon:G, def:'бонус',       group:'Экономика' },
+  { key:'reward_add',  name:'Выдать награду', icon:G, def:'+награда',    group:'Экономика' },
+  { key:'reward_remove', name:'Забрать награду', icon:G, def:'-награда', group:'Экономика' },
+  { key:'rewards_list', name:'Список наград',  icon:G, def:'награды',    group:'Экономика' },
+  { key:'sell',        name:'Продать',        icon:G, def:'продать',     group:'Экономика' },
+  { key:'business',    name:'Бизнес',         icon:G, def:'бизнес',      group:'Экономика' },
+  { key:'bank',        name:'Банк',           icon:G, def:'банк',        group:'Экономика' },
+  { key:'casino',      name:'Казино',         icon:G, def:'казино',      group:'Экономика' },
+  { key:'slots',       name:'Слоты',          icon:G, def:'слоты',       group:'Экономика' },
+  { key:'coin',        name:'Монетка',        icon:G, def:'монетка',     group:'Экономика' },
+  { key:'dice',        name:'Кубик',          icon:G, def:'кубик',       group:'Экономика' },
+  { key:'roulette',    name:'Рулетка',        icon:G, def:'рулетка',     group:'Экономика' },
+  { key:'crypto',      name:'Крипта',         icon:G, def:'крипта',      group:'Экономика' },
+  { key:'taxi',        name:'Такси',          icon:G, def:'такси',       group:'Экономика' },
+  { key:'seeds',       name:'Семена',         icon:'ico-seeds', def:'семена',    group:'Экономика' },
+  { key:'my_mine',     name:'Моя шахта',      icon:G, def:'моя шахта',   group:'Экономика' },
+  { key:'mine_dig',    name:'Копать шахту',   icon:G, def:'шахта копать',group:'Экономика' },
+  { key:'rob',         name:'Ограбить',       icon:G, def:'ограбить',    group:'Экономика' },
+  { key:'vip',         name:'VIP',            icon:G, def:'вип',         group:'Экономика' },
+  { key:'charity',     name:'Благотворительность', icon:G, def:'/благо', group:'Экономика' },
+  { key:'blagofond',   name:'Благофонд',      icon:G, def:'/фонд',       group:'Экономика' },
+
+  // Профиль / соц
+  { key:'my_info',      name:'Мой инфо',       icon:G, def:'минфо',   group:'Профиль и соц' },
+  { key:'bot_info',     name:'Инфо бота',      icon:G, def:'бинфо',   group:'Профиль и соц' },
+  { key:'tech_info',    name:'Тех. инфо',      icon:G, def:'тех',     group:'Профиль и соц' },
+  { key:'player_info',  name:'Инфо игрока',    icon:G, def:'пинфо',   group:'Профиль и соц' },
+  { key:'info',         name:'Инфо',           icon:G, def:'инфо',    group:'Профиль и соц' },
+  { key:'rating',       name:'Рейтинг',        icon:G, def:'рейтинг', group:'Профиль и соц' },
+  { key:'nickname_info',name:'Инфо о нике',    icon:G, def:'ник',     group:'Профиль и соц' },
+  { key:'nick_set',     name:'Установить ник', icon:G, def:'+ник',    group:'Профиль и соц' },
+  { key:'set_nick',     name:'Сменить ник',    icon:G, def:'/сник',   group:'Профиль и соц' },
+  { key:'remove_nick',  name:'Убрать ник',     icon:G, def:'-ник',    group:'Профиль и соц' },
+  { key:'fernie',       name:'Ферни',          icon:G, def:'ферни',   group:'Профиль и соц' },
+  { key:'license',      name:'Лицензия',       icon:G, def:'/лиц',    group:'Профиль и соц' },
+  { key:'slic',         name:'Слицензия',      icon:G, def:'/слиц',   group:'Профиль и соц' },
+
+  // Дети / браки
+  { key:'marry',           name:'Пожениться',     icon:G, def:'брак',       group:'Дети и браки' },
+  { key:'divorce',         name:'Развестись',     icon:G, def:'развод',     group:'Дети и браки' },
+  { key:'my_marriage',     name:'Мой брак',       icon:G, def:'мой брак',   group:'Дети и браки' },
+  { key:'marry_others',    name:'Поженить',       icon:G, def:'поженить',   group:'Дети и браки' },
+  { key:'divorce_others',  name:'Развести',       icon:G, def:'развести',   group:'Дети и браки' },
+  { key:'marriages_list',  name:'Список браков',  icon:G, def:'браки',      group:'Дети и браки' },
+  { key:'children',        name:'Дети',           icon:G, def:'дети',       group:'Дети и браки' },
+  { key:'condom',          name:'Презик',         icon:G, def:'презик',     group:'Дети и браки' },
+  { key:'relationships',   name:'Отношения',      icon:G, def:'.отн',       group:'Дети и браки' },
+  { key:'pet_info',        name:'Питомец',        icon:G, def:'питомец',    group:'Дети и браки' },
+
+  // Списки
+  { key:'banlist',  name:'Банлист',  icon:G, def:'/банлист',  group:'Списки' },
+  { key:'mutelist', name:'Мутлист',  icon:G, def:'/мутлист',  group:'Списки' },
+  { key:'warnlist', name:'Варнлист', icon:G, def:'/варнлист', group:'Списки' },
+
+  // Коллекция
+  { key:'cards', name:'Мои карточки', icon:'ico-cards', def:'/карты', group:'Коллекция' },
+
+  // Разное
+  { key:'macros_list',   name:'Список макросов', icon:G, def:'макросы',        group:'Разное' },
+  { key:'delete_macro',  name:'Удалить макрос',  icon:G, def:'/удалить_макрос', group:'Разное' },
+  { key:'delete_sms',    name:'Удалить смс',     icon:G, def:'-смс',           group:'Разное' },
+  { key:'aboutme_show',  name:'Описание',        icon:G, def:'описание',       group:'Разное' },
+  { key:'aboutme_remove',name:'Удалить описание',icon:G, def:'-описание',      group:'Разное' },
+  { key:'aboutme_add',   name:'Добавить описание', icon:G, def:'+описание',    group:'Разное' },
+  { key:'dox',           name:'Докс',            icon:G, def:'/докс',          group:'Разное' },
+  { key:'idea',          name:'Идея',            icon:G, def:'/идея',          group:'Разное' },
+  { key:'hack',          name:'Хак',             icon:G, def:'/хак',           group:'Разное' },
+  { key:'limit_list',    name:'Список лимитов',  icon:G, def:'/лимит',         group:'Разное' },
+  { key:'restart',       name:'Рестарт',         icon:G, def:'/рестарт',       group:'Разное' },
+  { key:'subscription',  name:'Подписка',        icon:G, def:'/подписка',      group:'Разное' },
+  { key:'word_quest',    name:'Слова',           icon:G, def:'/слова',         group:'Разное' },
+  { key:'phone_menu',    name:'Телефон',         icon:G, def:'/телефон',       group:'Разное' },
+  { key:'my_car',        name:'Моя машина',      icon:G, def:'машина',         group:'Разное' },
+  { key:'farm',          name:'Ферма',           icon:G, def:'фарм',           group:'Разное' },
+  { key:'commands_list', name:'Список команд',   icon:G, def:'команды',        group:'Разное' },
+  { key:'pin',           name:'Закреп',          icon:G, def:'закреп',         group:'Разное' },
+  { key:'unpin',         name:'Открепить',       icon:G, def:'откреп',         group:'Разное' },
+  { key:'mention_all',   name:'Тег всех',        icon:G, def:'@all',           group:'Разное' },
+  { key:'event_error',   name:'Ивент',           icon:G, def:'/ивент',         group:'Разное' },
+  { key:'promo',         name:'Промо',           icon:G, def:'промо',          group:'Разное' },
+  { key:'create_promo',  name:'Создать промо',   icon:G, def:'/создать',       group:'Разное' },
+  { key:'my_promo',      name:'Мой промо',       icon:G, def:'/мой промо',     group:'Разное' },
+  { key:'configure',     name:'Настроить',       icon:G, def:'/настроить',     group:'Разное' },
+  { key:'child_name',    name:'Имя ребёнка',     icon:G, def:'/ребенок',       group:'Разное' },
+  { key:'id_lookup',     name:'Поиск по ID',     icon:G, def:'.ид',            group:'Разное' },
+  { key:'game_start',    name:'График',          icon:G, def:'график',         group:'Разное' },
+  { key:'my_article',    name:'Моя статья',      icon:G, def:'/моя статья',    group:'Разное' },
+
+  // Поддержка
+  { key:'bug_report', name:'Сообщить об ошибке', icon:G, def:'/баг', group:'Поддержка' },
+
+  // РП (управление мРП, без самих действий)
+  { key:'delete_rp',        name:'Удалить мРП', icon:G, def:'мрп-',        group:'РП' },
+  { key:'list_rp',          name:'Список мРП',  icon:G, def:'мрп',         group:'РП' },
 ];
 
 let currentUser = null;
