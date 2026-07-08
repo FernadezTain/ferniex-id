@@ -1905,12 +1905,7 @@ app.get('/CollectionCard', (req, res) => {
 //  unique(telegram_id, action_key) — 1 алиас на команду
 // ══════════════════════════════════════════════════════════════
 
-const CUSTOM_CMD_ALLOWED_KEYS = new Set([
-  'profile','balance','help','top','seeds','dc','market',
-  'inventory','cases','packs','craft','cards','minecraft',
-  'transfer','ferniex_id'
-]);
-
+// Валидация action_key теперь целиком на стороне бота (CUSTOM_COMMAND_REGISTRY в fx.py)
 app.get('/api/customcommands/:telegramId', async (req, res) => {
   const { telegramId } = req.params;
   if (!telegramId) return res.json({ success: false, error: 'telegramId обязателен' });
@@ -1939,8 +1934,6 @@ app.post('/api/customcommands/save', async (req, res) => {
   const keysToDelete = [];
 
   for (const [key, aliases] of Object.entries(config)) {
-    if (!CUSTOM_CMD_ALLOWED_KEYS.has(key))
-      return res.json({ success: false, error: `Неизвестный action_key: ${key}` });
     if (!Array.isArray(aliases))
       return res.json({ success: false, error: `Алиасы для ${key} должны быть массивом` });
 
