@@ -2284,6 +2284,13 @@ app.post('/api/ai-chats/save', async (req, res) => {
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const TOKEN_LIMIT_FREE = 200000;
 
+function getCurrentDateStr() {
+  return new Date().toLocaleDateString('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    day: 'numeric', month: 'long', year: 'numeric', weekday: 'long'
+  });
+}
+
 const AURIN_TOOLS_INSTRUCTIONS = `
 У тебя ЕСТЬ доступ к интернету через три инструмента. Используй их САМ, без разрешения пользователя, когда это нужно — не спрашивай "хочешь, я поищу?", просто ищи.
 
@@ -2656,13 +2663,15 @@ app.post('/api/chat', async (req, res) => {
     return res.status(503).json({ error: { message: 'Не удалось проверить API-ключ' } });
   }
 
+  const DATE_NOTICE = `Текущая дата: ${getCurrentDateStr()}. Это реальная, достоверная дата — НЕ подвергай её сомнению и не "исправляй" на более раннюю. Если в результатах поиска или документах встречаются даты 2025, 2026 года и позже — это нормально и правдиво, не пиши, что они "невозможны" или "ошибочны". Твои собственные знания могли устареть: если факты из поиска расходятся с тем, что ты помнишь — доверяй результатам поиска, а не своей внутренней памяти.`;
+
   if (Array.isArray(messages)) {
     const sysIdx = messages.findIndex(m => m?.role === 'system');
     if (sysIdx === -1) {
-      messages = [{ role: 'system', content: aurinPersonaText }, ...messages];
+      messages = [{ role: 'system', content: `${DATE_NOTICE}\n\n${aurinPersonaText}` }, ...messages];
     } else {
       const existing = messages[sysIdx];
-      const merged = { role: 'system', content: `${aurinPersonaText}\n\n${existing.content}` };
+      const merged = { role: 'system', content: `${DATE_NOTICE}\n\n${aurinPersonaText}\n\n${existing.content}` };
       messages = [merged, ...messages.slice(0, sysIdx), ...messages.slice(sysIdx + 1)];
     }
   }
@@ -2735,9 +2744,40 @@ app.post('/api/chat', async (req, res) => {
     }
 
     let buffer = '';
-    let mode = 'sniff'; // sniff | passthrough | tool
+    let mode = 'sniff'; // sniff | passthrough | tool | thinking
     let toolName = null;
     let fullText1 = '';
+
+    // Разбирает свежий фрагмент текста в режиме sniff: определяет,
+    // это обычный текст, вызов инструмента или блок <thinking>.
+    function sniffChunk(chunk) {
+      const trimmed = chunk.replace(/^\s+/, '');
+      if (!trimmed) { buffer = chunk; return; }
+
+      if (trimmed[0] !== '<') {
+        mode = 'passthrough';
+        sendChunk(chunk);
+        buffer = '';
+        return;
+      }
+
+      const gt = trimmed.indexOf('>');
+      if (gt === -1) { buffer = chunk; return; } // ждём символ '>'
+
+      const tagOpen = trimmed.slice(1, gt).trim().toLowerCase();
+      if (tagOpen === 'netsearch' || tagOpen === 'webfetch' || tagOpen === 'docsearch') {
+        mode = 'tool';
+        toolName = tagOpen;
+        buffer = trimmed;
+      } else if (tagOpen === 'thinking') {
+        mode = 'thinking';
+        buffer = trimmed; // копим, но НЕ отправляем клиенту
+      } else {
+        mode = 'passthrough';
+        sendChunk(chunk);
+        buffer = '';
+      }
+    }
 
     for await (const delta of round1.deltas) {
       fullText1 += delta;
@@ -2746,34 +2786,27 @@ app.post('/api/chat', async (req, res) => {
       if (mode === 'passthrough') { sendChunk(delta); continue; }
       if (mode === 'tool') { buffer += delta; continue; }
 
-      buffer += delta;
-      const trimmed = buffer.replace(/^\s+/, '');
-      if (!trimmed) continue;
-
-      if (trimmed[0] !== '<') {
-        mode = 'passthrough';
-        sendChunk(buffer);
+      if (mode === 'thinking') {
+        buffer += delta;
+        const closeIdx = buffer.indexOf('</thinking>');
+        if (closeIdx === -1) continue; // всё ещё внутри размышлений — ничего не шлём
+        const rest = buffer.slice(closeIdx + '</thinking>'.length);
         buffer = '';
+        mode = 'sniff';
+        if (rest) sniffChunk(rest);
         continue;
       }
 
-      const gt = trimmed.indexOf('>');
-      if (gt === -1) continue;
-
-      const tagOpen = trimmed.slice(1, gt).trim().toLowerCase();
-      if (tagOpen === 'netsearch' || tagOpen === 'webfetch' || tagOpen === 'docsearch') {
-        mode = 'tool';
-        toolName = tagOpen;
-        buffer = trimmed;
-      } else {
-        mode = 'passthrough';
-        sendChunk(buffer);
-        buffer = '';
-      }
+      buffer += delta;
+      sniffChunk(buffer);
     }
 
     if (mode === 'sniff' && buffer) { sendChunk(buffer); mode = 'passthrough'; }
-
+    if (mode === 'thinking') {
+      // Модель не закрыла </thinking> до конца ответа — не показываем утечку размышлений
+      buffer = '';
+      mode = 'passthrough';
+    }
     if (mode === 'tool') {
       const openTag = `<${toolName}>`;
       const closeTag = `</${toolName}>`;
@@ -2790,7 +2823,7 @@ app.post('/api/chat', async (req, res) => {
 
       if (toolName === 'netsearch') {
         toolResultText = await serverWebSearch(inner);
-        followupUserContent = `Вот результаты поиска:\n${toolResultText}\n\nОтветь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
+        followupUserContent = `Сегодняшняя дата: ${getCurrentDateStr()}. Вот результаты поиска:\n${toolResultText}\n\nЭто актуальные данные на сегодня — доверяй датам и фактам в них, даже если они не совпадают с твоей внутренней памятью. НЕ исправляй и не подвергай сомнению даты из результатов поиска. Ответь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
       } else if (toolName === 'webfetch') {
         toolResultText = await serverWebFetch(inner);
         followupUserContent = `Содержимое документа (${inner}):\n\n${toolResultText}\n\nНа основе ТОЛЬКО этого текста найди и процитируй конкретную статью или раздел, который отвечает на вопрос: "${userQuestion}". Дай чёткий текстовый ответ. ЗАПРЕЩЕНО выдавать теги <webfetch> или ссылки в ответе.`;
