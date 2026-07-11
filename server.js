@@ -2422,13 +2422,13 @@ function containsJailbreak(messages) {
 }
 const TOKEN_LIMIT_PLUS = 1500000;
 
-async function getTokensUsedToday(userId) {
+async function getTokensUsedToday(identifier) {
   const today = new Date().toISOString().slice(0, 10);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
     const r = await fetch(
-      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=tokens_used`,
+      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${identifier}&date=eq.${today}&select=tokens_used`,
       { headers: sbHeaders, signal: controller.signal }
     );
     const rows = await r.json();
@@ -2438,18 +2438,18 @@ async function getTokensUsedToday(userId) {
   }
 }
 
-async function addTokensUsed(userId, tokens) {
+async function addTokensUsed(identifier, tokens) {
   const today = new Date().toISOString().slice(0, 10);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
     const check = await fetch(
-      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}&select=id,tokens_used`,
+      `${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${identifier}&date=eq.${today}&select=id,tokens_used`,
       { headers: sbHeaders, signal: controller.signal }
     );
     const rows = await check.json();
     if (rows.length) {
-      await fetch(`${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${userId}&date=eq.${today}`, {
+      await fetch(`${SB_URL}/rest/v1/ai_token_usage?user_id=eq.${identifier}&date=eq.${today}`, {
         method: 'PATCH',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
         body: JSON.stringify({ tokens_used: rows[0].tokens_used + tokens })
@@ -2458,17 +2458,15 @@ async function addTokensUsed(userId, tokens) {
       await fetch(`${SB_URL}/rest/v1/ai_token_usage`, {
         method: 'POST',
         headers: { ...sbHeaders, Prefer: 'return=minimal' },
-        body: JSON.stringify({ user_id: userId, tokens_used: tokens, date: today })
+        body: JSON.stringify({ user_id: identifier, tokens_used: tokens, date: today })
       });
     }
   } catch (e) {
-    // Не блокируем основной поток если запись токенов упала
     console.error('addTokensUsed failed:', e.message);
   } finally {
     clearTimeout(timeout);
   }
 }
-
 async function hasFerniePlus(userId) {
   try {
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
@@ -2483,6 +2481,27 @@ async function hasFerniePlus(userId) {
 app.post('/api/chat', async (req, res) => {
   const { model, max_tokens, stream, persona } = req.body;
   let messages = req.body.messages;
+
+  // ── Обязательная проверка API-ключа ──
+  const apiKeyProvided = req.body.apiKey;
+  if (!apiKeyProvided) {
+    return res.status(401).json({ error: { message: 'Нет API-ключа' } });
+  }
+  let apiKeyRow = null;
+  try {
+    const keyCheck = await fetch(
+      `${SB_URL}/rest/v1/api_keys?key=eq.${apiKeyProvided}&select=id,user_id,status`,
+      { headers: sbHeaders }
+    );
+    const keyRows = await keyCheck.json();
+    if (!keyRows.length || keyRows[0].status !== 'active') {
+      return res.status(401).json({ error: { message: 'Неверный или неактивный API-ключ' } });
+    }
+    apiKeyRow = keyRows[0];
+  } catch (e) {
+    console.error('apiKey check failed:', e.message);
+    return res.status(503).json({ error: { message: 'Не удалось проверить API-ключ' } });
+  }
 
   // ── Aurin persona server-side ──
   // Выбираем текст персоны (Lite / Medium / Aurin / Pro) по полю persona,
@@ -2517,28 +2536,29 @@ app.post('/api/chat', async (req, res) => {
     });
   }
 
-// Получаем userId из сессии (передаётся с фронта)
+// Получаем userId из сессии (передаётся с фронта). Если его нет —
+  // считаем запрос анонимным F-API вызовом и лимитируем по apiKey.
   const userId = req.body.userId || null;
+  const usageIdentifier = userId ? String(userId) : `key_${apiKeyRow.id}`;
+  const TOKEN_LIMIT_ANON = 50000; // дневной лимит на анонимный (без userId) F-API запрос по ключу
 
-  // Проверка лимита если пользователь авторизован
-  if (userId) {
-    try {
-      const plus = await hasFerniePlus(userId);
-      const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
-      const used = await getTokensUsedToday(userId);
-      if (used >= limit) {
-        return res.status(429).json({
-          error: {
-            message: plus
-              ? `Достигнут дневной лимит Fernie+ (${TOKEN_LIMIT_PLUS.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
-              : `Достигнут дневной лимит (${TOKEN_LIMIT_FREE.toLocaleString('ru-RU')} токенов). Оформи Fernie+ для увеличения лимита до 1 500 000 токенов/день.`
-          }
-        });
-      }
-    } catch (e) {
-      // Supabase недоступен — пропускаем проверку, не блокируем юзера
-      console.error('Token limit check failed, skipping:', e.message);
+  try {
+    const plus = userId ? await hasFerniePlus(userId) : false;
+    const limit = userId ? (plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE) : TOKEN_LIMIT_ANON;
+    const used = await getTokensUsedToday(usageIdentifier);
+    if (used >= limit) {
+      return res.status(429).json({
+        error: {
+          message: userId
+            ? (plus
+                ? `Достигнут дневной лимит Fernie+ (${TOKEN_LIMIT_PLUS.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
+                : `Достигнут дневной лимит (${TOKEN_LIMIT_FREE.toLocaleString('ru-RU')} токенов). Оформи Fernie+ для увеличения лимита до 1 500 000 токенов/день.`)
+            : `Достигнут дневной лимит для этого API-ключа (${TOKEN_LIMIT_ANON.toLocaleString('ru-RU')} токенов). Лимит обновится завтра.`
+        }
+      });
     }
+  } catch (e) {
+    console.error('Token limit check failed, skipping:', e.message);
   }
 
   try {
@@ -2592,8 +2612,8 @@ app.post('/api/chat', async (req, res) => {
           callback(null, chunk);
         },
         flush(callback) {
-          if (userId && totalTokens > 0) {
-            addTokensUsed(userId, totalTokens).catch(console.error);
+          if (totalTokens > 0) {
+            addTokensUsed(usageIdentifier, totalTokens).catch(console.error);
           }
           callback();
         }
@@ -2601,14 +2621,14 @@ app.post('/api/chat', async (req, res) => {
 
       reader.pipe(counter).pipe(res);
       res.on('close', () => {
-        if (userId && totalTokens > 0) {
-          addTokensUsed(userId, totalTokens).catch(console.error);
+        if (totalTokens > 0) {
+          addTokensUsed(usageIdentifier, totalTokens).catch(console.error);
         }
       });
     } else {
       const data = await mistralRes.json();
       const tokens = data.usage?.total_tokens || 0;
-      if (userId && tokens > 0) await addTokensUsed(userId, tokens);
+      if (tokens > 0) await addTokensUsed(usageIdentifier, tokens);
       res.json(data);
     }
   } catch (e) {
