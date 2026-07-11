@@ -2486,34 +2486,144 @@ async function hasFerniePlus(userId) {
   } catch { return false; }
 }
 
+// ══════════════════════════════════════════
+//  Серверный tool-use для /api/chat
+// ══════════════════════════════════════════
+
+async function mistralStreamCall(messages, apiModel, maxTokens) {
+  const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MISTRAL_API_KEY}` },
+    body: JSON.stringify({ model: apiModel, messages, max_tokens: maxTokens || 8192, stream: true })
+  });
+  if (!mistralRes.ok) {
+    const err = await mistralRes.json().catch(() => ({}));
+    const e = new Error(err?.message || err?.error?.message || `Mistral HTTP ${mistralRes.status}`);
+    e.status = mistralRes.status;
+    e.body = err;
+    throw e;
+  }
+  async function* deltas() {
+    let buf = '';
+    for await (const chunk of mistralRes.body) {
+      buf += chunk.toString();
+      const lines = buf.split('\n');
+      buf = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(raw);
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) yield delta;
+        } catch {}
+      }
+    }
+  }
+  return { deltas: deltas() };
+}
+
+async function serverWebSearch(query) {
+  try {
+    const SERPER_API_KEY = process.env.SERPER_API_KEY;
+    let results = [];
+    if (SERPER_API_KEY) {
+      const r = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: { 'X-API-KEY': SERPER_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: query, hl: 'ru', num: 8 })
+      });
+      const data = await r.json();
+      results = (data.organic || []).map(item => ({ title: item.title || '', url: item.link || '', snippet: item.snippet || '' }));
+    }
+    if (!results.length) {
+      const ddg = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+      const data = await ddg.json();
+      if (data.AbstractText) results.push({ title: data.AbstractTitle || query, url: data.AbstractURL || '', snippet: data.AbstractText });
+      (data.RelatedTopics || []).slice(0, 6).forEach(t => {
+        if (t.Text) results.push({ title: t.Text.split(' - ')[0] || '', url: t.FirstURL || '', snippet: t.Text });
+      });
+    }
+    if (!results.length) return `По запросу "${query}" ничего не найдено.`;
+    return `Результаты поиска по запросу "${query}":\n\n` + results.map(r => `**${r.title}**\n${r.snippet}${r.url ? '\n' + r.url : ''}`).join('\n\n');
+  } catch (e) {
+    return `Ошибка поиска: ${e.message}`;
+  }
+}
+
+async function serverWebFetch(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FernieX-Bot/1.0)', 'Accept': 'text/html,application/xhtml+xml,*/*' }
+    });
+    clearTimeout(timeout);
+    if (!r.ok) return `Не удалось загрузить страницу: HTTP ${r.status}`;
+    let html = await r.text();
+    html = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/\s{3,}/g, '\n\n').trim();
+    const isBlocked = !html || html.length < 200 || /please turn javascript on|enable javascript|just a moment|cloudflare|access denied|403 forbidden/i.test(html);
+    if (isBlocked) return `Страница недоступна для автоматического чтения (сайт блокирует парсеры).`;
+    return html.slice(0, 40000);
+  } catch (e) {
+    return `Не удалось загрузить страницу: ${e.message}`;
+  }
+}
+
+async function serverDocSearch(url, query) {
+  try {
+    const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    if (!r.ok) return `HTTP ${r.status}`;
+    const buf = await r.arrayBuffer();
+    let text = new TextDecoder('utf-8').decode(buf);
+    if (text.includes('Р') || /[\uFFFD]/.test(text)) text = new TextDecoder('windows-1251').decode(buf);
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    let idx = lowerText.indexOf(lowerQuery);
+    if (idx === -1) {
+      const variants = [lowerQuery.replace(/статья\s*/i, '').trim(), lowerQuery.replace(/\./g, '\\.?').replace(/\s+/g, '\\s*')];
+      for (const v of variants) { try { const m = lowerText.match(new RegExp(v)); if (m) { idx = lowerText.indexOf(m[0]); break; } } catch {} }
+    }
+    if (idx === -1) return `Ничего не найдено по запросу "${query}".`;
+    const start = Math.max(0, idx - 200), end = Math.min(text.length, idx + 3000);
+    return text.slice(start, end);
+  } catch (e) {
+    return `Ошибка поиска: ${e.message}`;
+  }
+}
+
 app.post('/api/chat', async (req, res) => {
   const { max_tokens, stream, persona } = req.body;
-  const requestedModelId = req.body.model; // 'aurin' | 'aurin-lite' | 'mistral-medium' | 'aurin-pro' (или уже реальное имя — для обратной совместимости)
+  const requestedModelId = req.body.model;
   let messages = req.body.messages;
 
-  // Реальная модель Mistral: берём из таблицы, если пришёл публичный id;
-  // если пришло что-то незнакомое — считаем, что это уже готовое имя модели Mistral (старые клиенты).
   const apiModel = MODEL_MAP[requestedModelId] || requestedModelId;
+  const KNOWN_MISTRAL_MODELS = ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'];
+  if (!KNOWN_MISTRAL_MODELS.includes(apiModel)) {
+    return res.status(400).json({
+      error: { message: 'Указанной модели не существует. Проверьте актуальные модели на сайте https://fernieai-developers.vercel.app', code: 'invalid_model' }
+    });
+  }
 
-  // ── Aurin persona server-side ──
-  // Сначала пробуем как persona/id (aurin-lite, aurin, ...), иначе — фолбэк по реальной модели Mistral.
   const aurinPersonaText = pickAurinPersona(persona || requestedModelId, apiModel);
 
-  // ── Обязательная проверка API-ключа ──
   const apiKeyProvided = req.body.apiKey;
-  if (!apiKeyProvided) {
-    return res.status(401).json({ error: { message: 'Нет API-ключа' } });
-  }
+  if (!apiKeyProvided) return res.status(401).json({ error: { message: 'Нет API-ключа' } });
   let apiKeyRow = null;
   try {
-    const keyCheck = await fetch(
-      `${SB_URL}/rest/v1/api_keys?key=eq.${apiKeyProvided}&select=id,user_id,status`,
-      { headers: sbHeaders }
-    );
+    const keyCheck = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKeyProvided}&select=id,user_id,status`, { headers: sbHeaders });
     const keyRows = await keyCheck.json();
-    if (!keyRows.length || keyRows[0].status !== 'active') {
-      return res.status(401).json({ error: { message: 'Неверный или неактивный API-ключ' } });
-    }
+    if (!keyRows.length || keyRows[0].status !== 'active') return res.status(401).json({ error: { message: 'Неверный или неактивный API-ключ' } });
     apiKeyRow = keyRows[0];
   } catch (e) {
     console.error('apiKey check failed:', e.message);
@@ -2523,35 +2633,24 @@ app.post('/api/chat', async (req, res) => {
   if (Array.isArray(messages)) {
     const sysIdx = messages.findIndex(m => m?.role === 'system');
     if (sysIdx === -1) {
-      // Системного сообщения нет вообще — добавляем персону как есть
       messages = [{ role: 'system', content: aurinPersonaText }, ...messages];
     } else {
-      // Системное сообщение уже есть (например, скиллы с фронта) —
-      // ставим персону ПЕРЕД остальными инструкциями, не теряя их
       const existing = messages[sysIdx];
       const merged = { role: 'system', content: `${aurinPersonaText}\n\n${existing.content}` };
       messages = [merged, ...messages.slice(0, sysIdx), ...messages.slice(sysIdx + 1)];
     }
   }
 
-  // ── FernieAI-CrackDefender: preflight check ──
   if (!req.body.lite_mode && apiModel !== 'mistral-medium-latest' && containsJailbreak(messages)) {
     const userIdInfo = req.body.userId || 'unknown';
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
     console.warn(`⚠️  Jailbreak blocked | userId:${userIdInfo} | IP:${ip} | model:${requestedModelId} | lite_mode:${req.body.lite_mode}`);
-    return res.status(400).json({
-      error: {
-        message: 'Запрос нарушает правила безопасности FernieX-AI.',
-        code: 'jailbreak_detected'
-      }
-    });
+    return res.status(400).json({ error: { message: 'Запрос нарушает правила безопасности FernieX-AI.', code: 'jailbreak_detected' } });
   }
 
-// Получаем userId из сессии (передаётся с фронта). Если его нет —
-  // считаем запрос анонимным F-API вызовом и лимитируем по apiKey.
   const userId = req.body.userId || null;
   const usageIdentifier = userId ? String(userId) : `key_${apiKeyRow.id}`;
-  const TOKEN_LIMIT_ANON = 50000; // дневной лимит на анонимный (без userId) F-API запрос по ключу
+  const TOKEN_LIMIT_ANON = 50000;
 
   try {
     const plus = userId ? await hasFerniePlus(userId) : false;
@@ -2573,81 +2672,142 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
-    // Логируем AI-запрос если есть apiKey в теле
-    if (req.body.apiKey) {
-      const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${req.body.apiKey}&select=id,user_id,status`, { headers: sbHeaders });
-      const keys = await keyRes.json();
-      if (keys.length && keys[0].status === 'active') {
-        await logApiKeyAction(keys[0].id, keys[0].user_id, 'ai_request', {
-          model: requestedModelId,
-          userId: userId,
-          stream: !!stream,
-          ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
-          origin: req.headers['origin'] || req.headers['referer'] || ''
-        });
-      }
-    }
-    const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MISTRAL_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: apiModel,
-        messages,
-        max_tokens: max_tokens || 8192,
-        stream: stream || false
-      })
+    await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'ai_request', {
+      model: requestedModelId, userId, stream: !!stream,
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+      origin: req.headers['origin'] || req.headers['referer'] || ''
     });
+  } catch {}
 
-    if (!mistralRes.ok) {
-      const err = await mistralRes.json().catch(() => ({}));
-      return res.status(mistralRes.status).json(err);
-    }
+  const wantsStream = !!stream;
+  let totalTokensUsed = 0;
+  let sseStarted = false;
 
-    if (stream) {
+  function sendChunk(deltaText) {
+    if (!deltaText || !wantsStream) return;
+    if (!sseStarted) {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-
-      let totalTokens = 0;
-      const reader = mistralRes.body;
-      const { Transform } = await import('stream');
-
-      const counter = new Transform({
-        transform(chunk, encoding, callback) {
-          const text = chunk.toString();
-          // Примерный подсчёт токенов по символам (1 токен ≈ 4 символа)
-          totalTokens += Math.ceil(text.length / 4);
-          callback(null, chunk);
-        },
-        flush(callback) {
-          if (totalTokens > 0) {
-            addTokensUsed(usageIdentifier, totalTokens).catch(console.error);
-          }
-          callback();
-        }
-      });
-
-      reader.pipe(counter).pipe(res);
-      res.on('close', () => {
-        if (totalTokens > 0) {
-          addTokensUsed(usageIdentifier, totalTokens).catch(console.error);
-        }
-      });
-    } else {
-      const data = await mistralRes.json();
-      const tokens = data.usage?.total_tokens || 0;
-      if (tokens > 0) await addTokensUsed(usageIdentifier, tokens);
-      res.json(data);
+      sseStarted = true;
     }
+    res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: deltaText } }] })}\n\n`);
+  }
+
+  try {
+    let round1;
+    try {
+      round1 = await mistralStreamCall(messages, apiModel, max_tokens || 8192);
+    } catch (e) {
+      const rawMsg = e.body?.message || e.body?.error?.message || e.message || '';
+      if (e.body?.type === 'invalid_model' || /invalid model/i.test(rawMsg)) {
+        return res.status(400).json({
+          error: { message: 'Указанной модели не существует. Проверьте актуальные модели на сайте https://fernieai-developers.vercel.app', code: 'invalid_model' }
+        });
+      }
+      return res.status(e.status || 500).json(e.body && Object.keys(e.body).length ? e.body : { error: { message: 'Ошибка сервера' } });
+    }
+
+    let buffer = '';
+    let mode = 'sniff'; // sniff | passthrough | tool
+    let toolName = null;
+    let fullText1 = '';
+
+    for await (const delta of round1.deltas) {
+      fullText1 += delta;
+      totalTokensUsed += Math.ceil(delta.length / 4);
+
+      if (mode === 'passthrough') { sendChunk(delta); continue; }
+      if (mode === 'tool') { buffer += delta; continue; }
+
+      buffer += delta;
+      const trimmed = buffer.replace(/^\s+/, '');
+      if (!trimmed) continue;
+
+      if (trimmed[0] !== '<') {
+        mode = 'passthrough';
+        sendChunk(buffer);
+        buffer = '';
+        continue;
+      }
+
+      const gt = trimmed.indexOf('>');
+      if (gt === -1) continue;
+
+      const tagOpen = trimmed.slice(1, gt).trim().toLowerCase();
+      if (tagOpen === 'netsearch' || tagOpen === 'webfetch' || tagOpen === 'docsearch') {
+        mode = 'tool';
+        toolName = tagOpen;
+        buffer = trimmed;
+      } else {
+        mode = 'passthrough';
+        sendChunk(buffer);
+        buffer = '';
+      }
+    }
+
+    if (mode === 'sniff' && buffer) { sendChunk(buffer); mode = 'passthrough'; }
+
+    if (mode === 'tool') {
+      const openTag = `<${toolName}>`;
+      const closeTag = `</${toolName}>`;
+      let inner = buffer;
+      const openIdx = inner.indexOf(openTag);
+      const closeIdx = inner.indexOf(closeTag);
+      if (openIdx !== -1 && closeIdx !== -1) inner = inner.slice(openIdx + openTag.length, closeIdx);
+      else if (openIdx !== -1) inner = inner.slice(openIdx + openTag.length);
+      inner = inner.trim();
+
+      let toolResultText = '';
+      let followupUserContent = '';
+      const userQuestion = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+
+      if (toolName === 'netsearch') {
+        toolResultText = await serverWebSearch(inner);
+        followupUserContent = `Вот результаты поиска:\n${toolResultText}\n\nОтветь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
+      } else if (toolName === 'webfetch') {
+        toolResultText = await serverWebFetch(inner);
+        followupUserContent = `Содержимое документа (${inner}):\n\n${toolResultText}\n\nНа основе ТОЛЬКО этого текста найди и процитируй конкретную статью или раздел, который отвечает на вопрос: "${userQuestion}". Дай чёткий текстовый ответ. ЗАПРЕЩЕНО выдавать теги <webfetch> или ссылки в ответе.`;
+      } else if (toolName === 'docsearch') {
+        const parts = inner.split('|');
+        const fetchUrl = (parts[0] || '').trim();
+        const searchQuery = (parts[1] || '').trim();
+        toolResultText = await serverDocSearch(fetchUrl, searchQuery);
+        followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
+      }
+
+      const followupMessages = [
+        ...messages,
+        { role: 'assistant', content: `<${toolName}>${inner}</${toolName}>` },
+        { role: 'user', content: followupUserContent }
+      ];
+
+      const round2 = await mistralStreamCall(followupMessages, apiModel, max_tokens || 8192);
+      let fullText2 = '';
+      for await (const delta of round2.deltas) {
+        fullText2 += delta;
+        totalTokensUsed += Math.ceil(delta.length / 4);
+        sendChunk(delta);
+      }
+
+      addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
+
+      if (wantsStream) { res.write('data: [DONE]\n\n'); res.end(); }
+      else res.json({ choices: [{ message: { role: 'assistant', content: fullText2 }, finish_reason: 'stop' }], usage: { total_tokens: totalTokensUsed } });
+      return;
+    }
+
+    addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
+
+    if (wantsStream) { res.write('data: [DONE]\n\n'); res.end(); }
+    else res.json({ choices: [{ message: { role: 'assistant', content: fullText1 }, finish_reason: 'stop' }], usage: { total_tokens: totalTokensUsed } });
+
   } catch (e) {
     console.error('chat error:', e);
-    res.status(500).json({ error: { message: 'Ошибка сервера' } });
+    if (wantsStream) { try { res.end(); } catch {} }
+    else res.status(500).json({ error: { message: 'Ошибка сервера' } });
   }
 });
-
 // GET токены пользователя сегодня
 app.get('/api/chat/usage/:userId', async (req, res) => {
   const { userId } = req.params;
