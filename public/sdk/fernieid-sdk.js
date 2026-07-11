@@ -303,20 +303,21 @@
   function buildChatBody(messages, options = {}) {
     const user = window.FernieID.getUser();
     const body = {
-        model:      options.model      || 'mistral-small-latest',
+        model:      options.model      || 'aurin-lite',
         messages:   messages,
         max_tokens: options.max_tokens || 1024,
         stream:     options.stream     || false,
         userId:     user ? user.userId : null,
         apiKey:     KEY,
+        persona:    options.persona    || null, // 'aurin-lite' | 'mistral-medium' | 'aurin' | 'aurin-pro'
       };
-    // Системный промпт — добавляем как первое сообщение если передан
+    // Системный промпт (скиллы/инструкции) — добавляем как первое сообщение если передан
+    // Сама "личность" Aurin теперь подставляется сервером по полю persona
     if (options.system) {
       body.messages = [{ role: 'system', content: options.system }, ...messages];
     }
     return body;
   }
-
   // ══════════════════════════════════════════════
   //  PUBLIC API
   // ══════════════════════════════════════════════
