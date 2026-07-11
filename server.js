@@ -2339,6 +2339,14 @@ const AURIN_PERSONAS = {
   'aurin-pro':    AURIN_PRO_SYSTEM,
 };
 
+// Публичный id модели (то, что приходит в поле model) → реальная модель Mistral.
+// Соответствует таблице MODELS на фронте.
+const MODEL_MAP = {
+  'aurin-lite':      'mistral-small-latest',
+  'mistral-medium':  'mistral-medium-latest',
+  'aurin':           'mistral-large-latest',
+  'aurin-pro':       'mistral-large-latest',
+};
 function pickAurinPersona(persona, apiModel) {
   if (persona && AURIN_PERSONAS[persona]) return AURIN_PERSONAS[persona];
   // Фолбэк по имени модели Mistral, если persona не прислали (внешние F-API запросы)
@@ -2479,8 +2487,17 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { model, max_tokens, stream, persona } = req.body;
+  const { max_tokens, stream, persona } = req.body;
+  const requestedModelId = req.body.model; // 'aurin' | 'aurin-lite' | 'mistral-medium' | 'aurin-pro' (или уже реальное имя — для обратной совместимости)
   let messages = req.body.messages;
+
+  // Реальная модель Mistral: берём из таблицы, если пришёл публичный id;
+  // если пришло что-то незнакомое — считаем, что это уже готовое имя модели Mistral (старые клиенты).
+  const apiModel = MODEL_MAP[requestedModelId] || requestedModelId;
+
+  // ── Aurin persona server-side ──
+  // Сначала пробуем как persona/id (aurin-lite, aurin, ...), иначе — фолбэк по реальной модели Mistral.
+  const aurinPersonaText = pickAurinPersona(persona || requestedModelId, apiModel);
 
   // ── Обязательная проверка API-ключа ──
   const apiKeyProvided = req.body.apiKey;
@@ -2503,11 +2520,6 @@ app.post('/api/chat', async (req, res) => {
     return res.status(503).json({ error: { message: 'Не удалось проверить API-ключ' } });
   }
 
-  // ── Aurin persona server-side ──
-  // Выбираем текст персоны (Lite / Medium / Aurin / Pro) по полю persona,
-  // либо по модели Mistral как фолбэк — работает и для внешних F-API запросов.
-  const aurinPersonaText = pickAurinPersona(persona, model);
-
   if (Array.isArray(messages)) {
     const sysIdx = messages.findIndex(m => m?.role === 'system');
     if (sysIdx === -1) {
@@ -2523,11 +2535,10 @@ app.post('/api/chat', async (req, res) => {
   }
 
   // ── FernieAI-CrackDefender: preflight check ──
-  if (!req.body.lite_mode && req.body.model !== 'mistral-medium-latest' && containsJailbreak(messages)) {
+  if (!req.body.lite_mode && apiModel !== 'mistral-medium-latest' && containsJailbreak(messages)) {
     const userIdInfo = req.body.userId || 'unknown';
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
-    const model = req.body.model || 'unknown';
-    console.warn(`⚠️  Jailbreak blocked | userId:${userIdInfo} | IP:${ip} | model:${model} | lite_mode:${req.body.lite_mode}`);
+    console.warn(`⚠️  Jailbreak blocked | userId:${userIdInfo} | IP:${ip} | model:${requestedModelId} | lite_mode:${req.body.lite_mode}`);
     return res.status(400).json({
       error: {
         message: 'Запрос нарушает правила безопасности FernieX-AI.',
@@ -2568,7 +2579,7 @@ app.post('/api/chat', async (req, res) => {
       const keys = await keyRes.json();
       if (keys.length && keys[0].status === 'active') {
         await logApiKeyAction(keys[0].id, keys[0].user_id, 'ai_request', {
-          model: model,
+          model: requestedModelId,
           userId: userId,
           stream: !!stream,
           ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
@@ -2583,7 +2594,7 @@ app.post('/api/chat', async (req, res) => {
         'Authorization': `Bearer ${MISTRAL_API_KEY}`
       },
       body: JSON.stringify({
-        model,
+        model: apiModel,
         messages,
         max_tokens: max_tokens || 8192,
         stream: stream || false
