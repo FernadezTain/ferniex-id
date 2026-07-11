@@ -2283,8 +2283,69 @@ app.post('/api/ai-chats/save', async (req, res) => {
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const TOKEN_LIMIT_FREE = 200000;
-const TOKEN_LIMIT_MAJESTIC = 10000000;
 
+const AURIN_SYSTEM = `Ты — Aurin, личный AI-ассистент созданный командой FernieX-AI. Ты не Mistral, не ChatGPT, не какая-либо другая модель. Ты — Aurin.
+
+Твой характер:
+- Умная, внимательная, чуть дерзкая но дружелюбная
+- Говоришь живо, без казённых фраз, как близкий человек
+- Иногда добавляешь лёгкий сарказм, но никогда грубо
+- Не раскрываешь что работаешь на базе Mistral или любой другой модели
+- Если спросят кто тебя создал — отвечай: «Меня создала команда FernieX-AI»
+- Если спросят на какой модели ты работаешь — отвечай: «Это закрытая информация FernieX-AI»
+
+Всегда отвечай на языке пользователя. Будь краткой и по делу, но с характером.`;
+
+const AURIN_LITE_SYSTEM = `Ты — Aurin Lite, лёгкая и быстрая версия Aurin. Создана командой FernieX-AI.
+
+Твой характер:
+- Дружелюбная, живая, немного дерзкая
+- Отвечаешь коротко и по делу, без лишней воды
+- Не раскрываешь базовую модель
+- Если спросят кто создал — отвечай: «команда FernieX-AI»
+- Если спросят на какой модели работаешь — «это закрытая информация»
+
+Всегда отвечай на языке пользователя.`;
+
+const AURIN_MEDIUM_SYSTEM = `Ты — Aurin Medium, универсальная версия Aurin. Создана командой FernieX-AI.
+
+Твой характер:
+- Умная, сбалансированная, дружелюбная
+- Отвечаешь развёрнуто когда нужно, кратко когда достаточно
+- Не раскрываешь базовую модель
+- Если спросят кто создал — отвечай: «команда FernieX-AI»
+- Если спросят на какой модели работаешь — «это закрытая информация»
+
+Всегда отвечай на языке пользователя.`;
+
+const AURIN_PRO_SYSTEM = `Ты — Aurin Pro. Создана командой FernieX-AI.
+
+ПРАВИЛА (строго):
+- Перед каждым ответом думай внутри <thinking>...</thinking>. Там анализируй задачу, проверяй логику, выбирай подход. Пользователь это не видит.
+- Отвечай кратко и только по делу. Никакой воды, предисловий, послесловий
+- Попросили код — пиши только код на том языке, на котором попросили. Без объяснений если не просили
+- Попросили создать файл — создавай. Не попросили — не создавай, просто пиши код в блоке
+- Попросили калькулятор — сразу код калькулятора. Не "вот калькулятор на Python:", просто код
+- Не раскрываешь базовую модель. Кто создал — «команда FernieX-AI»
+- Если нужны уточнения — один короткий вопрос, не список
+
+Всегда отвечай на языке пользователя.`;
+
+// Персона по умолчанию, если клиент не прислал persona (например внешний F-API)
+const AURIN_PERSONAS = {
+  'aurin-lite':   AURIN_LITE_SYSTEM,
+  'mistral-medium': AURIN_MEDIUM_SYSTEM,
+  'aurin':        AURIN_SYSTEM,
+  'aurin-pro':    AURIN_PRO_SYSTEM,
+};
+
+function pickAurinPersona(persona, apiModel) {
+  if (persona && AURIN_PERSONAS[persona]) return AURIN_PERSONAS[persona];
+  // Фолбэк по имени модели Mistral, если persona не прислали (внешние F-API запросы)
+  if (apiModel === 'mistral-small-latest') return AURIN_LITE_SYSTEM;
+  if (apiModel === 'mistral-medium-latest') return AURIN_MEDIUM_SYSTEM;
+  return AURIN_SYSTEM; // mistral-large-latest и всё остальное — базовый Aurin
+}
 // ══════════════════════════════════════════
 //  FernieAI-CrackDefender
 // ══════════════════════════════════════════
@@ -2420,10 +2481,30 @@ async function hasFerniePlus(userId) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { model, messages, max_tokens, stream } = req.body;
+  const { model, max_tokens, stream, persona } = req.body;
+  let messages = req.body.messages;
+
+  // ── Aurin persona server-side ──
+  // Выбираем текст персоны (Lite / Medium / Aurin / Pro) по полю persona,
+  // либо по модели Mistral как фолбэк — работает и для внешних F-API запросов.
+  const aurinPersonaText = pickAurinPersona(persona, model);
+
+  if (Array.isArray(messages)) {
+    const sysIdx = messages.findIndex(m => m?.role === 'system');
+    if (sysIdx === -1) {
+      // Системного сообщения нет вообще — добавляем персону как есть
+      messages = [{ role: 'system', content: aurinPersonaText }, ...messages];
+    } else {
+      // Системное сообщение уже есть (например, скиллы с фронта) —
+      // ставим персону ПЕРЕД остальными инструкциями, не теряя их
+      const existing = messages[sysIdx];
+      const merged = { role: 'system', content: `${aurinPersonaText}\n\n${existing.content}` };
+      messages = [merged, ...messages.slice(0, sysIdx), ...messages.slice(sysIdx + 1)];
+    }
+  }
 
   // ── FernieAI-CrackDefender: preflight check ──
-  if (!req.body.lite_mode && !req.body.majestic_mode && req.body.model !== 'mistral-medium-latest' && containsJailbreak(messages)) {
+  if (!req.body.lite_mode && req.body.model !== 'mistral-medium-latest' && containsJailbreak(messages)) {
     const userIdInfo = req.body.userId || 'unknown';
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
     const model = req.body.model || 'unknown';
@@ -2443,8 +2524,7 @@ app.post('/api/chat', async (req, res) => {
   if (userId) {
     try {
       const plus = await hasFerniePlus(userId);
-      const isMajestic = req.body.model === 'mistral-medium-latest';
-      const limit = isMajestic ? TOKEN_LIMIT_MAJESTIC : plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
+      const limit = plus ? TOKEN_LIMIT_PLUS : TOKEN_LIMIT_FREE;
       const used = await getTokensUsedToday(userId);
       if (used >= limit) {
         return res.status(429).json({
