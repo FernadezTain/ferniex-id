@@ -2618,6 +2618,17 @@ async function serverWebFetch(url) {
   }
 }
 
+const TOOL_TAG_REGEX = /<(netsearch|webfetch|docsearch)>([\s\S]*?)<\/\1>/i;
+
+// Ищет тег инструмента ГДЕ УГОДНО в тексте, а не только в начале.
+// Используется как fallback для non-stream запросов, когда модель
+// не поставила тег строго первым символом ответа.
+function extractToolCall(text) {
+  const m = TOOL_TAG_REGEX.exec(text);
+  if (!m) return null;
+  return { toolName: m[1].toLowerCase(), inner: m[2].trim() };
+}
+
 async function serverDocSearch(url, query) {
   try {
     const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
@@ -2805,6 +2816,19 @@ app.post('/api/chat', async (req, res) => {
 
       buffer += delta;
       sniffChunk(buffer);
+    }
+
+    // Fallback для non-stream клиентов (например Telegram-бот с stream:false):
+    // ничего ещё не отправлено клиенту, поэтому можно безопасно перепроверить
+    // ПОЛНЫЙ текст на наличие тега инструмента, даже если модель не поставила
+    // его строго первым символом ответа.
+    if (!wantsStream && mode !== 'tool') {
+      const found = extractToolCall(fullText1);
+      if (found) {
+        mode = 'tool';
+        toolName = found.toolName;
+        buffer = `<${found.toolName}>${found.inner}</${found.toolName}>`;
+      }
     }
 
     if (mode === 'sniff' && buffer) { sendChunk(buffer); mode = 'passthrough'; }
