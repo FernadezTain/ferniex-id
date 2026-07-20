@@ -2548,8 +2548,9 @@ async function mistralStreamCall(messages, apiModel, maxTokens) {
   }
   async function* deltas() {
     let buf = '';
+    const decoder = new TextDecoder('utf-8'); // stream:true копит "хвост" многобайтового символа между кусками
     for await (const chunk of mistralRes.body) {
-      buf += chunk.toString();
+      buf += decoder.decode(chunk, { stream: true });
       const lines = buf.split('\n');
       buf = lines.pop() || '';
       for (const line of lines) {
@@ -2933,12 +2934,16 @@ app.post('/api/chat', async (req, res) => {
         sendChunk(delta);
       }
 
+      console.log('[DEBUG] прошли через tool-режим. toolName=', toolName, '| inner:', inner, '| fullText2 первые 200 симв:', fullText2.slice(0, 200));
+
       addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
 
       if (wantsStream) { res.write('data: [DONE]\n\n'); res.end(); }
       else res.json({ choices: [{ message: { role: 'assistant', content: fullText2 }, finish_reason: 'stop' }], usage: { total_tokens: totalTokensUsed } });
       return;
     }
+
+    console.log('[DEBUG] финальная ветка БЕЗ tool-режима. mode=', mode, '| stream=', wantsStream, '| fullText1 первые 200 симв:', fullText1.slice(0, 200));
 
     addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
 
