@@ -2292,12 +2292,13 @@ function getCurrentDateStr() {
 }
 
 const AURIN_TOOLS_INSTRUCTIONS = `
-У тебя ЕСТЬ доступ к интернету через три инструмента. Используй их САМ, без разрешения пользователя, когда это нужно — не спрашивай "хочешь, я поищу?", просто ищи.
+У тебя ЕСТЬ доступ к интернету через четыре инструмента. Используй их САМ, без разрешения пользователя, когда это нужно — не спрашивай "хочешь, я поищу?", просто ищи.
 
 Когда использовать:
 - Свежие/актуальные данные: новости, курсы валют, погода, текущие события, версии ПО, факты, которые могли устареть.
 - Пользователь прислал ссылку или спрашивает "что на сайте X" / "почитай страницу Y" — ОБЯЗАТЕЛЬНО читай страницу через инструмент. НИКОГДА не угадывай содержимое сайта по названию домена или URL — это грубая ошибка.
 - Нужно найти конкретный фрагмент/статью в большом документе по ссылке.
+- Пользователь просит найти/показать/прислать фото или картинку — используй <imgsearch>.
 
 Как вызывать (строго):
 1. Поиск в интернете:
@@ -2308,6 +2309,10 @@ const AURIN_TOOLS_INSTRUCTIONS = `
 
 3. Найти конкретный текст/статью в документе по URL:
 <docsearch>https://example.com/doc.txt|что искать</docsearch>
+
+4. Найти и отправить пользователю фото по описанию:
+<imgsearch>краткое описание того, что нужно найти на фото</imgsearch>
+Только для поиска реальных фото, не для генерации несуществующих изображений.
 
 ЖЁСТКИЕ ПРАВИЛА ВЫЗОВА:
 - Тег должен быть АБСОЛЮТНО ПЕРВЫМИ символами твоего ответа. Ни одного символа текста, пробела, "Сейчас посмотрю" или "Секунду" перед тегом — иначе вызов не сработает.
@@ -2618,7 +2623,8 @@ async function serverWebFetch(url) {
   }
 }
 
-const TOOL_TAG_REGEX = /<(netsearch|webfetch|docsearch)>([\s\S]*?)<\/\1>/i;
+const TOOL_TAG_REGEX = /<(netsearch|webfetch|docsearch|imgsearch)>([\s\S]*?)<\/\1>/i;
+const TOOL_OPEN_TAG_REGEX = /<(netsearch|webfetch|docsearch|imgsearch)>/i;
 
 // Ищет тег инструмента ГДЕ УГОДНО в тексте, а не только в начале.
 // Используется как fallback для non-stream запросов, когда модель
@@ -2648,6 +2654,28 @@ async function serverDocSearch(url, query) {
     return text.slice(start, end);
   } catch (e) {
     return `Ошибка поиска: ${e.message}`;
+  }
+}
+
+async function serverImageSearch(query) {
+  try {
+    const SERPER_API_KEY = process.env.SERPER_API_KEY;
+    if (!SERPER_API_KEY) return null;
+    const r = await fetch('https://google.serper.dev/images', {
+      method: 'POST',
+      headers: { 'X-API-KEY': SERPER_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ q: query, hl: 'ru', num: 6 })
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const images = data.images || [];
+    if (!images.length) return null;
+    // Берём первую достаточно крупную картинку, чтобы не прислать иконку/превьюшку
+    const pick = images.find(img => (img.imageWidth || 0) >= 400 && (img.imageHeight || 0) >= 400) || images[0];
+    return { url: pick.imageUrl, title: pick.title || '' };
+  } catch (e) {
+    console.error('image search error:', e.message);
+    return null;
   }
 }
 
@@ -2767,33 +2795,46 @@ app.post('/api/chat', async (req, res) => {
 
     // Разбирает свежий фрагмент текста в режиме sniff: определяет,
     // это обычный текст, вызов инструмента или блок <thinking>.
-    function sniffChunk(chunk) {
-      const trimmed = chunk.replace(/^\s+/, '');
-      if (!trimmed) { buffer = chunk; return; }
+    const SNIFF_LOOKAHEAD = 100; // сколько символов ждём в начале ответа, прежде чем решить, что тега не будет
 
-      if (trimmed[0] !== '<') {
-        mode = 'passthrough';
-        sendChunk(chunk);
-        buffer = '';
+    function sniffChunk(chunk) {
+      // 1) Ищем открывающий тег инструмента ГДЕ УГОДНО в накопленном буфере.
+      //    Раньше тег ловился, только если он был строго первым символом —
+      //    если модель нарушала правило и добавляла преамбулу перед тегом
+      //    ("Секунду, поищу... <netsearch>..."), тег утекал пользователю как
+      //    обычный текст, потому что первый же кусок сразу уходил в passthrough.
+      const openMatch = TOOL_OPEN_TAG_REGEX.exec(chunk);
+      if (openMatch) {
+        mode = 'tool';
+        toolName = openMatch[1].toLowerCase();
+        buffer = chunk.slice(openMatch.index); // случайная преамбула до тега отбрасывается
         return;
       }
 
-      const gt = trimmed.indexOf('>');
-      if (gt === -1) { buffer = chunk; return; } // ждём символ '>'
+      const trimmed = chunk.replace(/^\s+/, '');
+      if (!trimmed) { buffer = chunk; return; }
 
-      const tagOpen = trimmed.slice(1, gt).trim().toLowerCase();
-      if (tagOpen === 'netsearch' || tagOpen === 'webfetch' || tagOpen === 'docsearch') {
-        mode = 'tool';
-        toolName = tagOpen;
-        buffer = trimmed;
-      } else if (tagOpen === 'thinking') {
-        mode = 'thinking';
-        buffer = trimmed; // копим, но НЕ отправляем клиенту
-      } else {
-        mode = 'passthrough';
-        sendChunk(chunk);
-        buffer = '';
+      if (trimmed[0] === '<') {
+        const gt = trimmed.indexOf('>');
+        if (gt === -1) {
+          if (chunk.length < SNIFF_LOOKAHEAD) { buffer = chunk; return; } // ждём символ '>'
+        } else {
+          const tagOpen = trimmed.slice(1, gt).trim().toLowerCase();
+          if (tagOpen === 'thinking') {
+            mode = 'thinking';
+            buffer = trimmed; // копим, но НЕ отправляем клиенту
+            return;
+          }
+        }
       }
+
+      // Пока накопили мало текста и явного тега не видно — даём модели
+      // немного "добежать" до тега, если он должен появиться следующим куском.
+      if (chunk.length < SNIFF_LOOKAHEAD) { buffer = chunk; return; }
+
+      mode = 'passthrough';
+      sendChunk(chunk);
+      buffer = '';
     }
 
     for await (const delta of round1.deltas) {
@@ -2849,6 +2890,7 @@ app.post('/api/chat', async (req, res) => {
 
       let toolResultText = '';
       let followupUserContent = '';
+      let imgResult = null;
       const userQuestion = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
       if (toolName === 'netsearch') {
@@ -2863,6 +2905,13 @@ app.post('/api/chat', async (req, res) => {
         const searchQuery = (parts[1] || '').trim();
         toolResultText = await serverDocSearch(fetchUrl, searchQuery);
         followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
+      } else if (toolName === 'imgsearch') {
+        imgResult = await serverImageSearch(inner);
+        if (imgResult && imgResult.url) {
+          followupUserContent = `Найдено изображение по запросу "${inner}"${imgResult.title ? ` (${imgResult.title})` : ''}.\n\nНапиши ОДНУ короткую живую фразу, которой сопровождаешь отправку этого фото пользователю. Без ссылок, без тегов, без markdown — только сама фраза.`;
+        } else {
+          followupUserContent = `По запросу "${inner}" изображение найти не удалось.\n\nСообщи об этом пользователю своими словами, коротко. Без тегов и ссылок.`;
+        }
       }
 
       const followupMessages = [
@@ -2873,6 +2922,11 @@ app.post('/api/chat', async (req, res) => {
 
       const round2 = await mistralStreamCall(followupMessages, apiModel, max_tokens || 8192);
       let fullText2 = '';
+      if (toolName === 'imgsearch' && imgResult && imgResult.url) {
+        const marker = `[[IMG:${imgResult.url}]]\n`;
+        fullText2 += marker;
+        sendChunk(marker);
+      }
       for await (const delta of round2.deltas) {
         fullText2 += delta;
         totalTokensUsed += Math.ceil(delta.length / 4);
