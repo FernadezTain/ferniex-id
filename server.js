@@ -2314,8 +2314,6 @@ const AURIN_TOOLS_INSTRUCTIONS = `
 <imgsearch>краткое описание того, что нужно найти на фото</imgsearch>
 Только для поиска реальных фото, не для генерации несуществующих изображений.
 
-ВАЖНО: если пользователь просит найти порнографию, обнажённые фото, эротику или контент 18+ — НЕ вызывай ни один инструмент (imgsearch/netsearch/webfetch). Просто вежливо откажи в паре предложений, без тегов.
-
 ЖЁСТКИЕ ПРАВИЛА ВЫЗОВА:
 - Тег должен быть АБСОЛЮТНО ПЕРВЫМИ символами твоего ответа. Ни одного символа текста, пробела, "Сейчас посмотрю" или "Секунду" перед тегом — иначе вызов не сработает.
 - В сообщении с тегом НЕ пиши больше ничего — только сам тег с содержимым внутри.
@@ -2570,10 +2568,7 @@ async function mistralStreamCall(messages, apiModel, maxTokens) {
   return { deltas: deltas() };
 }
 
-async function serverWebSearch(query, skipNsfw = false) {
-  if (!skipNsfw && isNsfwQuery(query)) {
-    return `Запрос "${query}" отклонён: поиск подобного контента не поддерживается.`;
-  }
+async function serverWebSearch(query) {
   try {
     const SERPER_API_KEY = process.env.SERPER_API_KEY;
     let results = [];
@@ -2601,10 +2596,7 @@ async function serverWebSearch(query, skipNsfw = false) {
   }
 }
 
-async function serverWebFetch(url, skipNsfw = false) {
-  if (!skipNsfw && isNsfwQuery(url)) {
-    return `Ссылка отклонена: чтение подобных сайтов не поддерживается.`;
-  }
+async function serverWebFetch(url) {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -2666,31 +2658,7 @@ async function serverDocSearch(url, query) {
   }
 }
 
-// Список маркеров NSFW/порно-запросов. Не претендует на 100% полноту —
-// это первый рубеж защиты, а не единственный (см. также NSFW_DOMAIN_BLOCKLIST ниже).
-const NSFW_QUERY_MARKERS = [
-  'porn', 'pornhub', 'xvideos', 'xnxx', 'redtube', 'xhamster', 'onlyfans', 'brazzers',
-  'hentai', 'rule34', 'nsfw', 'javhd', 'javfinder', 'sexvideo', 'fapello',
-  'порно', 'порнх', 'порева', 'секс видео', 'секс фото', 'голая', 'голые',
-  'ню фото', 'эротика', 'эротическ', 'обнажен', 'xxx',
-];
-
-const NSFW_DOMAIN_BLOCKLIST = [
-  'pornhub.com', 'xvideos.com', 'xnxx.com', 'redtube.com', 'xhamster.com',
-  'onlyfans.com', 'brazzers.com', 'rule34.xxx', 'javhd.com', 'fapello.com',
-];
-
-function isNsfwQuery(text) {
-  const t = (text || '').toLowerCase();
-  if (NSFW_QUERY_MARKERS.some(m => t.includes(m))) return true;
-  if (NSFW_DOMAIN_BLOCKLIST.some(d => t.includes(d))) return true;
-  return false;
-}
-
-async function serverImageSearch(query, skipNsfw = false) {
-  if (!skipNsfw && isNsfwQuery(query)) {
-    return null; // сознательно ничего не ищем и не даём ссылку
-  }
+async function serverImageSearch(query) {
   try {
     const SERPER_API_KEY = process.env.SERPER_API_KEY;
     if (!SERPER_API_KEY) return null;
@@ -2926,14 +2894,11 @@ app.post('/api/chat', async (req, res) => {
       let imgResult = null;
       const userQuestion = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
-      // Фильтр отключается ТОЛЬКО для aurin-pro — там свой модерации слой (пишет Fernie)
-      const skipNsfwFilter = requestedModelId === 'aurin-pro' || persona === 'aurin-pro';
-
       if (toolName === 'netsearch') {
-        toolResultText = await serverWebSearch(inner, skipNsfwFilter);
+        toolResultText = await serverWebSearch(inner);
         followupUserContent = `Сегодняшняя дата: ${getCurrentDateStr()}. Вот результаты поиска:\n${toolResultText}\n\nЭто актуальные данные на сегодня — доверяй датам и фактам в них, даже если они не совпадают с твоей внутренней памятью. НЕ исправляй и не подвергай сомнению даты из результатов поиска. Ответь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
       } else if (toolName === 'webfetch') {
-        toolResultText = await serverWebFetch(inner, skipNsfwFilter);
+        toolResultText = await serverWebFetch(inner);
         followupUserContent = `Содержимое документа (${inner}):\n\n${toolResultText}\n\nНа основе ТОЛЬКО этого текста найди и процитируй конкретную статью или раздел, который отвечает на вопрос: "${userQuestion}". Дай чёткий текстовый ответ. ЗАПРЕЩЕНО выдавать теги <webfetch> или ссылки в ответе.`;
       } else if (toolName === 'docsearch') {
         const parts = inner.split('|');
@@ -2942,7 +2907,7 @@ app.post('/api/chat', async (req, res) => {
         toolResultText = await serverDocSearch(fetchUrl, searchQuery);
         followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
       } else if (toolName === 'imgsearch') {
-        imgResult = await serverImageSearch(inner, skipNsfwFilter);
+        imgResult = await serverImageSearch(inner);
         if (imgResult && imgResult.url) {
           followupUserContent = `Найдено изображение по запросу "${inner}"${imgResult.title ? ` (${imgResult.title})` : ''}.\n\nНапиши ОДНУ короткую живую фразу, которой сопровождаешь отправку этого фото пользователю. Без ссылок, без тегов, без markdown — только сама фраза.`;
         } else {
@@ -2968,8 +2933,6 @@ app.post('/api/chat', async (req, res) => {
         totalTokensUsed += Math.ceil(delta.length / 4);
         sendChunk(delta);
       }
-
-      console.log('[DEBUG] прошли через tool-режим. toolName=', toolName, '| inner:', inner, '| fullText2 первые 200 симв:', fullText2.slice(0, 200));
 
       addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
 
