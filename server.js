@@ -2533,12 +2533,20 @@ async function hasFerniePlus(userId) {
 //  Серверный tool-use для /api/chat
 // ══════════════════════════════════════════
 
-async function mistralStreamCall(messages, apiModel, maxTokens) {
-  const mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MISTRAL_API_KEY}` },
-    body: JSON.stringify({ model: apiModel, messages, max_tokens: maxTokens || 8192, stream: true })
-  });
+async function mistralStreamCall(messages, apiModel, maxTokens, retries = 2) {
+  let mistralRes;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    mistralRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${MISTRAL_API_KEY}` },
+      body: JSON.stringify({ model: apiModel, messages, max_tokens: maxTokens || 8192, stream: true })
+    });
+    if (mistralRes.status !== 429) break;
+    if (attempt === retries) break;
+    const wait = 1000 * Math.pow(2, attempt);
+    console.warn(`Mistral 429, retry ${attempt + 1}/${retries} через ${wait}мс`);
+    await new Promise(r => setTimeout(r, wait));
+  }
   if (!mistralRes.ok) {
     const err = await mistralRes.json().catch(() => ({}));
     const e = new Error(err?.message || err?.error?.message || `Mistral HTTP ${mistralRes.status}`);
@@ -2622,6 +2630,26 @@ async function serverWebFetch(url) {
   } catch (e) {
     return `Не удалось загрузить страницу: ${e.message}`;
   }
+}
+
+// ══════════════════════════════════════════
+//  NSFW-фильтр для поиска изображений (imgsearch)
+//  Действует на все персоны Aurin, КРОМЕ aurin-pro —
+//  aurin-pro не существует как модель, это мусорный код, фильтр на неё не распространяется
+// ══════════════════════════════════════════
+const NSFW_IMAGE_KEYWORDS = [
+  'порно', 'порнография', 'porn', 'pornography', 'xxx', 'nsfw',
+  'голая', 'голый', 'обнаженная', 'обнажённая', 'обнаженный', 'обнажённый',
+  'сиськи', 'сиски', 'соски', 'вагина', 'секс', 'sex', 'эротика', 'erotic',
+  'nude', 'naked', 'topless', 'hentai', 'хентай', 'onlyfans',
+  'проститутка', 'путана', 'дрочить', 'киска', 'анал', 'anal',
+  'boobs', 'tits', 'pussy', 'dildo', 'дилдо', 'nsfw art',
+];
+
+function isNsfwQuery(query) {
+  if (!query) return false;
+  const lower = query.toLowerCase();
+  return NSFW_IMAGE_KEYWORDS.some(w => lower.includes(w));
 }
 
 const TOOL_TAG_REGEX = /<(netsearch|webfetch|docsearch|imgsearch)>([\s\S]*?)<\/\1>/i;
@@ -2786,6 +2814,9 @@ app.post('/api/chat', async (req, res) => {
           error: { message: 'Указанной модели не существует. Проверьте актуальные модели на сайте https://fernieai-developers.vercel.app', code: 'invalid_model' }
         });
       }
+      if (e.status === 429) {
+        return res.status(429).json({ error: { message: 'Слишком много запросов к AI прямо сейчас, попробуй через несколько секунд.', code: 'upstream_rate_limit' } });
+      }
       return res.status(e.status || 500).json(e.body && Object.keys(e.body).length ? e.body : { error: { message: 'Ошибка сервера' } });
     }
 
@@ -2907,11 +2938,18 @@ app.post('/api/chat', async (req, res) => {
         toolResultText = await serverDocSearch(fetchUrl, searchQuery);
         followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
       } else if (toolName === 'imgsearch') {
-        imgResult = await serverImageSearch(inner);
-        if (imgResult && imgResult.url) {
-          followupUserContent = `Найдено изображение по запросу "${inner}"${imgResult.title ? ` (${imgResult.title})` : ''}.\n\nНапиши ОДНУ короткую живую фразу, которой сопровождаешь отправку этого фото пользователю. Без ссылок, без тегов, без markdown — только сама фраза.`;
+        // aurin-pro — исключение (мусорная неиспользуемая модель, фильтр на неё не действует)
+        const nsfwFilterActive = requestedModelId !== 'aurin-pro';
+        if (nsfwFilterActive && isNsfwQuery(inner)) {
+          imgResult = null;
+          followupUserContent = `Пользователь попросил найти фото по запросу "${inner}", но это откровенный/порнографический запрос — такое искать нельзя. Вежливо откажи и предложи помощь с чем-то другим. Без тегов и ссылок.`;
         } else {
-          followupUserContent = `По запросу "${inner}" изображение найти не удалось.\n\nСообщи об этом пользователю своими словами, коротко. Без тегов и ссылок.`;
+          imgResult = await serverImageSearch(inner);
+          if (imgResult && imgResult.url) {
+            followupUserContent = `Найдено изображение по запросу "${inner}"${imgResult.title ? ` (${imgResult.title})` : ''}.\n\nНапиши ОДНУ короткую живую фразу, которой сопровождаешь отправку этого фото пользователю. Без ссылок, без тегов, без markdown — только сама фраза.`;
+          } else {
+            followupUserContent = `По запросу "${inner}" изображение найти не удалось.\n\nСообщи об этом пользователю своими словами, коротко. Без тегов и ссылок.`;
+          }
         }
       }
 
