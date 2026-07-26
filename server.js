@@ -2017,8 +2017,10 @@ app.post('/api/tickets/create', async (req, res) => {
   if (!/^\d+$/.test(String(telegram_id))) return res.json({ success: false, error: 'Неверный Telegram ID' });
 
   const typeLabels = {
-    bug: 'Баг / Ошибка', suggest: 'Предложение',
-    question: 'Вопрос', complaint: 'Жалоба', other: 'Другое'
+  bug: 'Баг / Ошибка', suggest: 'Предложение',
+  question: 'Вопрос', complaint: 'Жалоба',
+  refund: 'Возврат средств',
+  account_deletion: 'Удаление данных аккаунта', other: 'Другое'
   };
   if (!typeLabels[type]) return res.json({ success: false, error: 'Неверный тип' });
 
