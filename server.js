@@ -830,6 +830,23 @@ app.get("/api/device/:userId", async (req, res) => {
   }
 });
 
+// ══════════════════════════════════════════
+//  SIM-карта пользователя (оформленная в боте)
+// ══════════════════════════════════════════
+app.get("/api/sim/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+
+    const r = await fetch(`${BOT_URL}/api/sim?telegram_id=${telegramId}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    console.error("sim fetch error:", e.message);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
 app.get("/api/inventory/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
@@ -1482,6 +1499,67 @@ app.post('/api/rob-bank', async (req, res) => {
 
   } catch (e) {
     console.error('rob-bank error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  БАНК ИГРОКА — баланс счёта и депозит
+// ══════════════════════════════════════════════════════════════════
+
+// ── Баланс счёта + депозит ───────────────────────────────────────
+app.get('/api/bank/balance', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const r = await fetch(`${BOT_URL}/api/bank/info?telegram_id=${telegramId}`);
+    if (!r.ok) throw new Error('Bot unreachable');
+    const d = await r.json();
+    res.json(d);
+  } catch (e) {
+    console.error('bank-balance error:', e.message);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ── Пополнение / снятие с депозита ───────────────────────────────
+app.post('/api/bank/deposit', async (req, res) => {
+  const { userId, amount, action } = req.body;
+  if (!userId || !amount || !['add', 'withdraw'].includes(action))
+    return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const result = await notifyBot(`${BOT_URL}/api/bank/deposit`, {
+      telegram_id: telegramId,
+      amount: parseInt(amount),
+      action
+    });
+    if (!result) return res.json({ success: false, error: 'Бот недоступен' });
+    res.json(result);
+  } catch (e) {
+    console.error('bank-deposit error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ── Активация депозита (24ч, ×1.5 по завершении) ──────────────────
+app.post('/api/bank/activate-deposit', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const result = await notifyBot(`${BOT_URL}/api/bank/activate-deposit`, { telegram_id: telegramId });
+    if (!result) return res.json({ success: false, error: 'Бот недоступен' });
+    res.json(result);
+  } catch (e) {
+    console.error('bank-activate-deposit error:', e);
     res.json({ success: false, error: e.message });
   }
 });
