@@ -2641,7 +2641,28 @@ async function serverWebSearch(query) {
   }
 }
 
+// Домены, которые отдают видео-плеер, а не читаемый текст: скармливать их HTML
+// модели бессмысленно — она либо получает мусор (JS-заглушку/капчу), либо начинает
+// галлюцинировать содержание, либо иногда даже утекает сырым тегом <webfetch> в ответ.
+const VIDEO_ONLY_DOMAINS = [
+  'pornhub.com', 'xvideos.com', 'xhamster.com', 'xnxx.com', 'redtube.com',
+  'youtube.com', 'youtu.be', 'vimeo.com', 'tiktok.com', 'rutube.ru',
+  'dailymotion.com', 'twitch.tv', 'ok.ru/video', 'vk.com/video',
+];
+
+function isVideoOnlyUrl(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./i, '').toLowerCase();
+    return VIDEO_ONLY_DOMAINS.some(d => host === d || host.endsWith('.' + d) || url.toLowerCase().includes(d));
+  } catch {
+    return false;
+  }
+}
+
+const UNREADABLE_VIDEO_MARKER = '__UNREADABLE_VIDEO__';
+
 async function serverWebFetch(url) {
+  if (isVideoOnlyUrl(url)) return UNREADABLE_VIDEO_MARKER;
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -2651,6 +2672,8 @@ async function serverWebFetch(url) {
     });
     clearTimeout(timeout);
     if (!r.ok) return `Не удалось загрузить страницу: HTTP ${r.status}`;
+    const contentType = r.headers.get('content-type') || '';
+    if (/^(video|audio)\//i.test(contentType)) return UNREADABLE_VIDEO_MARKER;
     let html = await r.text();
     html = html
       .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -2960,6 +2983,7 @@ app.post('/api/chat', async (req, res) => {
       let toolResultText = '';
       let followupUserContent = '';
       let imgResult = null;
+      let fixedReply = null; // если задано — отвечаем этим текстом напрямую, БЕЗ второго вызова модели
       const userQuestion = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
       if (toolName === 'netsearch') {
@@ -2967,7 +2991,13 @@ app.post('/api/chat', async (req, res) => {
         followupUserContent = `Сегодняшняя дата: ${getCurrentDateStr()}. Вот результаты поиска:\n${toolResultText}\n\nЭто актуальные данные на сегодня — доверяй датам и фактам в них, даже если они не совпадают с твоей внутренней памятью. НЕ исправляй и не подвергай сомнению даты из результатов поиска. Ответь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
       } else if (toolName === 'webfetch') {
         toolResultText = await serverWebFetch(inner);
-        followupUserContent = `Содержимое документа (${inner}):\n\n${toolResultText}\n\nНа основе ТОЛЬКО этого текста найди и процитируй конкретную статью или раздел, который отвечает на вопрос: "${userQuestion}". Дай чёткий текстовый ответ. ЗАПРЕЩЕНО выдавать теги <webfetch> или ссылки в ответе.`;
+        if (toolResultText === UNREADABLE_VIDEO_MARKER) {
+          // Видео-хостинг: там нет читаемого текста — не отправляем это модели вообще,
+          // чтобы она не начала выдумывать содержание или пересказывать сам тег/ссылку.
+          fixedReply = `Не удалось прочитать видео.\nПосмотрите сами по ссылке:\n${inner}`;
+        } else {
+          followupUserContent = `Содержимое документа (${inner}):\n\n${toolResultText}\n\nНа основе ТОЛЬКО этого текста найди и процитируй конкретную статью или раздел, который отвечает на вопрос: "${userQuestion}". Дай чёткий текстовый ответ. ЗАПРЕЩЕНО выдавать теги <webfetch> или ссылки в ответе.`;
+        }
       } else if (toolName === 'docsearch') {
         const parts = inner.split('|');
         const fetchUrl = (parts[0] || '').trim();
@@ -2988,6 +3018,14 @@ app.post('/api/chat', async (req, res) => {
             followupUserContent = `По запросу "${inner}" изображение найти не удалось.\n\nСообщи об этом пользователю своими словами, коротко. Без тегов и ссылок.`;
           }
         }
+      }
+
+      if (fixedReply !== null) {
+        sendChunk(fixedReply);
+        addTokensUsed(usageIdentifier, totalTokensUsed).catch(console.error);
+        if (wantsStream) { res.write('data: [DONE]\n\n'); res.end(); }
+        else res.json({ choices: [{ message: { role: 'assistant', content: fixedReply }, finish_reason: 'stop' }], usage: { total_tokens: totalTokensUsed } });
+        return;
       }
 
       const followupMessages = [
