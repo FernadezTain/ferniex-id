@@ -812,6 +812,24 @@ app.post("/api/cases/notify-batch", async (req, res) => {
 // ══════════════════════════════════════════
 //  Инвентарь пользователя
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  Виртуальное устройство пользователя (купленное в боте)
+// ══════════════════════════════════════════
+app.get("/api/device/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+
+    const r = await fetch(`${BOT_URL}/api/device?telegram_id=${telegramId}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    console.error("device fetch error:", e.message);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
 app.get("/api/inventory/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
