@@ -113,6 +113,17 @@ async function resolveTelegramId(userId) {
   return users[0]?.telegram_id || null;
 }
 
+async function fetchBotJson(url, init) {
+  const res = await fetch(url, init);
+  const text = await res.text();
+  if (!text) return { success: false, error: 'Пустой ответ сервиса оператора' };
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return { success: false, error: 'Невалидный JSON от сервиса оператора', raw: text };
+  }
+}
+
 // ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
@@ -838,13 +849,36 @@ app.get("/api/sim/:userId", async (req, res) => {
   try {
     const telegramId = await resolveTelegramId(userId);
     if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+    if (!BOT_URL) return res.json({ success: false, error: "Оператор недоступен: BOT_URL не настроен" });
 
-    const r = await fetch(`${BOT_URL}/api/sim?telegram_id=${telegramId}`);
-    const data = await r.json();
-    res.json(data);
+    const data = await fetchBotJson(`${BOT_URL}/api/sim?telegram_id=${telegramId}`);
+    if (data?.success === false) {
+      return res.json({ success: false, error: data.error || 'Сервис оператора недоступен' });
+    }
+    return res.json(data);
   } catch (e) {
     console.error("sim fetch error:", e.message);
-    res.json({ success: false, error: "Ошибка сервера" });
+    res.json({ success: false, error: "Ошибка соединения с сервисом оператора" });
+  }
+});
+
+app.post("/api/sim/:userId/manage", async (req, res) => {
+  const { userId } = req.params;
+  const { action, amount, operator, tariff } = req.body;
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+    if (!BOT_URL) return res.json({ success: false, error: "Оператор недоступен: BOT_URL не настроен" });
+
+    const data = await fetchBotJson(`${BOT_URL}/api/sim/manage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegram_id: telegramId, action, amount, operator, tariff })
+    });
+    return res.json(data);
+  } catch (e) {
+    console.error("sim manage error:", e.message);
+    res.json({ success: false, error: "Ошибка соединения с сервисом оператора" });
   }
 });
 app.get("/api/inventory/:userId", async (req, res) => {
