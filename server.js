@@ -1599,6 +1599,109 @@ app.post('/api/bank/activate-deposit', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════
+//  БАНКОВСКАЯ КАРТА — счёт, переводы, история, блокировка
+// ══════════════════════════════════════════════════════════════════
+
+function genCardNumber(seed) {
+  let s = String(seed).replace(/\D/g, '').padStart(6, '0');
+  let out = '';
+  for (let i = 0; i < 16; i++) out += (parseInt(s[i % s.length], 10) * 7 + i * 3) % 10;
+  return out;
+}
+
+app.get('/api/bank-card/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,balance,card_number,card_blocked`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    let u = users[0];
+    if (!u.card_number) {
+      const number = genCardNumber(u.id + Date.now());
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ card_number: number })
+      });
+      u.card_number = number;
+    }
+    res.json({ success: true, holder: u.username, balance: u.balance, card_number: u.card_number, blocked: !!u.card_blocked });
+  } catch (e) {
+    console.error('bank-card error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/bank-card/block', async (req, res) => {
+  const { userId, blocked } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ card_blocked: !!blocked })
+    });
+    res.json({ success: true, blocked: !!blocked });
+  } catch (e) {
+    console.error('bank-card block error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/bank-card/transfer', async (req, res) => {
+  const { userId, cardNumber, amount, comment } = req.body;
+  const sum = Number(amount);
+  if (!userId || !cardNumber || !sum || sum <= 0) return res.json({ success: false, error: 'Некорректные данные' });
+  try {
+    const senderRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,balance,card_number,card_blocked`, { headers: sbHeaders });
+    const senders = await senderRes.json();
+    if (!senders.length) return res.json({ success: false, error: 'Отправитель не найден' });
+    const sender = senders[0];
+    if (sender.card_blocked) return res.json({ success: false, error: 'Ваша карта заблокирована' });
+    if (sender.card_number === cardNumber) return res.json({ success: false, error: 'Нельзя перевести самому себе' });
+    if (Number(sender.balance) < sum) return res.json({ success: false, error: 'Недостаточно средств' });
+
+    const recvRes = await fetch(`${SB_URL}/rest/v1/users?card_number=eq.${cardNumber}&select=id,balance,username,card_blocked`, { headers: sbHeaders });
+    const receivers = await recvRes.json();
+    if (!receivers.length) return res.json({ success: false, error: 'Карта получателя не найдена' });
+    const receiver = receivers[0];
+    if (receiver.card_blocked) return res.json({ success: false, error: 'Карта получателя заблокирована' });
+
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${sender.id}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ balance: Number(sender.balance) - sum }) });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${receiver.id}`, { method: 'PATCH', headers: sbHeaders, body: JSON.stringify({ balance: Number(receiver.balance) + sum }) });
+
+    await fetch(`${SB_URL}/rest/v1/bank_transactions`, {
+      method: 'POST', headers: sbHeaders,
+      body: JSON.stringify([
+        { from_user_id: sender.id, to_user_id: receiver.id, amount: sum, type: 'transfer_out', comment: comment || '' },
+        { from_user_id: sender.id, to_user_id: receiver.id, amount: sum, type: 'transfer_in', comment: comment || '' }
+      ])
+    });
+
+    res.json({ success: true, newBalance: Number(sender.balance) - sum, receiver: receiver.username });
+  } catch (e) {
+    console.error('bank-card transfer error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/bank-card/history/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const r = await fetch(
+      `${SB_URL}/rest/v1/bank_transactions?or=(from_user_id.eq.${userId},to_user_id.eq.${userId})&select=*,from:from_user_id(username),to:to_user_id(username)&order=created_at.desc&limit=50`,
+      { headers: sbHeaders }
+    );
+    const rows = await r.json();
+    const history = (rows || []).map(t => ({
+      id: t.id, amount: t.amount, created_at: t.created_at, comment: t.comment,
+      direction: t.from_user_id === userId && t.type === 'transfer_out' ? 'out' : 'in',
+      counterparty: t.from_user_id === userId ? t.to?.username : t.from?.username
+    }));
+    res.json({ success: true, history });
+  } catch (e) {
+    console.error('bank-card history error:', e);
+    res.json({ success: false, history: [], error: e.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
 //  COLLECTION CARDS
 // ══════════════════════════════════════════════════════════════════
 
