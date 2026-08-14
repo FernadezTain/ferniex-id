@@ -1598,6 +1598,59 @@ app.post('/api/bank/activate-deposit', async (req, res) => {
   }
 });
 
+// ── Перевод между реальными счетами бота ───────────────────────────
+app.post('/api/bank/transfer', async (req, res) => {
+  const { userId, cardNumber, amount, comment } = req.body;
+  if (!userId || !cardNumber || !amount) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const result = await notifyBot(`${BOT_URL}/api/bank/transfer`, {
+      telegram_id: telegramId, cardNumber, amount: parseInt(amount), comment
+    });
+    if (!result) return res.json({ success: false, error: 'Бот недоступен' });
+    res.json(result);
+  } catch (e) {
+    console.error('bank-transfer error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ── Удаление банковского счёта ──────────────────────────────────────
+app.post('/api/bank/delete', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const result = await notifyBot(`${BOT_URL}/api/bank/delete`, { telegram_id: telegramId });
+    if (!result) return res.json({ success: false, error: 'Бот недоступен' });
+    res.json(result);
+  } catch (e) {
+    console.error('bank-delete error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// ── История операций по счёту бота ─────────────────────────────────
+app.get('/api/bank/history', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    const r = await fetch(`${BOT_URL}/api/bank/history?telegram_id=${telegramId}`);
+    if (!r.ok) throw new Error('Bot unreachable');
+    res.json(await r.json());
+  } catch (e) {
+    console.error('bank-history error:', e.message);
+    res.json({ success: false, error: e.message });
+  }
+});
+
 // ══════════════════════════════════════════════════════════════════
 //  БАНКОВСКАЯ КАРТА — счёт, переводы, история, блокировка
 // ══════════════════════════════════════════════════════════════════
