@@ -881,6 +881,44 @@ app.post("/api/sim/:userId/manage", async (req, res) => {
     res.json({ success: false, error: "Ошибка соединения с сервисом оператора" });
   }
 });
+app.get("/api/shopmarket/catalog/:userId", async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+    if (!BOT_URL) return res.json({ success: false, error: "Маркетплейс недоступен: BOT_URL не настроен" });
+
+    const data = await fetchBotJson(`${BOT_URL}/api/shopmarket/catalog?telegram_id=${telegramId}`);
+    if (data?.success === false) {
+      return res.json({ success: false, error: data.error || 'Сервис маркетплейса недоступен' });
+    }
+    return res.json(data);
+  } catch (e) {
+    console.error("shopmarket catalog fetch error:", e.message);
+    res.json({ success: false, error: "Ошибка соединения с маркетплейсом" });
+  }
+});
+
+app.post("/api/shopmarket/buy/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { category, index } = req.body;
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
+    if (!BOT_URL) return res.json({ success: false, error: "Маркетплейс недоступен: BOT_URL не настроен" });
+
+    const data = await fetchBotJson(`${BOT_URL}/api/shopmarket/buy`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegram_id: telegramId, category, index })
+    });
+    return res.json(data);
+  } catch (e) {
+    console.error("shopmarket buy error:", e.message);
+    res.json({ success: false, error: "Ошибка соединения с маркетплейсом" });
+  }
+});
+
 app.get("/api/inventory/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
