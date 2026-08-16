@@ -901,7 +901,7 @@ app.get("/api/shopmarket/catalog/:userId", async (req, res) => {
 
 app.post("/api/shopmarket/buy/:userId", async (req, res) => {
   const { userId } = req.params;
-  const { category, index } = req.body;
+  const { item_name } = req.body;
   try {
     const telegramId = await resolveTelegramId(userId);
     if (!telegramId) return res.json({ success: false, error: "Telegram не привязан" });
@@ -910,7 +910,7 @@ app.post("/api/shopmarket/buy/:userId", async (req, res) => {
     const data = await fetchBotJson(`${BOT_URL}/api/shopmarket/buy`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ telegram_id: telegramId, category, index })
+      body: JSON.stringify({ telegram_id: telegramId, item_name })
     });
     return res.json(data);
   } catch (e) {
