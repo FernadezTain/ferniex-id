@@ -9,4 +9,8 @@
     { "src": "/(.*)", "dest": "public/$1" },
     { "src": "/", "dest": "public/index.html" }
   ]
+  {
+  "rewrites": [
+    { "source": "/chat/share/:id", "destination": "/chat-share.html" }
+  ]  
 }
