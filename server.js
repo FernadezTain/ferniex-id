@@ -7,8 +7,8 @@ import cors from "cors";
 dotenv.config();
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static("public"));
 
 // ── Логгер ────────────────────────────────
@@ -45,6 +45,8 @@ function sanitizeLog(body) {
   if (safe.password) safe.password = '***';
   if (safe.key) safe.key = safe.key.slice(0, 12) + '...';
   if (safe.apiKey) safe.apiKey = safe.apiKey.slice(0, 12) + '...';
+  if (safe.imageBase64) safe.imageBase64 = `[image, ${Math.round(safe.imageBase64.length / 1024)}kb]`;
+  if (safe.imageUrl && safe.imageUrl.startsWith('data:')) safe.imageUrl = `[image, ${Math.round(safe.imageUrl.length / 1024)}kb]`;
   return safe;
 }
 // ─────────────────────────────────────────
@@ -221,14 +223,99 @@ app.post("/api/verify-token", async (req, res) => {
   const { userId, username } = req.body;
   if (!userId || !username) return res.json({ success: false, error: "Нет данных" });
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&username=eq.${username}&select=id,username,role,telegram_id`, { headers: sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&username=eq.${username}&select=id,username,role,telegram_id,avatar_url,banner_url,theme`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
-    res.json({ success: true, userId: user.id, username: user.username, role: user.role, telegramLinked: !!user.telegram_id, telegram_id: user.telegram_id });
+    res.json({
+      success: true, userId: user.id, username: user.username, role: user.role,
+      telegramLinked: !!user.telegram_id, telegram_id: user.telegram_id,
+      avatarUrl: user.avatar_url || null, bannerUrl: user.banner_url || null, theme: user.theme || 'cream'
+    });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== ПРОФИЛЬ: аватар / баннер / тема ======
+const ALLOWED_THEMES = ['cream', 'noir', 'stone', 'sage'];
+
+function parseDataUrl(dataUrl) {
+  const matches = String(dataUrl || '').match(/^data:(.+);base64,(.+)$/);
+  if (!matches) return null;
+  const mimeType = matches[1];
+  if (!mimeType.startsWith('image/')) return null;
+  const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : mimeType.includes('gif') ? 'gif' : 'jpg';
+  return { mimeType, ext, buffer: Buffer.from(matches[2], 'base64') };
+}
+
+async function uploadUserImage({ bucket, userId, imageBase64, maxBytes }) {
+  const parsed = parseDataUrl(imageBase64);
+  if (!parsed) throw new Error('Неверный формат изображения');
+  if (parsed.buffer.length > maxBytes) throw new Error('Файл слишком большой');
+  // один файл на пользователя — upsert перезаписывает старую картинку
+  const fileName = `user_${userId}.${parsed.ext}`;
+  const uploadRes = await fetch(`${SB_URL}/storage/v1/object/${bucket}/${fileName}`, {
+    method: 'POST',
+    headers: {
+      apikey: SB_SERVICE_KEY,
+      Authorization: `Bearer ${SB_SERVICE_KEY}`,
+      'Content-Type': parsed.mimeType,
+      'x-upsert': 'true'
+    },
+    body: parsed.buffer
+  });
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text();
+    console.error(`Storage upload error (${bucket}):`, errText);
+    throw new Error('Ошибка загрузки изображения');
+  }
+  // добавляем versioned-параметр, чтобы сбросить кэш браузера после перезаписи
+  return `${SB_URL}/storage/v1/object/public/${bucket}/${fileName}?v=${Date.now()}`;
+}
+
+app.post('/api/profile/avatar', async (req, res) => {
+  const { userId, imageBase64 } = req.body;
+  if (!userId || !imageBase64) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const url = await uploadUserImage({ bucket: 'IDavatars', userId, imageBase64, maxBytes: 5 * 1024 * 1024 });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ avatar_url: url })
+    });
+    res.json({ success: true, avatarUrl: url });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/profile/banner', async (req, res) => {
+  const { userId, imageBase64 } = req.body;
+  if (!userId || !imageBase64) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    const url = await uploadUserImage({ bucket: 'IDbanners', userId, imageBase64, maxBytes: 8 * 1024 * 1024 });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ banner_url: url })
+    });
+    res.json({ success: true, bannerUrl: url });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.patch('/api/profile/theme', async (req, res) => {
+  const { userId, theme } = req.body;
+  if (!userId || !ALLOWED_THEMES.includes(theme)) return res.json({ success: false, error: 'Неверная тема' });
+  try {
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ theme })
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
