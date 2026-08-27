@@ -319,6 +319,33 @@ app.patch('/api/profile/theme', async (req, res) => {
   }
 });
 
+app.patch('/api/profile/username', async (req, res) => {
+  const { userId, newUsername } = req.body;
+  if (!userId || !newUsername) return res.json({ success: false, error: 'Нет данных' });
+  const trimmed = String(newUsername).trim();
+  if (!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(trimmed)) {
+    return res.json({ success: false, error: 'От 3 до 20 символов: буквы, цифры, подчёркивание' });
+  }
+  try {
+    const existing = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(trimmed)}&select=id`, { headers: sbHeaders });
+    const existingData = await existing.json();
+    if (existingData.length && String(existingData[0].id) !== String(userId)) {
+      return res.json({ success: false, error: 'Такой логин уже занят' });
+    }
+    const update = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({ username: trimmed })
+    });
+    if (!update.ok) return res.json({ success: false, error: 'Не удалось обновить логин' });
+    const updated = await update.json();
+    if (!updated.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    res.json({ success: true, username: updated[0].username });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 // ====== Баланс ======
 app.get("/api/balance/:userId", async (req, res) => {
   const userId = req.params.userId;
