@@ -543,11 +543,15 @@ app.post("/api/telegram/link", async (req, res) => {
       });
       return res.json({ success: false, error: "Код/ссылка устарели. Сгенерируй новые на сайте." });
     }
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
+    const linkPatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
       method: "PATCH",
-      headers: sbHeaders,
+      headers: { ...sbHeaders, Prefer: "return=minimal" },
       body: JSON.stringify({ telegram_id: telegram_id, link_token: null, link_token_created_at: null })
     });
+    if (!linkPatchRes.ok) {
+      console.error("telegram/link PATCH error:", await linkPatchRes.text());
+      return res.json({ success: false, error: "Не удалось сохранить привязку. Попробуй ещё раз." });
+    }
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     res.json({ success: true, username: user.username, time });
   } catch (e) {
@@ -647,16 +651,24 @@ app.post("/api/telegram/confirm-decision", async (req, res) => {
     if (String(user.pending_telegram_id) !== String(telegram_id)) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     if (decision === "accept") {
-      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      const acceptPatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
         method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
         body: JSON.stringify({ telegram_id: telegram_id, pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
       });
+      if (!acceptPatchRes.ok) {
+        console.error("confirm-decision accept PATCH error:", await acceptPatchRes.text());
+        return res.json({ success: false, error: "Не удалось сохранить привязку. Попробуй ещё раз." });
+      }
       res.json({ success: true, decision: "accept", username: user.username, time });
     } else {
-      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      const declinePatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
         method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
         body: JSON.stringify({ link_flow_status: "declined" })
       });
+      if (!declinePatchRes.ok) {
+        console.error("confirm-decision decline PATCH error:", await declinePatchRes.text());
+        return res.json({ success: false, error: "Ошибка сервера" });
+      }
       res.json({ success: true, decision: "decline", username: user.username, time });
     }
   } catch (e) {
