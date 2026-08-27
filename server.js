@@ -109,6 +109,32 @@ async function sendTgMessage(chatId, text) {
   }
 }
 
+// ====== Хелпер: Telegram сообщение с inline-кнопками ======
+async function sendTgMessageButtons(chatId, text, keyboard) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, parse_mode: "HTML", text, reply_markup: { inline_keyboard: keyboard } })
+    });
+    if (!res.ok) { console.error("TG btn error:", await res.text()); return null; }
+    const data = await res.json();
+    return data.result || null;
+  } catch (e) {
+    console.error("TG btn exception:", e.message);
+    return null;
+  }
+}
+
+// ====== Хелпер: генерация кода привязки (пример: RTXW-23NKS) ======
+function genLinkCode() {
+  const L = 'ABCDEFGHJKLMNPQRSTUVWXYZ', A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let a = ''; for (let i = 0; i < 4; i++) a += L[Math.floor(Math.random() * L.length)];
+  let b = ''; for (let i = 0; i < 5; i++) b += A[Math.floor(Math.random() * A.length)];
+  return `${a}-${b}`;
+}
+const LINK_TTL_MS = 5 * 60 * 1000;
+
 async function resolveTelegramId(userId) {
   const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
   const users = await userRes.json();
@@ -481,11 +507,11 @@ app.post("/api/telegram/generate-token", async (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
-    const token = Math.random().toString(36).slice(2, 10).toUpperCase();
+    const token = genLinkCode();
     const patchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
       method: "PATCH",
       headers: { ...sbHeaders, Prefer: "return=minimal" },
-      body: JSON.stringify({ link_token: token })
+      body: JSON.stringify({ link_token: token, link_token_created_at: new Date().toISOString() })
     });
     if (!patchRes.ok) {
       console.error("generate-token PATCH error:", await patchRes.text());
@@ -504,18 +530,135 @@ app.post("/api/telegram/link", async (req, res) => {
   if (!token || !telegram_id) return res.json({ success: false, error: "Нет данных" });
   try {
     const findRes = await fetch(
-      `${SB_URL}/rest/v1/users?link_token=eq.${token}&select=id,username`,
+      `${SB_URL}/rest/v1/users?link_token=eq.${token}&select=id,username,link_token_created_at`,
       { headers: sbHeaders }
     );
     const users = await findRes.json();
-    if (!users.length) return res.json({ success: false, error: "Токен не найден или устарел" });
+    if (!users.length) return res.json({ success: false, error: "Код/ссылка не найдены или уже использованы" });
     const user = users[0];
+    if (user.link_token_created_at && (Date.now() - new Date(user.link_token_created_at).getTime()) > LINK_TTL_MS) {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ link_token: null, link_token_created_at: null })
+      });
+      return res.json({ success: false, error: "Код/ссылка устарели. Сгенерируй новые на сайте." });
+    }
     await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
       method: "PATCH",
       headers: sbHeaders,
-      body: JSON.stringify({ telegram_id: telegram_id, link_token: null })
+      body: JSON.stringify({ telegram_id: telegram_id, link_token: null, link_token_created_at: null })
     });
-    res.json({ success: true, username: user.username });
+    const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    res.json({ success: true, username: user.username, time });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Статус привязки (для опроса кода/ссылки на сайте) ======
+app.post("/api/telegram/link-status", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: "Нет userId" });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,link_token,link_token_created_at`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const u = users[0];
+    if (u.telegram_id) return res.json({ success: true, status: "linked", telegram_id: u.telegram_id });
+    if (u.link_token && u.link_token_created_at && (Date.now() - new Date(u.link_token_created_at).getTime()) > LINK_TTL_MS) {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ link_token: null, link_token_created_at: null })
+      });
+      return res.json({ success: true, status: "expired" });
+    }
+    res.json({ success: true, status: "pending" });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Привязка подтверждением: шаг 1 — запрос ======
+app.post("/api/telegram/request-confirm", async (req, res) => {
+  const { userId, telegramId } = req.body;
+  if (!userId || !telegramId) return res.json({ success: false, error: "Нет данных" });
+  if (!/^\d{5,15}$/.test(String(telegramId))) return res.json({ success: false, error: "Некорректный Telegram ID" });
+  try {
+    const ur = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username`, { headers: sbHeaders });
+    const users = await ur.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const user = users[0];
+    const now = new Date();
+    const nowStr = now.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({ pending_telegram_id: String(telegramId), pending_link_created_at: now.toISOString(), link_flow_status: "pending" })
+    });
+    const sent = await sendTgMessageButtons(telegramId,
+      `🛡 <b>Привязка TelegramID к аккаунту FernieID</b>\n\n` +
+      `<blockquote>👤 Логин: <b>${user.username}</b>\n🕒 Дата и время: <b>${nowStr} МСК</b></blockquote>\n\n` +
+      `Подтвердите или отклоните привязку.`,
+      [[ { text: "✅ Принять", callback_data: `tgconfirm_accept_${userId}` }, { text: "❌ Отклонить", callback_data: `tgconfirm_decline_${userId}` } ]]
+    );
+    if (!sent) return res.json({ success: false, error: "Не удалось отправить сообщение. Убедись, что ты писал боту." });
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Привязка подтверждением: шаг 2 — статус (опрос с сайта) ======
+app.post("/api/telegram/confirm-status", async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: "Нет userId" });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,pending_telegram_id,pending_link_created_at,link_flow_status`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const u = users[0];
+    if (u.telegram_id) return res.json({ success: true, status: "linked", telegram_id: u.telegram_id });
+    if (u.link_flow_status === "declined") return res.json({ success: true, status: "declined" });
+    if (u.pending_link_created_at && (Date.now() - new Date(u.pending_link_created_at).getTime()) > LINK_TTL_MS) {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
+      });
+      return res.json({ success: true, status: "expired" });
+    }
+    res.json({ success: true, status: "pending" });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
+// ====== Привязка подтверждением: шаг 3 — решение (вызывается ботом) ======
+app.post("/api/telegram/confirm-decision", async (req, res) => {
+  const { userId, telegram_id, decision } = req.body;
+  if (!userId || !telegram_id || !decision) return res.json({ success: false, error: "Нет данных" });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,pending_telegram_id`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const user = users[0];
+    if (String(user.pending_telegram_id) !== String(telegram_id)) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
+    const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+    if (decision === "accept") {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ telegram_id: telegram_id, pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
+      });
+      res.json({ success: true, decision: "accept", username: user.username, time });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ link_flow_status: "declined" })
+      });
+      res.json({ success: true, decision: "decline", username: user.username, time });
+    }
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
@@ -4390,6 +4533,40 @@ app.post('/api/fernieplus/pro/check-payment', async (req, res) => {
 // ══════════════════════════════════════════
 //  Сброс пароля — шаг 1: отправить код
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  Смена пароля из личного кабинета (по текущему паролю)
+// ══════════════════════════════════════════
+app.post("/api/password/change", async (req, res) => {
+  const { userId, currentPassword, newPassword } = req.body;
+  if (!userId || !currentPassword || !newPassword) return res.json({ success: false, error: "Заполни все поля" });
+  if (newPassword.length < 6) return res.json({ success: false, error: "Новый пароль минимум 6 символов" });
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,password_hash,telegram_id`, { headers: sbHeaders });
+    const users = await r.json();
+    if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
+    const user = users[0];
+    const match = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!match) return res.json({ success: false, error: "Текущий пароль неверен" });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+      body: JSON.stringify({ password_hash: hash })
+    });
+    if (user.telegram_id) {
+      await sendTgMessage(user.telegram_id,
+        `🛡 <b>Система Безопасности</b>\n` +
+        `<blockquote>🔑 Пароль от аккаунта FernieID был <b>изменён</b>.</blockquote>\n` +
+        `Если это были вы — просто проигнорируйте это сообщение. ✅\n` +
+        `Если пароль меняли <b>не вы</b> — срочно свяжитесь с поддержкой через /ask 🆘`
+      );
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error(e);
+    res.json({ success: false, error: "Ошибка сервера" });
+  }
+});
+
 app.post('/api/password-reset/send-code', async (req, res) => {
   const { username } = req.body;
   if (!username) return res.json({ success: false, error: 'Введи никнейм' });
