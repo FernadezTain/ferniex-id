@@ -543,15 +543,11 @@ app.post("/api/telegram/link", async (req, res) => {
       });
       return res.json({ success: false, error: "Код/ссылка устарели. Сгенерируй новые на сайте." });
     }
-    const linkPatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
+    await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
       method: "PATCH",
-      headers: { ...sbHeaders, Prefer: "return=minimal" },
+      headers: sbHeaders,
       body: JSON.stringify({ telegram_id: telegram_id, link_token: null, link_token_created_at: null })
     });
-    if (!linkPatchRes.ok) {
-      console.error("telegram/link PATCH error:", await linkPatchRes.text());
-      return res.json({ success: false, error: "Не удалось сохранить привязку. Попробуй ещё раз." });
-    }
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     res.json({ success: true, username: user.username, time });
   } catch (e) {
@@ -651,24 +647,16 @@ app.post("/api/telegram/confirm-decision", async (req, res) => {
     if (String(user.pending_telegram_id) !== String(telegram_id)) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     if (decision === "accept") {
-      const acceptPatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
         method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
         body: JSON.stringify({ telegram_id: telegram_id, pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
       });
-      if (!acceptPatchRes.ok) {
-        console.error("confirm-decision accept PATCH error:", await acceptPatchRes.text());
-        return res.json({ success: false, error: "Не удалось сохранить привязку. Попробуй ещё раз." });
-      }
       res.json({ success: true, decision: "accept", username: user.username, time });
     } else {
-      const declinePatchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
         method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
         body: JSON.stringify({ link_flow_status: "declined" })
       });
-      if (!declinePatchRes.ok) {
-        console.error("confirm-decision decline PATCH error:", await declinePatchRes.text());
-        return res.json({ success: false, error: "Ошибка сервера" });
-      }
       res.json({ success: true, decision: "decline", username: user.username, time });
     }
   } catch (e) {
@@ -4955,6 +4943,236 @@ app.get('/api/docsearch', async (req, res) => {
     return res.json({ success: true, excerpt: text.slice(start, end), query, found_at: idx });
   } catch (e) {
     return res.json({ success: false, error: e.message });
+  }
+});
+
+
+// ══════════════════════════════════════════
+//  СОЦИАЛИЗАЦИЯ: лента постов, лайки, просмотры, друзья, поиск
+// ══════════════════════════════════════════
+
+// Загрузка одного фото поста в Storage (bucket: social_posts)
+async function uploadPostImage(userId, imageBase64, idx) {
+  const parsed = parseDataUrl(imageBase64);
+  if (!parsed) throw new Error('Неверный формат изображения');
+  if (parsed.buffer.length > 8 * 1024 * 1024) throw new Error('Файл слишком большой (макс. 8МБ)');
+  const fileName = `post_${userId}_${Date.now()}_${idx}.${parsed.ext}`;
+  const uploadRes = await fetch(`${SB_URL}/storage/v1/object/social_posts/${fileName}`, {
+    method: 'POST',
+    headers: {
+      apikey: SB_SERVICE_KEY,
+      Authorization: `Bearer ${SB_SERVICE_KEY}`,
+      'Content-Type': parsed.mimeType,
+      'x-upsert': 'true'
+    },
+    body: parsed.buffer
+  });
+  if (!uploadRes.ok) {
+    const errText = await uploadRes.text();
+    console.error('Storage upload error (social_posts):', errText);
+    throw new Error('Ошибка загрузки изображения');
+  }
+  return `${SB_URL}/storage/v1/object/public/social_posts/${fileName}`;
+}
+
+// Лента: последние посты в случайном порядке (либо посты конкретного автора — свежие сверху)
+app.get('/api/social/feed/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { limit = 15, offset = 0, authorId } = req.query;
+  try {
+    const url = authorId
+      ? `${SB_URL}/rest/v1/posts?author_id=eq.${authorId}&select=id,author_id,description,image_urls,created_at&order=created_at.desc&limit=100`
+      : `${SB_URL}/rest/v1/posts?select=id,author_id,description,image_urls,created_at&order=created_at.desc&limit=200`;
+    const postsRes = await fetch(url, { headers: sbHeaders });
+    let posts = await postsRes.json();
+    if (!Array.isArray(posts)) posts = [];
+
+    if (!authorId) {
+      // случайно тасуем ленту (Fisher-Yates), как в ВК/Инсте — без привязки к дате
+      for (let i = posts.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [posts[i], posts[j]] = [posts[j], posts[i]];
+      }
+    }
+    const off = parseInt(offset) || 0;
+    const lim = Math.min(parseInt(limit) || 15, 50);
+    const page = posts.slice(off, off + lim);
+    if (!page.length) return res.json({ success: true, posts: [], hasMore: false });
+
+    const authorIds = [...new Set(page.map(p => p.author_id))];
+    const postIds = page.map(p => p.id);
+
+    const [usersRes, likesRes, viewsRes, myLikesRes, myViewsRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?id=in.(${authorIds.join(',')})&select=id,username,avatar_url`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_likes?post_id=in.(${postIds.join(',')})&select=post_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_views?post_id=in.(${postIds.join(',')})&select=post_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_likes?post_id=in.(${postIds.join(',')})&user_id=eq.${userId}&select=post_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_views?post_id=in.(${postIds.join(',')})&user_id=eq.${userId}&select=post_id`, { headers: sbHeaders })
+    ]);
+    const users = await usersRes.json();
+    const likes = await likesRes.json();
+    const views = await viewsRes.json();
+    const myLikes = await myLikesRes.json();
+    const myViews = await myViewsRes.json();
+
+    const userMap = {}; (users || []).forEach(u => userMap[u.id] = u);
+    const likeCount = {}; (likes || []).forEach(l => likeCount[l.post_id] = (likeCount[l.post_id] || 0) + 1);
+    const viewCount = {}; (views || []).forEach(v => viewCount[v.post_id] = (viewCount[v.post_id] || 0) + 1);
+    const myLikeSet = new Set((myLikes || []).map(l => l.post_id));
+    const myViewSet = new Set((myViews || []).map(v => v.post_id));
+
+    const result = page.map(p => ({
+      id: p.id,
+      description: p.description,
+      images: Array.isArray(p.image_urls) ? p.image_urls : [],
+      createdAt: p.created_at,
+      author: {
+        id: p.author_id,
+        username: userMap[p.author_id]?.username || 'Аноним',
+        avatarUrl: userMap[p.author_id]?.avatar_url || null
+      },
+      likes: likeCount[p.id] || 0,
+      views: viewCount[p.id] || 0,
+      likedByMe: myLikeSet.has(p.id),
+      viewedByMe: myViewSet.has(p.id)
+    }));
+    res.json({ success: true, posts: result, hasMore: off + lim < posts.length });
+  } catch (e) {
+    console.error('social feed error:', e);
+    res.json({ success: false, posts: [], hasMore: false });
+  }
+});
+
+// Создать пост (только фото + опциональное описание)
+app.post('/api/social/posts/create', async (req, res) => {
+  const { userId, description, images } = req.body;
+  if (!userId || !Array.isArray(images) || !images.length) return res.json({ success: false, error: 'Нужна хотя бы одна фотография' });
+  if (images.length > 10) return res.json({ success: false, error: 'Максимум 10 фотографий' });
+  try {
+    const urls = [];
+    for (let i = 0; i < images.length; i++) {
+      urls.push(await uploadPostImage(userId, images[i], i));
+    }
+    const r = await fetch(`${SB_URL}/rest/v1/posts`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({
+        author_id: parseInt(userId),
+        description: description ? String(description).trim().slice(0, 1000) || null : null,
+        image_urls: urls
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) return res.json({ success: false, error: JSON.stringify(data) });
+    res.json({ success: true, post: data[0] });
+  } catch (e) {
+    console.error('create post error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Лайк / анлайк поста
+app.post('/api/social/posts/:id/like', async (req, res) => {
+  const { id } = req.params;
+  const { userId, action } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    if (action === 'like') {
+      await fetch(`${SB_URL}/rest/v1/post_likes`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal,resolution=ignore-duplicates' },
+        body: JSON.stringify({ post_id: id, user_id: userId })
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/post_likes?post_id=eq.${id}&user_id=eq.${userId}`, {
+        method: 'DELETE', headers: sbHeaders
+      });
+    }
+    const countRes = await fetch(`${SB_URL}/rest/v1/post_likes?post_id=eq.${id}&select=post_id`, { headers: sbHeaders });
+    const likesRows = await countRes.json();
+    res.json({ success: true, likes: Array.isArray(likesRows) ? likesRows.length : 0 });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Просмотр поста — 1 засчитанный просмотр с человека на пост
+app.post('/api/social/posts/:id/view', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    await fetch(`${SB_URL}/rest/v1/post_views`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal,resolution=ignore-duplicates' },
+      body: JSON.stringify({ post_id: id, user_id: userId })
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Поиск людей по логину — точнее совпадение выше
+app.get('/api/social/users/search', async (req, res) => {
+  const { q, userId } = req.query;
+  if (!q || !q.trim()) return res.json({ success: true, users: [] });
+  try {
+    const query = q.trim();
+    const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,avatar_url&limit=25`, { headers: sbHeaders });
+    let users = await r.json();
+    if (!Array.isArray(users)) users = [];
+    const qLower = query.toLowerCase();
+    users = users.filter(u => String(u.id) !== String(userId));
+    users.sort((a, b) => {
+      const an = (a.username || '').toLowerCase(), bn = (b.username || '').toLowerCase();
+      const rank = n => n === qLower ? 0 : n.startsWith(qLower) ? 1 : 2;
+      const ar = rank(an), br = rank(bn);
+      if (ar !== br) return ar - br;
+      return an.length - bn.length;
+    });
+    res.json({ success: true, users: users.slice(0, 15) });
+  } catch (e) {
+    res.json({ success: false, users: [] });
+  }
+});
+
+// Публичный профиль пользователя (для раздела «Социализация»)
+app.get('/api/social/profile/:targetId', async (req, res) => {
+  const { targetId } = req.params;
+  const { viewerId } = req.query;
+  try {
+    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,avatar_url,banner_url`, { headers: sbHeaders });
+    const users = await uRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    let isFriend = false;
+    if (viewerId && String(viewerId) !== String(targetId)) {
+      const fRes = await fetch(`${SB_URL}/rest/v1/friends?user_id=eq.${viewerId}&friend_id=eq.${targetId}&select=id`, { headers: sbHeaders });
+      const f = await fRes.json();
+      isFriend = Array.isArray(f) && f.length > 0;
+    }
+    res.json({ success: true, user: users[0], isFriend });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+// Добавить / удалить друга (взаимная связь)
+app.post('/api/social/friends/toggle', async (req, res) => {
+  const { userId, targetId, action } = req.body;
+  if (!userId || !targetId || String(userId) === String(targetId)) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    if (action === 'add') {
+      await Promise.all([
+        fetch(`${SB_URL}/rest/v1/friends`, { method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal,resolution=ignore-duplicates' }, body: JSON.stringify({ user_id: userId, friend_id: targetId }) }),
+        fetch(`${SB_URL}/rest/v1/friends`, { method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal,resolution=ignore-duplicates' }, body: JSON.stringify({ user_id: targetId, friend_id: userId }) })
+      ]);
+    } else {
+      await Promise.all([
+        fetch(`${SB_URL}/rest/v1/friends?user_id=eq.${userId}&friend_id=eq.${targetId}`, { method: 'DELETE', headers: sbHeaders }),
+        fetch(`${SB_URL}/rest/v1/friends?user_id=eq.${targetId}&friend_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders })
+      ]);
+    }
+    res.json({ success: true, isFriend: action === 'add' });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
   }
 });
 
