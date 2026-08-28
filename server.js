@@ -1586,14 +1586,13 @@ app.delete('/api/backgrounds/:id', async (req, res) => {
     const check = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}&uploader_id=eq.${userId}&select=id`, { headers: sbHeaders });
     const rows = await check.json();
     if (!rows.length) return res.json({ success: false, error: 'Нет доступа' });
-    await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${bg.id}`, { method: 'DELETE' });
+    await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders });
 
-    // Сбрасываем активный фон у всех пользователей, у которых он был установлен
-    await fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${bg.id}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ active_background_id: null })
-    });
+await fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${id}`, {
+  method: 'PATCH',
+  headers: { ...sbHeaders, Prefer: 'return=minimal' },
+  body: JSON.stringify({ active_background_id: null })
+});
     res.json({ success: true });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
@@ -5069,7 +5068,36 @@ app.post('/api/social/posts/create', async (req, res) => {
     res.json({ success: false, error: e.message });
   }
 });
+// Удалить свой пост
+app.delete('/api/social/posts/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: 'Нет данных' });
+  try {
+    // Проверяем, что пост существует и принадлежит именно этому пользователю
+    const checkRes = await fetch(`${SB_URL}/rest/v1/posts?id=eq.${id}&select=id,author_id`, { headers: sbHeaders });
+    const rows = await checkRes.json();
+    if (!rows.length) return res.json({ success: false, error: 'Пост не найден' });
+    if (String(rows[0].author_id) !== String(userId)) return res.json({ success: false, error: 'Нет доступа' });
 
+    // Чистим связанные лайки и просмотры
+    await Promise.all([
+      fetch(`${SB_URL}/rest/v1/post_likes?post_id=eq.${id}`, { method: 'DELETE', headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_views?post_id=eq.${id}`, { method: 'DELETE', headers: sbHeaders })
+    ]);
+
+    // Удаляем сам пост
+    const delRes = await fetch(`${SB_URL}/rest/v1/posts?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders });
+    if (!delRes.ok) {
+      console.error('post delete error:', await delRes.text());
+      return res.json({ success: false, error: 'Ошибка удаления поста' });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error('delete post error:', e);
+    res.json({ success: false, error: e.message });
+  }
+});
 // Лайк / анлайк поста
 app.post('/api/social/posts/:id/like', async (req, res) => {
   const { id } = req.params;
