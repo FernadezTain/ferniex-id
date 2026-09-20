@@ -3166,6 +3166,7 @@ async function mistralStreamCall(messages, apiModel, maxTokens, retries = 2) {
   }
   if (!mistralRes.ok) {
     const err = await mistralRes.json().catch(() => ({}));
+    console.error('Mistral API error:', { status: mistralRes.status, body: err });
     const e = new Error(err?.message || err?.error?.message || `Mistral HTTP ${mistralRes.status}`);
     e.status = mistralRes.status;
     e.body = err;
