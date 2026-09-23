@@ -647,6 +647,33 @@ body:hover::-webkit-scrollbar-thumb{
   body{background:var(--card);}
 }
 
+.footer-legal{
+  width:100%;
+  padding:1.25rem 1.2rem 1.8rem;
+  text-align:center;
+  color:var(--muted);
+  font-size:.82rem;
+  line-height:1.6;
+}
+.footer-legal-inner{
+  max-width:760px;
+  margin:0 auto;
+  border-top:1px solid var(--line);
+  padding-top:1.1rem;
+}
+.footer-legal strong{
+  color:var(--ink);
+  font-weight:700;
+}
+.footer-legal a{
+  color:var(--ink);
+  text-decoration:none;
+  font-weight:600;
+}
+.footer-legal a:hover{ text-decoration:underline; }
+.footer-legal .links{ display:flex; align-items:center; justify-content:center; gap:.55rem; flex-wrap:wrap; margin-top:.25rem; }
+.footer-legal .links .dot{ opacity:.5; }
+
 @keyframes mobileMenuIn{ from{opacity:0;transform:translateY(14px);} to{opacity:1;transform:translateY(0);} }
 
 /* ===== запрет масштабирования сайта (пинч-зум / двойной тап) ===== */
@@ -1079,6 +1106,20 @@ html,body{touch-action:manipulation;}
     </nav>
   </div>
 </div>
+
+<footer class="footer-legal">
+  <div class="footer-legal-inner">
+    <div><strong>FernieX</strong> - Сервис авторизации и управлением профиля</div>
+    <div>ИНН: 381807976680 Кирилл Иннокентьевич К.</div>
+    <div class="links">
+      <a href="https://fernie-x.vercel.app/offer.html" target="_blank" rel="noopener noreferrer">Публичная оферта</a>
+      <span class="dot">·</span>
+      <a href="https://fernie-x.vercel.app/privacy.html" target="_blank" rel="noopener noreferrer">Политика конфиденциальности</a>
+      <span class="dot">·</span>
+      <a href="mailto:ferniexid@gmail.com">ferniexid@gmail.com</a>
+    </div>
+  </div>
+</footer>
 
 <!-- модалка для API ключей / меток обращений -->
 <div class="modal-overlay" id="genericModal">
