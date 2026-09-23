@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Публичная оферта | FernieX</title>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #08090d;
+    --surface: #10121a;
+    --surface2: #191c28;
+    --border: rgba(255,255,255,0.07);
+    --accent: #6d5aff;
+    --accent2: #00d4ff;
+    --gold: #ffd94a;
+    --text: #e8eaf2;
+    --muted: #8b90a8;
+    --danger: #ff4f6a;
+    --green: #4ad79c;
+  }
+
+  body {
+    font-family: 'Onest', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    padding-bottom: 60px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .hero {
+    position: relative;
+    padding: 70px 40px 50px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(109,90,255,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(109,90,255,0.12);
+    border: 1px solid rgba(109,90,255,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #a89dff;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .hero-badge span { width: 7px; height: 7px; background: #6d5aff; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+  h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #fff 30%, #a89dff 70%, #00d4ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 400;
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .meta-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; }
+
+  .wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .toc-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 6px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+  .toc-item:hover { background: var(--surface2); color: var(--text); }
+  .toc-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 22px;
+  }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 36px;
+    margin-bottom: 16px;
+    transition: border-color 0.3s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .section:hover { border-color: rgba(109,90,255,0.2); }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(14px) } to { opacity:1; transform: translateY(0) } }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .section-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--accent);
+    background: rgba(109,90,255,0.1);
+    border: 1px solid rgba(109,90,255,0.2);
+    border-radius: 8px;
+    padding: 5px 10px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  h2 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  p { font-size: 0.93rem; color: var(--text); line-height: 1.75; margin-bottom: 12px; font-weight: 300; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: #fff; font-weight: 600; }
+
+  .law-ref {
+    display: inline-block;
+    background: rgba(255,217,74,0.08);
+    border: 1px solid rgba(255,217,74,0.2);
+    border-radius: 6px;
+    padding: 1px 8px;
+    font-size: 12px;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  ul {
+    list-style: none;
+    margin: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.91rem;
+    color: var(--text);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+  li::before {
+    content: '—';
+    color: var(--accent2);
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .infobox {
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .infobox.blue { background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.15); }
+  .infobox.purple { background: rgba(109,90,255,0.06); border: 1px solid rgba(109,90,255,0.15); }
+  .infobox.gold { background: rgba(255,217,74,0.06); border: 1px solid rgba(255,217,74,0.15); }
+  .infobox.red { background: rgba(255,79,106,0.06); border: 1px solid rgba(255,79,106,0.15); }
+  .infobox.green { background: rgba(74,215,156,0.06); border: 1px solid rgba(74,215,156,0.15); }
+  .infobox-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .infobox p { margin: 0; font-size: 0.88rem; color: var(--muted); }
+  .infobox strong { color: var(--text); }
+
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  thead tr { background: var(--surface2); }
+  th { padding: 12px 16px; text-align: left; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  td { padding: 11px 16px; border-top: 1px solid var(--border); color: var(--text); font-weight: 300; vertical-align: top; line-height: 1.5; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .highlight {
+    background: linear-gradient(135deg, rgba(109,90,255,0.08), rgba(0,212,255,0.05));
+    border: 1px solid rgba(109,90,255,0.2);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin: 16px 0;
+  }
+  .highlight p { margin: 0; }
+
+  a { color: var(--accent2); text-decoration: none; border-bottom: 1px solid rgba(0,212,255,0.3); transition: border-color 0.2s; }
+  a:hover { border-color: var(--accent2); }
+
+  footer {
+    text-align: center;
+    padding: 40px 24px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  footer strong { color: var(--text); }
+
+  code {
+    font-family: 'Courier New', monospace;
+    background: rgba(109,90,255,0.1);
+    border: 1px solid rgba(109,90,255,0.2);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 12px;
+    color: #a89dff;
+  }
+
+  @media (max-width: 600px) {
+    .hero { padding: 50px 20px 36px; }
+    .section { padding: 22px 20px; }
+    h2 { font-size: 0.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge"><span></span> Публичная оферта</div>
+  <h1>Публичная оферта</h1>
+  <p class="hero-sub">Сервис <strong>FernieX</strong> — авторизация, личный кабинет, подписки и добровольные финансовые взносы для пользователей, которые самостоятельно поддерживают развитие сервиса.</p>
+  <div class="hero-meta">
+    <span class="meta-chip"><span class="dot"></span>Редакция: 23 сентября 2026 г.</span>
+    <span class="meta-chip"><span class="dot" style="background:#ffd94a"></span>ГК РФ · 437-ФЗ</span>
+    <span class="meta-chip"><span class="dot" style="background:#4ad79c"></span>Добровольные платежи</span>
+  </div>
+</div>
+
+<div class="wrapper">
+
+  <div class="toc">
+    <div class="toc-title">Содержание</div>
+    <div class="toc-grid">
+      <a href="#s1" class="toc-item"><span class="toc-num">01</span>Общие положения</a>
+      <a href="#s2" class="toc-item"><span class="toc-num">02</span>Предмет оферты</a>
+      <a href="#s3" class="toc-item"><span class="toc-num">03</span>Порядок акцепта</a>
+      <a href="#s4" class="toc-item"><span class="toc-num">04</span>Платежи и донаты</a>
+      <a href="#s5" class="toc-item"><span class="toc-num">05</span>Подписки Fernie+ / Pro</a>
+      <a href="#s6" class="toc-item"><span class="toc-num">06</span>Права и обязанности</a>
+      <a href="#s7" class="toc-item"><span class="toc-num">07</span>Гарантии и ответственность</a>
+      <a href="#s8" class="toc-item"><span class="toc-num">08</span>Возвраты и споры</a>
+      <a href="#s9" class="toc-item"><span class="toc-num">09</span>Конфиденциальность</a>
+      <a href="#s10" class="toc-item"><span class="toc-num">10</span>Заключительные положения</a>
+    </div>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Общие положения</h2>
+    </div>
+    <p>Настоящая публичная оферта (далее — «Оферта») является официальным предложением владельца сервиса <strong>FernieX</strong> (далее — «Исполнитель») любому заинтересованному лицу (далее — «Пользователь») заключить договор оказания услуг и/или предоставить доступ к сервисам, функционалу, подпискам и дополнительным возможностям платформы.</p>
+    <p>Все действия Пользователя по оплате подписки, активированию доступа, пополнению внутреннего баланса, добровольному финансовому взносу или поддержке проекта считаются акцептом настоящей Оферты в соответствии со статьёй <span class="law-ref">437 ГК РФ</span>, а также нормами о договоре оказания услуг и взаимных обязательствах сторон.</p>
+    <div class="infobox blue">
+      <span class="infobox-icon">ℹ️</span>
+      <p><strong>Важно:</strong> настоящая оферта регулирует не только платные подписки, но и добровольные пожертвования/донаты, которые совершаются по инициативе Пользователя и не являются обязательными для использования платформы.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Предмет оферты</h2>
+    </div>
+    <p>Предметом настоящей Оферты являются:</p>
+    <ul>
+      <li>предоставление доступа к сервису FernieX и его личному кабинету;</li>
+      <li>предоставление платных подписок <strong>Fernie+</strong> и <strong>Fernie+ Pro</strong>;</li>
+      <li>доступ к дополнительным возможностям, преимуществам, функциям и статусам сервиса;</li>
+      <li>возможность добровольного пополнения внутреннего счёта/баланса или финансовой поддержки проекта;</li>
+      <li>предоставление услуг в рамках цифровых и виртуальных сервисов, не связанных с передачей материального товара в обычном смысле.</li>
+    </ul>
+    <p>Исполнитель оказывает услуги удалённо, с использованием цифровых каналов связи и платформы Telegram/веб-интерфейсов, в том числе через личный кабинет, бота, сайт или иные каналы, используемые в рамках проекта FernieX.</p>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Порядок акцепта оферты</h2>
+    </div>
+    <p>Акцептом Оферты считается совершение Пользователем одного из следующих действий:</p>
+    <ul>
+      <li>оплата подписки Fernie+ или Fernie+ Pro;</li>
+      <li>пополнение внутреннего счёта/баланса в рамках сервиса;</li>
+      <li>совершение добровольного доната или финансового взноса;</li>
+      <li>подтверждение согласия с условиями в интерфейсе сервиса перед оплатой.</li>
+    </ul>
+    <p>С момента акцепта между Исполнителем и Пользователем считается заключённым договор на условиях настоящей Оферты. Подписание бумажного документа, отдельный договор или иная форма не требуется.</p>
+    <div class="highlight">
+      <p><strong>Формально:</strong> Пользователь принимает оферту моментально после оплаты или подтверждения, а Исполнитель обязуется предоставить доступ либо услуги в рамках выбранного тарифа или добровольного взноса.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>Платежи, донаты и добровольные взносы</h2>
+    </div>
+    <p>Платежи в проекте FernieX имеют <strong>добровольный характер</strong>. Пользователь самостоятельно принимает решение о поддержке проекта, выборе подписки или пополнении счёта.</p>
+    <p>Основные виды платежей:</p>
+    <ul>
+      <li><strong>Оплата подписки Fernie+</strong> — доступ к определённому набору функций и преимуществ сервиса;</li>
+      <li><strong>Оплата подписки Fernie+ Pro</strong> — более расширенный набор возможностей и приоритетный доступ;</li>
+      <li><strong>Добровольное пополнение баланса</strong> — денежный перевод на внутренний счёт или виртуальный баланс по желанию Пользователя;</li>
+      <li><strong>Донат/поддержка проекта</strong> — добровольное пожертвование без обязательства со стороны Исполнителя предоставить конкретный товар или услугу, если иное прямо не предусмотрено в описании тарифа.</li>
+    </ul>
+    <p>Вне зависимости от формата оплаты, Пользователь осознает, что:</p>
+    <ul>
+      <li>платёж не является обязательным условием пользования базовым сервисом FernieX;</li>
+      <li>подписки приобретаются только по желанию Пользователя;</li>
+      <li>донат рассматривается как добровольная финансовая поддержка проекта, а не как обязательная оплата за использование сервиса;</li>
+      <li>при выборе подписки или доступа к платным функциям Пользователь получает услуги в соответствии с выбранным тарифом и условиями, указанными в описании подписки.</li>
+    </ul>
+    <div class="infobox green">
+      <span class="infobox-icon">✅</span>
+      <p>То есть проект принимает деньги <strong>не «по обязанности»</strong>, а исключительно в рамках добровольной подписки или донатной поддержки. Пользователь платит по своей инициативе и в рамках выбранного тарифа или добровольного пополнения.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Подписки Fernie+ / Fernie+ Pro</h2>
+    </div>
+    <p>Подписки Fernie+ и Fernie+ Pro предоставляют Пользователю доступ к расширенным возможностям сервиса в соответствии с условиями, описанными в карточке подписки на платформе.</p>
+    <p>Исполнитель вправе:</p>
+    <ul>
+      <li>обновлять тарифные планы, стоимость, условия и набор функционала;</li>
+      <li>временно ограничивать или изменять доступ к отдельным функциям при технических или организационных причинах;</li>
+      <li>приостанавливать или прекращать подписку в случае нарушения правил, злоупотреблений или нарушений законодательства.</li>
+    </ul>
+    <p>Пользователь вправе:</p>
+    <ul>
+      <li>выбрать тариф, который ему подходит;</li>
+      <li>отказаться от подписки в случае несоответствия её ожиданиям;</li>
+      <li>обратиться с вопросами и претензиями в рамках установленного порядка поддержки.</li>
+    </ul>
+    <p>Подписка считается активированной после подтверждения оплаты и активации доступа в системе. Срок использования указывается в интерфейсе сервиса и в описании тарифа.</p>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Права и обязанности сторон</h2>
+    </div>
+    <p><strong>Исполнитель обязуется:</strong></p>
+    <ul>
+      <li>предоставлять услуги и доступ в соответствии с выбранным тарифом или добровольным взносом;</li>
+      <li>обеспечивать корректную работу сервисов, доступ к личному кабинету и подписочным возможностям;</li>
+      <li>не использовать денежные средства в целях, не связанных с поддержкой и развитием проекта, если это явно не предусмотрено дополнительными условиями;</li>
+      <li>обрабатывать персональные данные в соответствии с Политикой конфиденциальности.</li>
+    </ul>
+    <p><strong>Пользователь обязуется:</strong></p>
+    <ul>
+      <li>своевременно оплачивать подписку при выборе платного тарифа;</li>
+      <li>использовать сервис в рамках законов РФ и правил проекта;</li>
+      <li>не проводить мошеннические действия, обходы ограничений, попытки злоупотребления сервисом или системами оплаты;</li>
+      <li>самостоятельно следить за корректностью данных при оплате и активации.</li>
+    </ul>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Гарантии и ответственность</h2>
+    </div>
+    <p>Исполнитель предоставляет услуги «как есть» и стремится обеспечивать бесперебойную работу сервисов, однако не гарантирует отсутствие технических сбоев, ошибок, ограничений платформ, задержек со стороны платёжных систем или иных факторов, не зависящих от него.</p>
+    <p>Оператор не несёт ответственности за:</p>
+    <ul>
+      <li>проблемы, вызванные перебоями в работе сервисов Telegram, платёжных систем, банков, провайдеров или иных сторонних платформ;</li>
+      <li>ошибки Пользователя при вводе реквизитов, данных оплаты или неверного выбора тарифа;</li>
+      <li>непредвиденные технические сбои, внеплановые отключения, задержки в активации доступа, если они не связаны с прямым нарушением Исполнителем своих обязательств.</li>
+    </ul>
+    <p>Исполнитель принимает меры для оперативного решения проблем, однако гарантия на результат может быть ограничена в рамках сервисного характера проекта.</p>
+    <div class="infobox red">
+      <span class="infobox-icon">⚠️</span>
+      <p>Обязательства Исполнителя по предоставлению услуг оцениваются в рамках договоренностей, применимых к цифровым сервисам и подпискам, а не в форме продажи обычных физических товаров.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Возвраты, жалобы и споры</h2>
+    </div>
+    <p>Платёжные операции по подпискам и добровольным взносам осуществляются по инициативе Пользователя и, как правило, являются <strong>необратимыми</strong> после завершения перевода. Возврат денежных средств возможен только в исключительных случаях, если:</p>
+    <ul>
+      <li>Оплата была совершена по ошибке;</li>
+      <li>сервис не был предоставлен или предоставлен не в том объёме, который был указан;</li>
+      <li>возник технический сбой, повлёкший отсутствие доступа без вины Пользователя;</li>
+      <li>в иных случаях, когда это предусмотрено внутренними правилами проекта или действующим законодательством РФ.</li>
+    </ul>
+    <p>Пользователь вправе направить запрос на возврат или урегулирование спора через поддержку сервиса, указав детали оплаты, дату, сумму и описание проблемы.</p>
+    <p>При возникновении спора стороны обязуются действовать добросовестно, в первую очередь путём переговоров, а при необходимости — через судебный порядок в соответствии с законодательством Российской Федерации.</p>
+    <div class="highlight">
+      <p><strong>Важно:</strong> в случае добровольного доната или пополнения баланса возврат может быть рассмотрен индивидуально, особенно если средства были перечислены как поддержка проекта, а не как оплата конкретного продукта или подписки.</p>
+    </div>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Конфиденциальность и обработка данных</h2>
+    </div>
+    <p>Исполнитель обязуется обрабатывать персональные данные Пользователя только в рамках целей, связанных с оказанием услуг, активацией подписок, учётом платежей, проверкой доступа, безопасностью и поддержкой сервиса.</p>
+    <p>Все данные, связанные с оплатой и подписками, обрабатываются в соответствии с требованиями гражданского законодательства, законодательства о персональных данных и Политикой конфиденциальности сервиса.</p>
+    <p>Исполнитель не раскрывает персональные данные Пользователя третьим лицам без законных оснований, исключений и согласия в случаях, предусмотренных законом.</p>
+  </div>
+
+  <div class="section" id="s10">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Заключительные положения</h2>
+    </div>
+    <p>Настоящая Оферта действует до момента изменения, отмены или замены новой редакцией документа. Все изменения вступают в силу с момента их публикации.</p>
+    <p>Стороны подтверждают, что настоящая Оферта регулируется <span class="law-ref">Гражданским кодексом РФ</span>, законодательством РФ о защите прав потребителей, цифровых услугах, персональных данных и иных применимых нормах.</p>
+    <p>Если какое-либо положение настоящей Оферты окажется недействительным, это не отменяет действие остальных положений, которые сохраняют силу, если иное не предусмотрено законом.</p>
+    <p>Любые споры, возникающие из отношений по Оферте, решаются в первую очередь путём переговоров, а при отсутствии согласия — в судебном порядке по месту нахождения Исполнителя в соответствии с действующим законодательством Российской Федерации.</p>
+    <div class="infobox purple">
+      <span class="infobox-icon">📌</span>
+      <p>Настоящая оферта применяется к подпискам Fernie+, Fernie+ Pro, внутренним балансу и добровольным финансовым взносам, которые совершаются по собственной воле Пользователя. Это не обязательный платёж за базовый доступ, а форма добровольной поддержки и получения платных преимуществ.</p>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>FernieX</strong> — публичная оферта<br>
+  © 2026 FernieX. Все права защищены.<br>
+  Документ действует в соответствии с ГК РФ, законом о защите прав потребителей и другими нормами законодательства РФ.
+</footer>
+
+</body>
+</html>
