@@ -73,10 +73,30 @@ body{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   min-height:60vh;text-align:center;gap:1.5rem;
 }
+.auth-gate-card{
+  width:min(100%, 420px);
+  background:rgba(20,12,38,0.8);
+  border:1px solid rgba(160,80,255,0.2);
+  border-radius:24px;
+  box-shadow:0 28px 64px rgba(0,0,0,0.45);
+  padding:2rem 1.4rem;
+  display:flex;flex-direction:column;align-items:center;gap:1rem;
+}
 .auth-gate-icon{font-size:3.5rem;animation:pulse-icon 2s ease-in-out infinite;}
 @keyframes pulse-icon{0%,100%{transform:scale(1);}50%{transform:scale(1.08);};}
 .auth-gate h2{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;}
 .auth-gate p{color:var(--muted);font-size:.9rem;max-width:320px;line-height:1.6;}
+.auth-gate-form{width:100%;display:flex;flex-direction:column;gap:.85rem;text-align:left;}
+.auth-gate-field{display:flex;flex-direction:column;gap:.45rem;font-size:.78rem;color:var(--muted);}
+.auth-gate-field span{padding-left:2px;}
+.auth-gate-field input{
+  width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);color:var(--text);outline:none;
+  font:inherit;transition:border-color .2s,box-shadow .2s;
+}
+.auth-gate-field input:focus{
+  border-color:rgba(160,80,255,0.55);box-shadow:0 0 0 4px rgba(160,80,255,0.12);
+}
 .auth-btn{
   padding:12px 28px;border-radius:30px;border:none;cursor:pointer;
   font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
@@ -84,6 +104,10 @@ body{
   transition:opacity .2s,transform .15s;
 }
 .auth-btn:hover{opacity:.88;transform:translateY(-1px);}
+.auth-btn:disabled{opacity:.7;cursor:wait;transform:none;}
+.auth-gate-msg{min-height:18px;font-size:.78rem;color:var(--muted);}
+.auth-gate-link{font-size:.75rem;color:rgba(180,141,255,0.75);text-decoration:none;}
+.auth-gate-link:hover{color:rgba(180,141,255,1);}
 
 /* ── PROFILE BLOCK ── */
 .profile-card{
@@ -737,10 +761,24 @@ body{
 
   <!-- AUTH GATE (shown while checking) -->
   <div id="authGate" class="auth-gate" style="display:none;">
-    <div class="auth-gate-icon">🔐</div>
-    <h2>Требуется авторизация</h2>
-    <p>Войди в FernieID, чтобы получить доступ к своей коллекции карточек.</p>
-    <button class="auth-btn" onclick="window.location.href='/'">Войти в FernieID</button>
+    <div class="auth-gate-card">
+      <div class="auth-gate-icon">🔐</div>
+      <h2>Вход в FernieID</h2>
+      <p>Войди в свой аккаунт, чтобы открыть свою коллекцию карточек.</p>
+      <div class="auth-gate-form">
+        <label class="auth-gate-field">
+          <span>Логин</span>
+          <input id="collectionLoginUsername" type="text" placeholder="Введите логин" autocomplete="username">
+        </label>
+        <label class="auth-gate-field">
+          <span>Пароль</span>
+          <input id="collectionLoginPassword" type="password" placeholder="Введите пароль" autocomplete="current-password">
+        </label>
+        <button id="collectionLoginBtn" class="auth-btn">Войти</button>
+        <div id="collectionLoginMsg" class="auth-gate-msg"></div>
+      </div>
+      <a class="auth-gate-link" href="/">Открыть сайт FernieID</a>
+    </div>
   </div>
 
   <!-- TG GATE (no telegram) -->
@@ -994,6 +1032,8 @@ let marketSubTab = 'listings'; // 'listings' | 'my'
 //  INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
+  bindCollectionLogin();
+
   // Читаем userId из localStorage (как в index.html)
   let savedSession = null;
   try {
@@ -1036,6 +1076,147 @@ document.addEventListener('DOMContentLoaded', async () => {
     showGate('authGate');
   }
 });
+
+function bindCollectionLogin() {
+  const btn = document.getElementById('collectionLoginBtn');
+  const username = document.getElementById('collectionLoginUsername');
+  const password = document.getElementById('collectionLoginPassword');
+  if (!btn || !username || !password) return;
+
+  btn.addEventListener('click', handleCollectionLogin);
+  password.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleCollectionLogin();
+  });
+}
+
+async function handleCollectionLogin() {
+  const username = document.getElementById('collectionLoginUsername').value.trim();
+  const password = document.getElementById('collectionLoginPassword').value;
+  const msg = document.getElementById('collectionLoginMsg');
+  const btn = document.getElementById('collectionLoginBtn');
+
+  if (!username || !password) {
+    msg.textContent = 'Заполни логин и пароль';
+    msg.style.color = 'var(--red)';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Проверяем...';
+  msg.style.color = 'var(--muted)';
+  msg.textContent = 'Проверяем...';
+
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: 'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f',
+        username,
+        password
+      })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = data.error || 'Неверный логин или пароль';
+      btn.disabled = false;
+      btn.textContent = 'Войти';
+      return;
+    }
+
+    if (data.require2fa) {
+      showCollection2FAModal(data.userId);
+      return;
+    }
+
+    finalizeCollectionLogin(data, username);
+  } catch (e) {
+    console.error('Collection login error:', e);
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Не удалось войти. Попробуй ещё раз.';
+    btn.disabled = false;
+    btn.textContent = 'Войти';
+  }
+}
+
+function finalizeCollectionLogin(data, username) {
+  const user = {
+    id: data.userId || data.id,
+    username: data.username || username,
+    role: data.role || 'user',
+    regDate: data.regDate || new Date().toISOString()
+  };
+
+  localStorage.setItem('fernieid_session', JSON.stringify(user));
+  localStorage.setItem('fernieid_user', JSON.stringify(user));
+  window.location.reload();
+}
+
+function showCollection2FAModal(userId) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:2000;';
+  overlay.innerHTML = `
+    <div style="width:min(100%, 360px); background:rgba(16,11,26,0.98); border:1px solid rgba(180,141,255,0.2); border-radius:22px; padding:1.5rem 1.2rem; color:var(--text); box-shadow:0 28px 64px rgba(0,0,0,0.5);">
+      <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;text-align:center;margin-bottom:.5rem;">🔐 Подтверждение входа</div>
+      <div style="font-size:.78rem;color:rgba(255,255,255,.55);text-align:center;line-height:1.6;margin-bottom:1rem;">Код отправлен в Telegram. Введи его ниже.</div>
+      <input id="collection2faCode" type="text" maxlength="6" placeholder="000000" style="width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#fff;text-align:center;letter-spacing:8px;font-size:1.15rem;outline:none;" autocomplete="one-time-code">
+      <div id="collection2faMsg" style="min-height:18px;margin-top:10px;font-size:.78rem;color:var(--red);text-align:center;"></div>
+      <button id="collection2faBtn" class="auth-btn" style="width:100%;margin-top:.75rem;">Подтвердить</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const codeInput = overlay.querySelector('#collection2faCode');
+  const msg = overlay.querySelector('#collection2faMsg');
+  const btn = overlay.querySelector('#collection2faBtn');
+  codeInput.focus();
+
+  const verify = async () => {
+    const code = codeInput.value.trim();
+    if (!code) {
+      msg.textContent = 'Введи код';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Проверяем...';
+    msg.textContent = '';
+
+    try {
+      const res = await fetch(`${API}/api/auth/verify-2fa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: 'fid_48919a000140bf6b7e7767281ffc31329647d6a5c133fe8f',
+          userId,
+          code
+        })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        msg.textContent = data.error || 'Неверный код';
+        btn.disabled = false;
+        btn.textContent = 'Подтвердить';
+        return;
+      }
+
+      overlay.remove();
+      finalizeCollectionLogin(data, data.username || '');
+    } catch (e) {
+      console.error('Collection 2FA error:', e);
+      msg.textContent = 'Ошибка проверки кода';
+      btn.disabled = false;
+      btn.textContent = 'Подтвердить';
+    }
+  };
+
+  btn.addEventListener('click', verify);
+  codeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') verify();
+  });
+}
 
 function showGate(id) {
   document.getElementById('authGate').style.display = 'none';
