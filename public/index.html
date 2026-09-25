@@ -1724,8 +1724,19 @@ const PLAN_DEFS = {
   }
 };
 
+const SUBSCRIPTION_OPTIONS = [
+  { key: '1m', label: '5 минут', price: 5 },
+  { key: '12h', label: '12 часов', price: 29 },
+  { key: '24h', label: '24 часа', price: 49 },
+  { key: '3d', label: '3 дня', price: 89 },
+  { key: '7d', label: '7 дней', price: 169 },
+  { key: '15d', label: '15 дней', price: 299 },
+  { key: '30d', label: '30 дней', price: 349 },
+  { key: '6m', label: '6 месяцев', price: 449 },
+  { key: '1y', label: '1 год', price: 799 }
+];
+
 function renderPlanCard(def, state){
-  // state: { needsTelegram, active, error }
   const featuresHtml = def.features.map(([ic, label]) => `
     <div class="plan-feature"><span class="pf-ico">${icon(ic)}</span>${escapeHtml(label)}</div>`).join('');
   const termsHtml = (def.terms||[]).map(([l, v]) => `
@@ -1737,6 +1748,8 @@ function renderPlanCard(def, state){
     ctaHtml = `<button class="plan-cta ${def.ctaClass}" data-goto-security="1">${icon('link')}Привязать Telegram</button>`;
   } else if(state.active){
     ctaHtml = `<button class="plan-cta is-disabled" disabled>${icon('check')}Уже активна</button>`;
+  } else if(def.key === 'fp'){
+    ctaHtml = `<button class="plan-cta ${def.ctaClass}" data-open-payment="fp">${def.ctaLabel} →</button>`;
   } else {
     ctaHtml = `<a class="plan-cta ${def.ctaClass}" href="https://t.me/FernieXBot" target="_blank" rel="noopener noreferrer">${def.ctaLabel} →</a>`;
   }
@@ -1757,6 +1770,239 @@ function renderPlanCard(def, state){
       ${ctaHtml}
       <div class="plan-pay-row">${payHtml}</div>
     </div>`;
+}
+
+function renderPaymentOptionList(){
+  return SUBSCRIPTION_OPTIONS.map(option => `
+    <button class="pay-option" type="button" data-duration-key="${option.key}" data-duration-label="${option.label}" data-duration-price="${option.price}">
+      <div class="pay-option-main">
+        <label>${escapeHtml(option.label)}</label>
+        <small>Подписка Fernie+</small>
+      </div>
+      <div class="pay-option-price">${option.price} ₽</div>
+    </button>`).join('');
+}
+
+async function openPlanPaymentModal(planKey){
+  if(!currentUser || !currentUser.telegram_id){
+    showToastSafe('Сначала привяжи Telegram в разделе Безопасность');
+    switchSection('security');
+    return;
+  }
+
+  openModal(`
+    <div class="pay-shell">
+      <div class="pay-hero">
+        <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
+        <div class="pay-title">Подписка Fernie+</div>
+        <div class="pay-subtitle">Выбери срок и оплату банковской картой через YooKassa</div>
+      </div>
+      <div class="pay-options">${renderPaymentOptionList()}</div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
+      </div>
+    </div>
+  `);
+
+  document.querySelectorAll('.pay-option').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const durationKey = btn.dataset.durationKey;
+      const durationLabel = btn.dataset.durationLabel;
+      const durationPrice = Number(btn.dataset.durationPrice || 0);
+      await startYookassaFlow(planKey, durationKey, durationLabel, durationPrice);
+    });
+  });
+}
+
+async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
+  if(!currentUser || !currentUser.telegram_id){
+    showToastSafe('Сначала привяжи Telegram в разделе Безопасность');
+    switchSection('security');
+    closeModal();
+    return;
+  }
+
+  const paymentHtml = `
+    <div class="pay-shell">
+      <div class="pay-hero">
+        <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
+        <div class="pay-title">Создаём оплату</div>
+        <div class="pay-subtitle">Подписка Fernie+ • ${escapeHtml(durationLabel)} • ${amount} ₽</div>
+      </div>
+      <div class="pay-status-box">
+        <div class="pay-spinner"></div>
+        <div class="pay-status-title">Ссылка на оплату создаётся…</div>
+        <div class="pay-status-text">Нужно время на генерацию ссылки YooKassa. После этого откроется окно оплаты, а мы будем следить за статусом до завершения.</div>
+      </div>
+      <div class="modal-actions" style="margin-top:0;">
+        <button class="btn btn-outline" id="cancelPaymentBtn">Отменить оплату</button>
+      </div>
+    </div>`;
+
+  $('genericModalBox').innerHTML = paymentHtml;
+
+  const cancelBtn = $('cancelPaymentBtn');
+  let cancelled = false;
+  let currentPaymentId = null;
+  let paymentUrl = '';
+  let pollingTimer = null;
+
+  const stopPolling = () => {
+    if(pollingTimer){ clearInterval(pollingTimer); pollingTimer = null; }
+  };
+
+  const showSuccess = async () => {
+    stopPolling();
+    $('genericModalBox').innerHTML = `
+      <div class="pay-shell">
+        <div class="pay-hero">
+          <div class="pay-success-badge">${icon('check')}</div>
+          <div class="pay-title">Оплата прошла успешно</div>
+          <div class="pay-subtitle">Подписка Fernie+ активируется автоматически.</div>
+        </div>
+      </div>`;
+    try {
+      const activateRes = await fetch(`${API}/api/fernieplus/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: currentUser.telegram_id,
+          plan_key: durationKey,
+          method: 'yookassa',
+          amount,
+          username: currentUser.username
+        })
+      });
+      const activateData = await activateRes.json();
+      if(!activateData.success){
+        showToastSafe(activateData.error || 'Не удалось активировать подписку');
+      }
+    } catch (error) {
+      showToastSafe('Подписка создана, но автоматическая активация временно недоступна');
+    }
+    await loadSubscription();
+    setTimeout(() => closeModal(), 1800);
+  };
+
+  const showCancelled = () => {
+    stopPolling();
+    $('genericModalBox').innerHTML = `
+      <div class="pay-shell">
+        <div class="pay-hero">
+          <div class="pay-ring" style="background:linear-gradient(135deg, rgba(255,255,255,.8), rgba(243,211,209,.7));"><div class="pay-ring-inner" style="background:#d4493d;">${icon('cross')}</div></div>
+          <div class="pay-title">Оплата отменена</div>
+          <div class="pay-subtitle">Платёж не завершён. Можно выбрать другой срок и повторить попытку.</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-dark" onclick="closeModal()">Закрыть</button>
+        </div>
+      </div>`;
+  };
+
+  cancelBtn.addEventListener('click', () => {
+    cancelled = true;
+    showCancelled();
+  });
+
+  try {
+    const res = await fetch(`${API}/api/fernieplus/create-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        planKey: durationKey,
+        planLabel: durationLabel,
+        amount,
+        telegramId: currentUser.telegram_id,
+        username: currentUser.username,
+        source: 'remaster'
+      })
+    });
+    const data = await res.json();
+
+    if(!data.success){
+      $('genericModalBox').innerHTML = `
+        <div class="pay-shell">
+          <div class="pay-hero">
+            <div class="pay-ring" style="background:linear-gradient(135deg, rgba(255,255,255,.8), rgba(243,211,209,.7));"><div class="pay-ring-inner" style="background:#d4493d;">${icon('warn')}</div></div>
+            <div class="pay-title">Не удалось создать платёж</div>
+            <div class="pay-subtitle">${escapeHtml(data.error || 'Попробуйте ещё раз позже.')}</div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-dark" onclick="closeModal()">Закрыть</button>
+          </div>
+        </div>`;
+      return;
+    }
+
+    currentPaymentId = data.paymentId || data.id || null;
+    paymentUrl = data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru';
+
+    $('genericModalBox').innerHTML = `
+      <div class="pay-shell">
+        <div class="pay-hero">
+          <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
+          <div class="pay-title">Ссылка на оплату создана</div>
+          <div class="pay-subtitle">Дальше можно перейти в ЮKassa и оплатить ${amount} ₽ за ${escapeHtml(durationLabel)}.</div>
+        </div>
+        <div class="pay-status-box">
+          <div class="pay-status-title">Ожидание оплаты</div>
+          <div class="pay-status-text">Сайт следит за статусом оплаты до успешного завершения или отмены.</div>
+        </div>
+        <div class="pay-action-row">
+          <button class="btn btn-dark" id="openPayBtn">Оплатить ${amount} ₽</button>
+          <button class="btn btn-outline" id="cancelPaymentConfirmBtn">Отмена</button>
+        </div>
+      </div>`;
+
+    const openPayBtn = $('openPayBtn');
+    const cancelPaymentConfirmBtn = $('cancelPaymentConfirmBtn');
+
+    openPayBtn.addEventListener('click', () => {
+      if(paymentUrl) window.open(paymentUrl, '_blank', 'noopener');
+    });
+
+    cancelPaymentConfirmBtn.addEventListener('click', () => {
+      cancelled = true;
+      showCancelled();
+    });
+
+    const pollStatus = async () => {
+      if(cancelled || !currentPaymentId) return;
+      try {
+        const statusRes = await fetch(`${API}/api/fernieplus/payment-status/${encodeURIComponent(currentPaymentId)}`);
+        const statusData = await statusRes.json();
+        const paymentStatus = statusData.status || 'pending';
+
+        if(paymentStatus === 'succeeded') {
+          await showSuccess();
+          return;
+        }
+        if(paymentStatus === 'canceled' || paymentStatus === 'rejected') {
+          cancelled = true;
+          showCancelled();
+          return;
+        }
+      } catch (error) {
+        // silent polling retry
+      }
+    };
+
+    pollingTimer = setInterval(pollStatus, 2500);
+    await pollStatus();
+  } catch (error) {
+    $('genericModalBox').innerHTML = `
+      <div class="pay-shell">
+        <div class="pay-hero">
+          <div class="pay-ring" style="background:linear-gradient(135deg, rgba(255,255,255,.8), rgba(243,211,209,.7));"><div class="pay-ring-inner" style="background:#d4493d;">${icon('warn')}</div></div>
+          <div class="pay-title">Ошибка оплаты</div>
+          <div class="pay-subtitle">Попробуй повторить попытку или оформи подписку позже.</div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-dark" onclick="closeModal()">Закрыть</button>
+        </div>
+      </div>`;
+  }
 }
 
 async function loadSubscription(){
@@ -1780,6 +2026,9 @@ async function loadSubscription(){
 
     body.querySelectorAll('[data-goto-security]').forEach(btn => {
       btn.addEventListener('click', () => switchSection('security'));
+    });
+    body.querySelectorAll('[data-open-payment]').forEach(btn => {
+      btn.addEventListener('click', () => openPlanPaymentModal(btn.dataset.openPayment));
     });
   } catch(e){
     body.innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div><div class="desc">Попробуй обновить страницу.</div></div>`;
