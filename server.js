@@ -4490,6 +4490,149 @@ app.get('/api/search', async (req, res) => {
 });
 
 
+const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID;
+const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY;
+const YOOKASSA_DEMO_MODE = process.env.YOOKASSA_DEMO_MODE === 'true' || (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY);
+
+const yookassaDemoPayments = new Map();
+
+function getYookassaAuthHeader() {
+  if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY) return null;
+  return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64');
+}
+
+app.post('/api/fernieplus/create-payment', async (req, res) => {
+  const { userId, planKey, planLabel, amount, telegramId, username, source } = req.body;
+  if (!userId || !planKey || !amount || !telegramId) {
+    return res.json({ success: false, error: 'Нет обязательных полей' });
+  }
+
+  const paymentAmount = Number(amount);
+  if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+    return res.json({ success: false, error: 'Некорректная сумма' });
+  }
+
+  const demoId = `demo_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+  if (YOOKASSA_DEMO_MODE || !getYookassaAuthHeader()) {
+    const mockUrl = `https://example.com/pay/${demoId}`;
+    yookassaDemoPayments.set(demoId, {
+      id: demoId,
+      status: 'pending',
+      amount: paymentAmount,
+      planKey,
+      planLabel: planLabel || 'Fernie+',
+      telegramId,
+      username: username || 'User',
+      source: source || 'remaster',
+      confirmationUrl: mockUrl,
+      createdAt: Date.now()
+    });
+    return res.json({
+      success: true,
+      paymentId: demoId,
+      id: demoId,
+      amount: paymentAmount,
+      confirmationUrl: mockUrl,
+      confirmation_url: mockUrl,
+      status: 'pending',
+      demoMode: true
+    });
+  }
+
+  try {
+    const apiRes = await fetch('https://api.yookassa.ru/v3/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': getYookassaAuthHeader(),
+        'Idempotence-Key': `${userId}_${Date.now()}`
+      },
+      body: JSON.stringify({
+        amount: { value: paymentAmount.toFixed(2), currency: 'RUB' },
+        capture: true,
+        confirmation: {
+          type: 'redirect',
+          return_url: 'https://fernie-x.vercel.app/'
+        },
+        description: `Fernie+ ${planLabel || 'Подписка'} ${paymentAmount} ₽`,
+        metadata: {
+          userId,
+          telegramId,
+          username: username || 'User',
+          planKey,
+          source: source || 'remaster'
+        }
+      })
+    });
+
+    const paymentData = await apiRes.json();
+    if (!apiRes.ok) {
+      return res.json({ success: false, error: paymentData?.description || 'Ошибка создания платежа YooKassa' });
+    }
+
+    const paymentId = paymentData.id;
+    yookassaDemoPayments.set(paymentId, {
+      id: paymentId,
+      status: paymentData.status || 'pending',
+      amount: paymentAmount,
+      planKey,
+      planLabel: planLabel || 'Fernie+',
+      telegramId,
+      username: username || 'User',
+      source: source || 'remaster',
+      confirmationUrl: paymentData.confirmation?.confirmation_url || paymentData.confirmation_url || 'https://yookassa.ru',
+      createdAt: Date.now()
+    });
+
+    return res.json({
+      success: true,
+      paymentId,
+      id: paymentId,
+      amount: paymentAmount,
+      confirmationUrl: paymentData.confirmation?.confirmation_url || paymentData.confirmation_url || 'https://yookassa.ru',
+      confirmation_url: paymentData.confirmation?.confirmation_url || paymentData.confirmation_url || 'https://yookassa.ru',
+      status: paymentData.status || 'pending',
+      demoMode: false
+    });
+  } catch (e) {
+    return res.json({ success: false, error: e.message || 'Ошибка сервера' });
+  }
+});
+
+app.get('/api/fernieplus/payment-status/:paymentId', async (req, res) => {
+  const { paymentId } = req.params;
+  if (!paymentId) return res.json({ success: false, status: 'unknown' });
+
+  if (YOOKASSA_DEMO_MODE || !getYookassaAuthHeader()) {
+    const payment = yookassaDemoPayments.get(paymentId);
+    if (!payment) return res.json({ success: false, status: 'unknown' });
+
+    if (payment.status !== 'succeeded' && Math.random() < 0.12) {
+      payment.status = 'succeeded';
+    }
+
+    return res.json({ success: true, status: payment.status, paymentId, amount: payment.amount });
+  }
+
+  try {
+    const apiRes = await fetch(`https://api.yookassa.ru/v3/payments/${paymentId}`, {
+      headers: {
+        'Authorization': getYookassaAuthHeader(),
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await apiRes.json();
+    if (!apiRes.ok) {
+      return res.json({ success: false, status: 'unknown', error: data?.description || 'Ошибка статуса платежа' });
+    }
+
+    return res.json({ success: true, status: data.status || 'pending', paymentId, amount: Number(data.amount?.value || 0) });
+  } catch (e) {
+    return res.json({ success: false, status: 'unknown', error: e.message || 'Ошибка статуса платежа' });
+  }
+});
+
 // ══════════════════════════════════════════
 //  Fernie+ ACTIVATE — активация через сайт
 // ══════════════════════════════════════════
