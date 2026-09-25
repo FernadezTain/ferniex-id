@@ -1736,6 +1736,10 @@ const SUBSCRIPTION_OPTIONS = [
   { key: '1y', label: '1 год', price: 799 }
 ];
 
+function hasTelegramLinked(){
+  return !!(currentUser && (currentUser.telegramLinked || currentUser.telegram_id));
+}
+
 function renderPlanCard(def, state){
   const featuresHtml = def.features.map(([ic, label]) => `
     <div class="plan-feature"><span class="pf-ico">${icon(ic)}</span>${escapeHtml(label)}</div>`).join('');
@@ -1784,7 +1788,7 @@ function renderPaymentOptionList(){
 }
 
 async function openPlanPaymentModal(planKey){
-  if(!currentUser || !currentUser.telegram_id){
+  if(!hasTelegramLinked()){
     showToastSafe('Сначала привяжи Telegram в разделе Безопасность');
     switchSection('security');
     return;
@@ -1815,7 +1819,7 @@ async function openPlanPaymentModal(planKey){
 }
 
 async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
-  if(!currentUser || !currentUser.telegram_id){
+  if(!hasTelegramLinked()){
     showToastSafe('Сначала привяжи Telegram в разделе Безопасность');
     switchSection('security');
     closeModal();
@@ -2016,8 +2020,9 @@ async function loadSubscription(){
     const fp = await fpRes.json();
     const pro = await proRes.json();
 
-    const fpState = { needsTelegram: !fp.success, active: !!fp.active };
-    const proState = { needsTelegram: !pro.success, active: !!pro.active };
+    const linked = hasTelegramLinked();
+    const fpState = { needsTelegram: !linked, active: !!fp.active };
+    const proState = { needsTelegram: !linked, active: !!pro.active };
 
     body.innerHTML = `<div class="plan-grid">
       ${renderPlanCard(PLAN_DEFS.fp, fpState)}
