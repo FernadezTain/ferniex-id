@@ -1605,7 +1605,7 @@
             telegram_id: user.telegram_id || user.id,
             plan_key: duration.key,
             method,
-            amount: Number(duration.price),
+            amount: Number(getPriceAmount(duration, method)),
             payment_id: paymentId,
             username: user.username || 'user'
           })
@@ -1630,7 +1630,7 @@
       try {
         const response = await fetch(`/api/fernieplus/payment-status/${encodeURIComponent(paymentId)}`);
         const data = await response.json();
-        if (data?.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(data.status)) {
+        if (data?.success && ['succeeded', 'paid'].includes(data.status)) {
           return await activateSubscription('yookassa', plan, duration, paymentId);
         }
         if (data?.success && ['canceled', 'failed', 'rejected'].includes(data.status)) {
@@ -1750,7 +1750,6 @@
         button.disabled = false;
         button.classList.remove('is-loading');
         button.textContent = `Проверить оплату ${formatPriceDisplay(duration.price, 'yookassa')}`;
-        showInlineStatus('pending', 'Платёж ещё не подтверждён. Нажмите кнопку, чтобы повторить проверку.');
         state.pendingPaymentId = pending.paymentId;
       }
     }
