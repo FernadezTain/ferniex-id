@@ -4637,14 +4637,16 @@ app.get('/api/fernieplus/payment-status/:paymentId', async (req, res) => {
 //  Fernie+ ACTIVATE — активация через сайт
 // ══════════════════════════════════════════
 app.post('/api/fernieplus/activate', async (req, res) => {
-  const { telegram_id, plan_key, method, amount, username } = req.body;
-  if (!telegram_id || !plan_key || !method || !amount)
+  const { userId, telegram_id, plan_key, method, amount, username } = req.body;
+  if ((!userId && !telegram_id) || !plan_key || !method || !amount)
     return res.json({ success: false, error: 'Нет данных' });
   try {
+    const resolvedTelegramId = userId ? await resolveTelegramId(userId) : telegram_id;
+    if (!resolvedTelegramId) return res.json({ success: false, error: 'Telegram не привязан' });
     const botRes = await fetch(`${BOT_URL}/api/fernieplus/activate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id, plan_key, method, amount, username })
+      body: JSON.stringify({ telegram_id: resolvedTelegramId, plan_key, method, amount, username })
     });
     const data = await botRes.json();
     res.json(data);
