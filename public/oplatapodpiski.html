@@ -1397,7 +1397,7 @@
       }
     }
 
-    async function activateSubscription(method, plan, duration) {
+    async function activateSubscription(method, plan, duration, paymentId) {
       const user = getUserFromState();
       const payload = {
         userId: user.id,
@@ -1405,6 +1405,7 @@
         plan_key: duration.key,
         method,
         amount: Number(duration.price),
+        payment_id: paymentId,
         username: user.username || 'user'
       };
 
@@ -1414,7 +1415,8 @@
       }
 
       try {
-        const response = await fetch('/api/fernieplus/activate', {
+        const endpoint = plan.key === 'pro' ? '/api/fernieplus/pro/activate' : '/api/fernieplus/activate';
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -1441,8 +1443,7 @@
         const response = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
         const data = await response.json();
         if (data && data.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(data.status)) {
-          await activateSubscription('yookassa', plan, duration);
-          return true;
+          return await activateSubscription('yookassa', plan, duration, paymentId);
         }
         if (data && data.success && ['canceled', 'failed', 'rejected'].includes(data.status)) {
           showPaymentResult('error', 'Оплата не подтверждена. Попробуйте ещё раз.');
@@ -1460,6 +1461,7 @@
       const payload = {
         userId: user.id,
         planKey: duration.key,
+        planType: plan.key,
         planLabel: plan.title,
         amount,
         telegramId: user.telegram_id || user.id || null,
