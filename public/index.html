@@ -547,6 +547,11 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;}
 .plan-badge{display:inline-flex;align-items:center;gap:5px;font-size:.62rem;font-weight:800;letter-spacing:.5px;text-transform:uppercase;padding:4px 10px;border-radius:100px;background:var(--field);border:1px solid var(--field-border);color:#8a7a63;width:fit-content;transition:transform .3s cubic-bezier(.22,1,.36,1);}
 .plan-badge.pro{background:#efe4fb;border-color:#ddc8f5;color:#7c4fc9;}
+.plan-price-wrap{display:flex;align-items:flex-end;gap:.45rem;flex-wrap:wrap;min-height:52px;}
+.plan-price-main{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.8rem, 3vw, 2.6rem);line-height:1;letter-spacing:-.07em;display:inline-flex;align-items:center;justify-content:flex-start;min-width:120px;transform-origin:center;}
+.plan-price-main.price-animating{animation:priceSlot .28s cubic-bezier(.2,.8,.2,1);}
+.plan-price-sub{font-size:.78rem;color:var(--muted);margin-bottom:7px;}
+@keyframes priceSlot{0%{opacity:0;transform:translateY(8px) scale(.94);}45%{opacity:1;transform:translateY(-3px) scale(1.03);}100%{opacity:1;transform:translateY(0) scale(1);}}
 .plan-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.3px;margin-top:.35rem;}
 .plan-desc{font-size:.78rem;color:var(--muted);line-height:1.4;margin-top:.1rem;}
 .plan-features{display:flex;flex-direction:column;gap:.4rem;}
@@ -560,6 +565,11 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-term{display:flex;align-items:baseline;gap:.4rem;font-size:.76rem;line-height:1.4;color:var(--muted);}
 .plan-term::before{content:'';flex-shrink:0;width:4px;height:4px;border-radius:50%;background:var(--muted);margin-top:.5em;opacity:.6;transition:transform .25s, opacity .25s;}
 .plan-term b{color:var(--ink);font-weight:700;}
+.plan-duration-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;}
+.plan-duration-pill{padding:.55rem .6rem;border-radius:12px;border:1px solid var(--field-border);background:var(--field);color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;gap:.15rem;cursor:pointer;transition:transform .18s ease, border-color .18s ease, background .18s ease;}
+.plan-duration-pill.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);}
+.plan-duration-label{font-size:.62rem;font-weight:700;color:var(--muted);}
+.plan-duration-price{font-size:.8rem;font-weight:800;letter-spacing:-.02em;}
 .plan-cta{margin-top:.2rem;width:100%;padding:12px;border-radius:999px;border:none;font-family:'Inter',sans-serif;font-weight:700;font-size:.84rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;color:#fff;background:linear-gradient(120deg,#e2914f,#e2564f);background-size:160% 160%;background-position:0% 50%;transition:opacity .15s, transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, background-position .5s;text-decoration:none;}
 .plan-cta:hover{opacity:.96;box-shadow:0 12px 22px -10px rgba(226,86,79,.45);}
 .plan-cta:active{transform:scale(.98);}
@@ -567,7 +577,8 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-cta.pro:hover{box-shadow:0 12px 22px -10px rgba(95,124,232,.45);}
 .plan-cta.is-disabled{background:var(--field);color:var(--muted);border:1px solid var(--field-border);cursor:default;pointer-events:none;}
 .plan-pay-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;}
-.plan-pay-chip{font-size:.66rem;font-weight:700;padding:4px 10px;border-radius:100px;background:var(--field);border:1px solid var(--field-border);color:var(--muted);transition:transform .22s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s, color .2s;}
+.plan-pay-chip{font-size:.66rem;font-weight:700;padding:4px 10px;border-radius:100px;background:var(--field);border:1px solid var(--field-border);color:var(--muted);transition:transform .22s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s, color .2s;cursor:pointer;}
+.plan-pay-chip.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18);color:var(--ink);}
 .plan-ribbon{position:absolute;top:14px;right:-32px;transform:rotate(40deg);background:linear-gradient(120deg,#8a6be0,#5f7ce8);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 34px;z-index:2;box-shadow:0 3px 8px rgba(90,60,180,.25);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
 
 /* --- живые hover-анимации карточек подписки (только для устройств с точным курсором) --- */
@@ -1717,12 +1728,17 @@ async function loadSectionData(name){
 const PLAN_DEFS = {
   fp: {
     key: 'fp', badgeClass: '', badgeLabel: 'Стандарт', title: 'Fernie+',
-    desc: 'Все базовые возможности — оплата семенами или DC прямо через сайт.',
+    desc: 'Все базовые возможности — оплата семенами, DC или картой через YooKassa.',
     features: [
       ['pencil', 'Стиль профиля'],
       ['spark', 'Сниженный КД'],
       ['key', 'Безлимит /ai'],
       ['crown', 'Эксклюзивные бонусы']
+    ],
+    methods: [
+      { id: 'seeds', label: 'Семена', symbol: '🌱' },
+      { id: 'dc', label: 'DC', symbol: 'DC' },
+      { id: 'yookassa', label: 'ЮKassa', symbol: '₽' }
     ],
     terms: [
       ['Срок', '30 дней с момента активации'],
@@ -1730,16 +1746,20 @@ const PLAN_DEFS = {
       ['Продление', 'вручную, автосписания нет'],
       ['Возврат', 'не производится после активации']
     ],
-    ctaClass: '', ctaLabel: 'Выбрать Fernie+', payChips: ['Семена', 'DC']
+    ctaClass: '', ctaLabel: 'Выбрать Fernie+', payChips: ['seeds', 'dc', 'yookassa'], popular: false
   },
   pro: {
     key: 'pro', badgeClass: 'pro', badgeLabel: 'Pro', title: 'Fernie+ Pro',
-    desc: 'Максимальные возможности — оплата через Telegram Stars.',
+    desc: 'Максимальные возможности — оплата через Telegram Stars или картой YooKassa.',
     features: [
       ['check', 'Всё из Fernie+'],
       ['bars', 'Pro-модели ИИ'],
       ['joystick', 'Эксклюзив в игре'],
       ['crown', 'VIP поддержка']
+    ],
+    methods: [
+      { id: 'stars', label: 'Telegram Stars', symbol: '⭐' },
+      { id: 'yookassa', label: 'ЮKassa', symbol: '₽' }
     ],
     terms: [
       ['Срок', '30 дней с момента активации'],
@@ -1747,7 +1767,7 @@ const PLAN_DEFS = {
       ['Продление', 'вручную, автосписания нет'],
       ['Возврат', 'не производится после активации']
     ],
-    ctaClass: 'pro', ctaLabel: 'Выбрать Fernie+ Pro', payChips: ['Telegram Stars'], popular: true
+    ctaClass: 'pro', ctaLabel: 'Выбрать Fernie+ Pro', payChips: ['stars', 'yookassa'], popular: true
   }
 };
 
@@ -1767,12 +1787,57 @@ function hasTelegramLinked(){
   return !!(currentUser && (currentUser.telegramLinked || currentUser.telegram_id));
 }
 
+const planSelectionState = {
+  fp: { methodId: 'seeds', durationKey: '30d' },
+  pro: { methodId: 'stars', durationKey: '30d' }
+};
+
+function getPlanMethod(def, methodId){
+  return (def.methods || []).find(item => item.id === methodId) || (def.methods || [])[0];
+}
+
+function getSelectedDuration(planKey){
+  const selected = planSelectionState[planKey] || { methodId: 'seeds', durationKey: '30d' };
+  return SUBSCRIPTION_OPTIONS.find(item => item.key === selected.durationKey) || SUBSCRIPTION_OPTIONS[6];
+}
+
+function getPlanDisplayPrice(amount, methodId){
+  if(methodId === 'seeds') return `${amount} 🌱`;
+  if(methodId === 'dc') return `${amount} DC`;
+  if(methodId === 'stars') return `${amount} ⭐`;
+  return `${amount} ₽`;
+}
+
 function renderPlanCard(def, state){
   const featuresHtml = def.features.map(([ic, label]) => `
     <div class="plan-feature"><span class="pf-ico">${icon(ic)}</span>${escapeHtml(label)}</div>`).join('');
   const termsHtml = (def.terms||[]).map(([l, v]) => `
     <div class="plan-term"><b>${escapeHtml(l)}:</b> ${escapeHtml(v)}</div>`).join('');
-  const payHtml = def.payChips.map(p => `<span class="plan-pay-chip">${escapeHtml(p)}</span>`).join('');
+
+  const activeMethodId = planSelectionState[def.key]?.methodId || state.activeMethodId || def.methods[0].id;
+  const selectedDuration = getSelectedDuration(def.key);
+  const currentPrice = selectedDuration.price;
+
+  const payHtml = (def.payChips || []).map(methodId => {
+    const method = getPlanMethod(def, methodId) || { id: methodId, symbol: methodId === 'yookassa' ? '₽' : methodId, label: methodId };
+    const isActive = method.id === activeMethodId;
+    return `<button type="button" class="plan-pay-chip ${isActive ? 'active' : ''}" data-plan="${def.key}" data-method="${method.id}">${escapeHtml(method.symbol || method.label)}</button>`;
+  }).join('');
+
+  const durationHtml = SUBSCRIPTION_OPTIONS.map(option => {
+    const isActive = option.key === selectedDuration.key;
+    return `
+      <button
+        type="button"
+        class="plan-duration-pill ${isActive ? 'active' : ''}"
+        data-plan="${def.key}"
+        data-duration-key="${option.key}"
+      >
+        <span class="plan-duration-label">${escapeHtml(option.label)}</span>
+        <span class="plan-duration-price">${getPlanDisplayPrice(option.price, activeMethodId)}</span>
+      </button>
+    `;
+  }).join('');
 
   return `
     <div class="plan-card ${def.key==='pro' ? 'plan-pro' : ''}" data-plan="${def.key}">
@@ -1781,13 +1846,19 @@ function renderPlanCard(def, state){
         <span class="plan-badge ${def.badgeClass}">${def.badgeLabel}</span>
         ${state.active ? `<span class="plan-badge" style="background:#e9f6ec;border-color:#cfe9d5;color:var(--green);">Активна</span>` : ''}
       </div>
+      <div class="plan-price-wrap">
+        <div class="plan-price-main" data-plan-price="${def.key}">${getPlanDisplayPrice(currentPrice, activeMethodId)}</div>
+        <div class="plan-price-sub">/ ${escapeHtml(selectedDuration.label)}</div>
+      </div>
       <div>
         <div class="plan-title">${escapeHtml(def.title)}</div>
         <div class="plan-desc">${escapeHtml(def.desc)}</div>
       </div>
       <div class="plan-features">${featuresHtml}</div>
       ${termsHtml ? `<div class="plan-divider"></div><div class="plan-terms"><div class="plan-terms-label">Условия</div>${termsHtml}</div>` : ''}
+      <div class="plan-duration-grid">${durationHtml}</div>
       <div class="plan-pay-row">${payHtml}</div>
+      <button class="plan-cta ${def.key === 'pro' ? 'pro' : ''}" type="button" data-plan="${def.key}">${def.ctaLabel}</button>
     </div>`;
 }
 
@@ -2091,6 +2162,51 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
   }
 }
 
+function renderSubscriptionCards(fpActive, proActive){
+  const body = $('plansBody');
+  if(!body) return;
+
+  body.innerHTML = `
+    <div class="plan-grid">
+      ${renderPlanCard(PLAN_DEFS.fp, { active: !!fpActive, activeMethodId: planSelectionState.fp.methodId, activeDurationKey: planSelectionState.fp.durationKey })}
+      ${renderPlanCard(PLAN_DEFS.pro, { active: !!proActive, activeMethodId: planSelectionState.pro.methodId, activeDurationKey: planSelectionState.pro.durationKey })}
+    </div>
+    ${renderSubscriptionActionBar(fpActive, proActive)}
+  `;
+
+  body.querySelectorAll('.plan-pay-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const planKey = btn.dataset.plan;
+      planSelectionState[planKey].methodId = btn.dataset.method;
+      renderSubscriptionCards(fpActive, proActive);
+    });
+  });
+
+  body.querySelectorAll('.plan-duration-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const planKey = btn.dataset.plan;
+      planSelectionState[planKey].durationKey = btn.dataset.durationKey;
+      renderSubscriptionCards(fpActive, proActive);
+    });
+  });
+
+  body.querySelectorAll('.plan-cta').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.location.href = 'https://www.ferniex.ru/oplatapodpiski.html';
+    });
+  });
+
+  body.querySelectorAll('[data-subscription-primary]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.location.href = 'https://www.ferniex.ru/oplatapodpiski.html';
+    });
+  });
+
+  body.querySelectorAll('[data-cancel-subscription]').forEach(btn => {
+    btn.addEventListener('click', cancelSubscription);
+  });
+}
+
 async function loadSubscription(){
   if(loaded.subscription) return; loaded.subscription = true;
   const body = $('plansBody');
@@ -2106,35 +2222,7 @@ async function loadSubscription(){
     const fpActive = !!fp.active;
     const proActive = !!pro.active;
 
-    const fpState = { needsTelegram: !linked, active: fpActive };
-    const proState = { needsTelegram: !linked, active: proActive };
-
-    body.innerHTML = `
-      <div class="plan-grid">
-        ${renderPlanCard(PLAN_DEFS.fp, fpState)}
-        ${renderPlanCard(PLAN_DEFS.pro, proState)}
-      </div>
-      ${renderSubscriptionActionBar(fpActive, proActive)}
-    `;
-
-    body.querySelectorAll('[data-subscription-primary]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if(!fpActive && !proActive) return openPlanPaymentModal('fp');
-        if(fpActive && !proActive) return openPlanPaymentModal('pro');
-        return openPlanPaymentModal('pro');
-      });
-    });
-
-    body.querySelectorAll('[data-cancel-subscription]').forEach(btn => {
-      btn.addEventListener('click', cancelSubscription);
-    });
-
-    body.querySelectorAll('[data-goto-security]').forEach(btn => {
-      btn.addEventListener('click', () => switchSection('security'));
-    });
-    body.querySelectorAll('[data-open-payment]').forEach(btn => {
-      btn.addEventListener('click', () => openPlanPaymentModal(btn.dataset.openPayment));
-    });
+    renderSubscriptionCards(fpActive, proActive);
   } catch(e){
     body.innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div><div class="desc">Попробуй обновить страницу.</div></div>`;
   }
