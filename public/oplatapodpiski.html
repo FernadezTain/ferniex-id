@@ -663,6 +663,22 @@
       cursor: pointer;
     }
 
+    .checkout-status {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: rgba(255,255,255,0.74);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .checkout-status.visible {
+      display: block;
+    }
+
     .success-card {
       margin-top: 22px;
       padding: 20px 22px;
@@ -1104,9 +1120,11 @@
         </div>
 
         <div class="checkout-actions">
-          <button class="checkout-submit" type="button" id="confirmPaymentBtn">Продолжить оплату</button>
-          <button class="checkout-reset" type="button" id="resetCheckoutBtn">Сбросить</button>
+          <button class="checkout-reset" type="button" id="backToPlansBtn">Назад</button>
+          <button class="checkout-submit" type="button" id="confirmPaymentBtn">${state.selectedMethod === 'yookassa' ? 'Перейти к оплате' : 'Продолжить оплату'}</button>
         </div>
+
+        <div class="checkout-status" id="checkoutStatus"></div>
       `;
 
       panel.querySelectorAll('[data-change-duration]').forEach(button => {
@@ -1136,7 +1154,7 @@
         });
       });
 
-      panel.querySelector('#resetCheckoutBtn').addEventListener('click', () => {
+      panel.querySelector('#backToPlansBtn').addEventListener('click', () => {
         state.started = false;
         state.selectedMethod = null;
         state.selectedBank = null;
@@ -1156,6 +1174,19 @@
           openStarsPayment(plan, duration);
         }
       });
+    }
+
+    function showSuccessState() {
+      const successCard = document.getElementById('successCard');
+      const title = successCard.querySelector('.success-title');
+      const text = successCard.querySelector('.success-text');
+      title.textContent = 'Подписка оформлена';
+      text.textContent = 'Подписка активируется в течение нескольких секунд. Все настройки уже применены к вашему аккаунту.';
+      successCard.classList.add('show');
+      const panel = document.getElementById('checkoutPanel');
+      panel.classList.remove('visible');
+      panel.innerHTML = '';
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     async function activateClassicPayment(method, plan, duration) {
@@ -1191,43 +1222,6 @@
       }
     }
 
-    function ensurePaymentModal() {
-      let backdrop = document.getElementById('paymentModalBackdrop');
-      if (!backdrop) {
-        backdrop = document.createElement('div');
-        backdrop.id = 'paymentModalBackdrop';
-        backdrop.className = 'payment-modal-backdrop';
-        backdrop.innerHTML = `
-          <div class="payment-modal" role="dialog" aria-modal="true">
-            <div class="payment-modal-header">
-              <strong>Оплата</strong>
-              <button type="button" class="payment-close" aria-label="Закрыть">×</button>
-            </div>
-            <div class="payment-modal-body">
-              <div class="payment-loader">Подготовка оплаты…</div>
-              <div class="payment-info" style="display:flex; align-items:center; justify-content:center; min-height:480px; flex-direction:column; gap:14px; text-align:center; padding:24px; color: rgba(255,255,255,0.82);">
-                <div style="font-size:1.4rem; font-weight:800; letter-spacing:-0.04em;">Оплата открывается в отдельном окне</div>
-                <div style="max-width:430px; color: rgba(255,255,255,0.68); line-height:1.6;">После перехода в ЮKassa нужно завершить оплату. После успешного платежа страница автоматически активирует подписку.</div>
-                <button type="button" class="checkout-submit" style="margin-top:6px;" id="paymentOpenButton">Открыть оплату</button>
-              </div>
-            </div>
-          </div>
-        `;
-        backdrop.querySelector('.payment-close').addEventListener('click', () => {
-          backdrop.classList.remove('open');
-        });
-        document.body.appendChild(backdrop);
-      }
-      return backdrop;
-    }
-
-    function closePaymentModal() {
-      const backdrop = document.getElementById('paymentModalBackdrop');
-      if (backdrop) {
-        backdrop.classList.remove('open');
-      }
-    }
-
     async function activateSubscription(method, plan, duration) {
       const user = getUserFromState();
       const payload = {
@@ -1252,27 +1246,35 @@
         const data = await response.json();
 
         if (data && data.success) {
-          showSuccessState();
+          showPaymentResult('success');
           return true;
         }
 
-        alert(data && data.error ? data.error : 'Не удалось активировать подписку');
+        showPaymentResult('error', data && data.error ? data.error : 'Не удалось активировать подписку');
         return false;
       } catch (error) {
-        alert('Ошибка связи с сервером. Попробуйте позднее.');
+        showPaymentResult('error', 'Ошибка связи с сервером. Попробуйте позднее.');
         return false;
       }
     }
 
-    async function finalizeYookassaSuccess(plan, duration, paymentId) {
-      closePaymentModal();
-      const activated = await activateSubscription('yookassa', plan, duration);
-      if (!activated && paymentId) {
-        const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
-        const statusData = await statusResponse.json();
-        if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
+    async function pollYookassaStatus(paymentId, plan, duration) {
+      if (!paymentId) return;
+
+      try {
+        const response = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
+        const data = await response.json();
+        if (data && data.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(data.status)) {
           await activateSubscription('yookassa', plan, duration);
+          return true;
         }
+        if (data && data.success && ['canceled', 'failed', 'rejected'].includes(data.status)) {
+          showPaymentResult('error', 'Оплата не подтверждена. Попробуйте ещё раз.');
+          return false;
+        }
+        return false;
+      } catch (error) {
+        return false;
       }
     }
 
@@ -1305,63 +1307,25 @@
         const confirmationUrl = data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru';
         const paymentId = data.paymentId || data.id || null;
         const bankLabel = bank && bank !== 'Карта' ? `${bank} · ${duration.label || duration.period}` : `${duration.label || duration.period}`;
-        const modal = ensurePaymentModal();
-        const openBtn = modal.querySelector('#paymentOpenButton');
-        const loader = modal.querySelector('.payment-loader');
-        modal.querySelector('.payment-modal-header strong').textContent = `${plan.title} · ${bankLabel}`;
-        modal.classList.add('open');
-        loader.style.display = 'flex';
 
-        const finish = async () => {
-          await finalizeYookassaSuccess(plan, duration, paymentId);
-        };
+        const panel = document.getElementById('checkoutPanel');
+        const statusNode = panel.querySelector('#checkoutStatus');
+        statusNode.classList.add('visible');
+        statusNode.textContent = 'Переносим на страницу оплаты...';
 
-        if (data.demoMode) {
-          loader.style.display = 'none';
-          const popup = window.open(confirmationUrl, '_blank', 'width=520,height=760,noopener,noreferrer');
-          if (!popup) {
-            alert('Браузер заблокировал всплывающее окно. Разрешите всплывающие окна и попробуйте снова.');
-            return;
-          }
-          setTimeout(() => {
-            popup.focus();
-            finish();
-          }, 1800);
-          return;
-        }
+        sessionStorage.setItem('fernie_pending_payment', JSON.stringify({
+          paymentId,
+          planKey: plan.key,
+          durationKey: duration.key,
+          planTitle: plan.title,
+          amount,
+          bankLabel,
+          createdAt: Date.now()
+        }));
 
-        let popupWindow = null;
-        const openCheckout = () => {
-          popupWindow = window.open(confirmationUrl, '_blank', 'width=520,height=760,noopener,noreferrer');
-          if (!popupWindow) {
-            alert('Браузер заблокировал всплывающее окно. Разрешите всплывающие окна и попробуйте снова.');
-            return false;
-          }
-          popupWindow.focus();
-          loader.style.display = 'none';
-          return true;
-        };
-
-        openBtn.addEventListener('click', openCheckout, { once: true });
-        if (!openCheckout()) return;
-
-        const statusTimer = setInterval(async () => {
-          try {
-            const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
-            const statusData = await statusResponse.json();
-            if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
-              clearInterval(statusTimer);
-              await finish();
-            }
-          } catch (e) {}
-        }, 2000);
-
-        const notice = document.createElement('div');
-        notice.style.marginTop = '12px';
-        notice.style.fontSize = '0.82rem';
-        notice.style.color = 'rgba(255,255,255,0.7)';
-        notice.textContent = `Оплата через ЮKassa для ${plan.title} · ${bankLabel}`;
-        document.getElementById('checkoutPanel').appendChild(notice);
+        setTimeout(() => {
+          window.location.href = confirmationUrl;
+        }, 800);
       } catch (error) {
         alert('Ошибка подключения к ЮKassa. Попробуйте позже.');
       }
@@ -1387,16 +1351,54 @@
       showSuccessState();
     }
 
-    function showSuccessState() {
-      document.getElementById('successCard').classList.add('show');
+    function showPaymentResult(type, message) {
+      const successCard = document.getElementById('successCard');
+      const title = successCard.querySelector('.success-title');
+      const text = successCard.querySelector('.success-text');
+
+      if (type === 'success') {
+        title.textContent = 'Оплата прошла';
+        text.textContent = 'Подписка активирована успешно. Все функции уже доступны на вашем аккаунте.';
+      } else {
+        title.textContent = 'Оплата не подтверждена';
+        text.textContent = message || 'Платёж не подтверждён. Попробуйте оплатить ещё раз или напишите в поддержку.';
+      }
+
+      successCard.classList.add('show');
       const panel = document.getElementById('checkoutPanel');
       panel.classList.remove('visible');
       panel.innerHTML = '';
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
+    async function resumePendingYookassaStatus() {
+      const pending = JSON.parse(sessionStorage.getItem('fernie_pending_payment') || 'null');
+      if (!pending || !pending.paymentId) return;
+
+      const planKey = pending.planKey || 'fp';
+      const plan = PLAN_DEFS[planKey] || PLAN_DEFS.fp;
+      const duration = (plan.options || []).find(item => item.key === (pending.durationKey || pending.planKey)) || getDefaultDuration(plan.key);
+      const panel = document.getElementById('checkoutPanel');
+      if (panel) {
+        panel.classList.add('visible');
+        panel.innerHTML = `
+          <div class="checkout-header">
+            <div class="checkout-title">Подписка</div>
+          </div>
+          <div class="checkout-summary">${plan.title} · ${duration.price} ₽ / ${duration.period}</div>
+          <div class="checkout-status visible">Проверяем статус оплаты...</div>
+        `;
+      }
+
+      const statusResult = await pollYookassaStatus(pending.paymentId, plan, duration);
+      if (!statusResult) {
+        showPaymentResult('error', 'Платёж ещё не подтверждён. Вернитесь позже или попробуйте оплатить ещё раз.');
+      }
+    }
+
     renderPlans();
     getUserFromState();
+    resumePendingYookassaStatus();
   </script>
 </body>
 </html>
