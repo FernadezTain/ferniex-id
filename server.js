@@ -4501,6 +4501,22 @@ function getYookassaAuthHeader() {
   return 'Basic ' + Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString('base64');
 }
 
+function getYookassaReturnUrl(req) {
+  const sources = [req.get('origin'), req.get('referer'), process.env.SITE_ORIGIN];
+  for (const source of sources) {
+    if (!source) continue;
+    try {
+      const sourceUrl = new URL(source);
+      const host = sourceUrl.hostname.toLowerCase();
+      const allowed = host === 'ferniex.ru' || host.endsWith('.ferniex.ru') || host === 'ferniex-id.vercel.app';
+      if (allowed && sourceUrl.protocol === 'https:') {
+        return new URL('/oplatapodpiski.html', sourceUrl.origin).toString();
+      }
+    } catch (error) {}
+  }
+  return null;
+}
+
 app.post('/api/fernieplus/create-payment', async (req, res) => {
   const { userId, planKey, planType = 'fp', planLabel, amount, telegramId, username, source } = req.body;
   if (!userId || !planKey || !amount || !telegramId) {
@@ -4508,6 +4524,10 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
   }
   if (!['fp', 'pro'].includes(planType)) {
     return res.json({ success: false, error: 'Неизвестный тип подписки' });
+  }
+  const returnUrl = getYookassaReturnUrl(req);
+  if (!returnUrl) {
+    return res.json({ success: false, error: 'Не удалось определить домен возврата. Настройте SITE_ORIGIN.' });
   }
 
   const paymentAmount = Number(amount);
@@ -4557,7 +4577,7 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
         capture: true,
         confirmation: {
           type: 'redirect',
-          return_url: 'https://ferniex-id.vercel.app/oplatapodpiski.html'
+          return_url: returnUrl
         },
         description: `Fernie+ ${planLabel || 'Подписка'} ${paymentAmount} ₽`,
         metadata: {
@@ -4668,6 +4688,42 @@ app.post('/api/fernieplus/pro/activate', async (req, res) => {
   try {
     const resolvedTelegramId = userId ? await resolveTelegramId(userId) : telegram_id;
     if (!resolvedTelegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+
+    let paymentData;
+    if (YOOKASSA_DEMO_MODE || !getYookassaAuthHeader()) {
+      paymentData = yookassaDemoPayments.get(String(payment_id));
+      if (!paymentData || paymentData.status !== 'succeeded') {
+        return res.json({ success: false, error: 'Платёж YooKassa ещё не подтверждён' });
+      }
+      if (String(paymentData.telegramId) !== String(resolvedTelegramId)
+        || paymentData.planType !== 'pro'
+        || String(paymentData.planKey) !== String(plan_key)
+        || Number(paymentData.amount) !== Number(amount)) {
+        return res.json({ success: false, error: 'Данные платежа не совпадают с заказом' });
+      }
+    } else {
+      const paymentRes = await fetch(`https://api.yookassa.ru/v3/payments/${encodeURIComponent(payment_id)}`, {
+        headers: {
+          'Authorization': getYookassaAuthHeader(),
+          'Content-Type': 'application/json'
+        }
+      });
+      paymentData = await paymentRes.json();
+      if (!paymentRes.ok) {
+        return res.json({ success: false, error: paymentData?.description || 'Не удалось проверить платёж YooKassa' });
+      }
+      const metadata = paymentData.metadata || {};
+      const paidAmount = Number(paymentData.amount?.value || 0);
+      if (paymentData.status !== 'succeeded'
+        || paymentData.amount?.currency !== 'RUB'
+        || String(metadata.telegramId) !== String(resolvedTelegramId)
+        || metadata.planType !== 'pro'
+        || String(metadata.planKey) !== String(plan_key)
+        || Math.abs(paidAmount - Number(amount)) > 0.009) {
+        return res.json({ success: false, error: 'Платёж не подтверждён или не соответствует тарифу Pro' });
+      }
+    }
+
     const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/activate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
