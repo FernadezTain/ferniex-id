@@ -148,7 +148,27 @@ async function fetchBotJson(url, init) {
   try {
     return JSON.parse(text);
   } catch (e) {
-    return { success: false, error: 'Невалидный JSON от сервиса оператора', raw: text };
+    const start = text.indexOf('{');
+    if (start !== -1) {
+      let depth = 0;
+      let quoted = false;
+      let escaped = false;
+      for (let i = start; i < text.length; i++) {
+        const char = text[i];
+        if (quoted) {
+          if (escaped) escaped = false;
+          else if (char === '\\') escaped = true;
+          else if (char === '"') quoted = false;
+          continue;
+        }
+        if (char === '"') quoted = true;
+        else if (char === '{') depth++;
+        else if (char === '}' && --depth === 0) {
+          try { return JSON.parse(text.slice(start, i + 1)); } catch (error) { break; }
+        }
+      }
+    }
+    return { success: false, error: 'Сервис оператора вернул повреждённый ответ' };
   }
 }
 
