@@ -10,28 +10,20 @@
     :root {
       --bg: #fbf1e8;
       --card: rgba(255,255,255,0.82);
-      --card-strong: #ffffff;
       --ink: #181410;
       --ink-contrast: #ffffff;
       --muted: #948b83;
       --line: rgba(23, 19, 17, 0.09);
       --field: #f4ece2;
-      --field-border: #efe3d4;
       --blob-pink: #e9a49e;
       --blob-sage: #cddac2;
-      --rose: #f2b7a8;
-      --peach: #f5d1a5;
-      --gold: #e9b759;
       --violet: #8a6be0;
       --blue: #5f7ce8;
       --green: #3f9d5b;
-      --red: #de6f5e;
       --shadow: 0 28px 56px -30px rgba(29, 21, 17, 0.35);
-      --glow: rgba(255,255,255,0.34);
     }
 
     * { box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
 
     body {
@@ -43,7 +35,6 @@
         radial-gradient(circle at bottom left, rgba(182, 211, 167, 0.42), transparent 26%),
         linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 90%, #000 10%));
       color: var(--ink);
-      transition: background .45s ease, color .45s ease;
       overflow-x: hidden;
       position: relative;
     }
@@ -52,7 +43,6 @@
     body::after {
       content: "";
       position: fixed;
-      inset: auto;
       z-index: 0;
       border-radius: 50%;
       filter: blur(18px);
@@ -104,7 +94,6 @@
       justify-content: space-between;
       gap: 16px;
       margin-bottom: 30px;
-      animation: fadeUp .5s ease both;
     }
 
     .brand {
@@ -170,7 +159,6 @@
       padding: 30px 28px;
       position: relative;
       overflow: hidden;
-      animation: fadeUp .6s ease both;
     }
 
     .header-panel::before {
@@ -218,7 +206,6 @@
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
     }
 
     h1 {
@@ -228,7 +215,6 @@
       font-size: clamp(2.2rem, 5vw, 3.6rem);
       line-height: 0.96;
       letter-spacing: -0.06em;
-      animation: fadeUp .75s ease .08s both;
     }
 
     .subtitle {
@@ -255,7 +241,7 @@
       font-weight: 800;
       font-size: 0.93rem;
       cursor: pointer;
-      transition: transform .22s ease, box-shadow .22s ease, opacity .2s ease, background .25s ease;
+      transition: transform .22s ease, box-shadow .22s ease, opacity .2s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
@@ -288,7 +274,6 @@
       flex-direction: column;
       gap: 16px;
       justify-content: center;
-      animation: fadeUp .6s ease .12s both;
     }
 
     .info-item {
@@ -333,6 +318,8 @@
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      border: 1px solid var(--line);
+      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
       animation: riseIn .7s cubic-bezier(.2, .8, .2, 1) both;
     }
 
@@ -397,7 +384,6 @@
       border: 1px solid rgba(28,23,20,0.1);
       background: rgba(255,255,255,0.5);
       color: var(--ink);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
     }
 
     .badge.pro {
@@ -465,18 +451,95 @@
     }
 
     .features li::before {
-      content: '✓';
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
+      content: "";
+      display: inline-block;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
-      background: rgba(46,157,105,0.1);
-      color: var(--green);
-      font-weight: 900;
+      background: linear-gradient(135deg, var(--green), color-mix(in srgb, var(--green) 58%, white));
       flex-shrink: 0;
-      margin-top: 1px;
+      margin-top: 6px;
+      box-shadow: 0 0 0 4px rgba(63,157,91,0.08);
+    }
+
+    .plan-card-option {
+      position: relative;
+      z-index: 1;
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(24, 20, 16, 0.08);
+    }
+
+    .option-label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .plan-option-strip {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(24, 20, 16, 0.2) transparent;
+      scroll-snap-type: x proximity;
+    }
+
+    .plan-option-strip::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .plan-option-strip::-webkit-scrollbar-thumb {
+      background: rgba(24, 20, 16, 0.15);
+      border-radius: 999px;
+    }
+
+    .plan-option {
+      position: relative;
+      flex: 0 0 auto;
+      min-width: 92px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.28);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+      scroll-snap-align: start;
+    }
+
+    .plan-option:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
+    }
+
+    .plan-option.is-active {
+      background: linear-gradient(135deg, rgba(24, 20, 16, 0.95), rgba(24, 20, 16, 0.8));
+      color: var(--ink-contrast);
+      border-color: rgba(24, 20, 16, 0.9);
+      box-shadow: 0 14px 22px -16px rgba(24,20,16,0.42);
+    }
+
+    .plan-option small {
+      display: block;
+      font-size: 0.64rem;
+      opacity: 0.78;
+      margin-bottom: 2px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .plan-option strong {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
     }
 
     .billboard {
@@ -524,7 +587,6 @@
       background: color-mix(in srgb, var(--card) 88%, rgba(255,255,255,0.26));
       border: 1px solid var(--line);
       padding: 20px 22px;
-      animation: fadeUp .7s ease .2s both;
     }
 
     .terms-box h3 {
@@ -582,7 +644,7 @@
 
     <div class="header">
       <div class="header-panel">
-        <div class="eyebrow">✨ Fernie+</div>
+        <div class="eyebrow">Fernie+</div>
         <h1>Подключи подписку<br>и открой новые возможности.</h1>
         <div class="subtitle">
           Выбирай тариф, который подходит тебе: быстрый доступ к фонам профиля, расширенные функции и комфорт в работе с FernieID.
@@ -609,46 +671,7 @@
       </div>
     </div>
 
-    <div id="plans" class="plans">
-      <article class="plan-card">
-        <div class="plan-head">
-          <div class="badge">Стандарт</div>
-        </div>
-        <div class="price"><span class="amount">349 ₽</span><span class="period">/ 30 дней</span></div>
-        <div class="plan-name">Fernie+</div>
-        <div class="plan-desc">Все базовые возможности — оплата семенами или DC прямо через сайт.</div>
-        <ul class="features">
-          <li>Стиль профиля</li>
-          <li>Сниженный КД</li>
-          <li>Безлимит /ai</li>
-          <li>Эксклюзивные бонусы</li>
-        </ul>
-        <div class="billboard">
-          <span>Семена</span>
-          <span>DC</span>
-        </div>
-        <button class="choose-btn" type="button">Выбрать Fernie+</button>
-      </article>
-
-      <article class="plan-card pro">
-        <div class="plan-head">
-          <div class="badge pro">Pro</div>
-        </div>
-        <div class="price"><span class="amount">799 ₽</span><span class="period">/ 30 дней</span></div>
-        <div class="plan-name">Fernie+ Pro</div>
-        <div class="plan-desc">Максимальные возможности — оплата через Telegram Stars.</div>
-        <ul class="features">
-          <li>Всё из Fernie+</li>
-          <li>Pro-модели ИИ</li>
-          <li>Эксклюзив в игре</li>
-          <li>VIP поддержка</li>
-        </ul>
-        <div class="billboard">
-          <span>Telegram Stars</span>
-        </div>
-        <button class="choose-btn" type="button">Выбрать Fernie+ Pro</button>
-      </article>
-    </div>
+    <div id="plans" class="plans"></div>
 
     <div class="terms-box">
       <h3>Условия подписки</h3>
@@ -667,10 +690,10 @@
 
   <script>
     const THEME_PRESETS = {
-      cream: { label: 'Кремовая', bg: '#fbf1e8', card: 'rgba(255,255,255,0.82)', ink: '#181410', inkContrast: '#ffffff', muted: '#948b83', field: '#f4ece2', line: 'rgba(23, 19, 17, 0.09)', blobPink: '#e9a49e', blobSage: '#cddac2' },
-      noir: { label: 'Тёмная', bg: '#141210', card: 'rgba(30,27,23,0.88)', ink: '#f3ede3', inkContrast: '#181410', muted: '#948b83', field: '#26221c', line: 'rgba(255,255,255,0.06)', blobPink: '#4a3530', blobSage: '#334027' },
-      stone: { label: 'Серая', bg: '#eef0f0', card: 'rgba(255,255,255,0.82)', ink: '#1c1f1f', inkContrast: '#ffffff', muted: '#84898c', field: '#e4e7e7', line: 'rgba(28,31,31,0.08)', blobPink: '#c8b6c9', blobSage: '#b9c9c2' },
-      sage: { label: 'Зелёная', bg: '#eef2e8', card: 'rgba(255,255,255,0.8)', ink: '#1c2417', inkContrast: '#ffffff', muted: '#82917a', field: '#e3ebda', line: 'rgba(29,40,23,0.08)', blobPink: '#d9c9a0', blobSage: '#a9c79b' }
+      cream: { bg: '#fbf1e8', card: 'rgba(255,255,255,0.82)', ink: '#181410', inkContrast: '#ffffff', muted: '#948b83', field: '#f4ece2', line: 'rgba(23, 19, 17, 0.09)', blobPink: '#e9a49e', blobSage: '#cddac2' },
+      noir: { bg: '#141210', card: 'rgba(30,27,23,0.88)', ink: '#f3ede3', inkContrast: '#181410', muted: '#948b83', field: '#26221c', line: 'rgba(255,255,255,0.06)', blobPink: '#4a3530', blobSage: '#334027' },
+      stone: { bg: '#eef0f0', card: 'rgba(255,255,255,0.82)', ink: '#1c1f1f', inkContrast: '#ffffff', muted: '#84898c', field: '#e4e7e7', line: 'rgba(28,31,31,0.08)', blobPink: '#c8b6c9', blobSage: '#b9c9c2' },
+      sage: { bg: '#eef2e8', card: 'rgba(255,255,255,0.8)', ink: '#1c2417', inkContrast: '#ffffff', muted: '#82917a', field: '#e3ebda', line: 'rgba(29,40,23,0.08)', blobPink: '#d9c9a0', blobSage: '#a9c79b' }
     };
 
     const THEME_KEY = 'fid_theme';
@@ -678,7 +701,6 @@
     function applyTheme(key) {
       const preset = THEME_PRESETS[key] || THEME_PRESETS.cream;
       const root = document.documentElement.style;
-
       root.setProperty('--bg', preset.bg);
       root.setProperty('--card', preset.card);
       root.setProperty('--ink', preset.ink);
@@ -690,19 +712,120 @@
       root.setProperty('--blob-sage', preset.blobSage);
     }
 
-    function getStoredTheme() {
-      return localStorage.getItem(THEME_KEY) || 'cream';
-    }
-
     function syncTheme() {
-      applyTheme(getStoredTheme());
+      const key = localStorage.getItem(THEME_KEY) || 'cream';
+      applyTheme(key);
     }
 
     syncTheme();
     window.addEventListener('storage', (event) => {
-      if (event.key === THEME_KEY) {
-        syncTheme();
+      if (event.key === THEME_KEY) syncTheme();
+    });
+
+    const PLAN_DEFS = {
+      fp: {
+        key: 'fp',
+        badge: 'Стандарт',
+        planName: 'Fernie+',
+        desc: 'Все базовые возможности — быстрый доступ к фонам и удобным функциям.',
+        features: ['Стиль профиля', 'Сниженный КД', 'Безлимит /ai', 'Эксклюзивные бонусы'],
+        chips: ['Семена', 'DC'],
+        options: [
+          { key: '5m', label: '5 минут', price: 5, period: '5 минут' },
+          { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
+          { key: '24h', label: '24 часа', price: 49, period: '24 часа' },
+          { key: '3d', label: '3 дня', price: 89, period: '3 дня' },
+          { key: '7d', label: '7 дней', price: 169, period: '7 дней' },
+          { key: '15d', label: '15 дней', price: 299, period: '15 дней' },
+          { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
+          { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
+          { key: '1y', label: '1 год', price: 799, period: '1 год' }
+        ]
+      },
+      pro: {
+        key: 'pro',
+        badge: 'Pro',
+        planName: 'Fernie+ Pro',
+        desc: 'Максимальные возможности — всё минимум с приоритетом и расширенными опциями.',
+        features: ['Всё из Fernie+', 'Pro-модели ИИ', 'Эксклюзив в игре', 'VIP поддержка'],
+        chips: ['Telegram Stars'],
+        options: [
+          { key: '5m', label: '5 минут', price: 5, period: '5 минут' },
+          { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
+          { key: '24h', label: '24 часа', price: 49, period: '24 часа' },
+          { key: '3d', label: '3 дня', price: 89, period: '3 дня' },
+          { key: '7d', label: '7 дней', price: 169, period: '7 дней' },
+          { key: '15d', label: '15 дней', price: 299, period: '15 дней' },
+          { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
+          { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
+          { key: '1y', label: '1 год', price: 799, period: '1 год' }
+        ]
       }
+    };
+
+    function renderPlanCard(planKey) {
+      const plan = PLAN_DEFS[planKey];
+      const activeOpt = plan.options.find(option => option.default) || plan.options[plan.options.length - 1];
+
+      return `
+        <article class="plan-card ${planKey === 'pro' ? 'pro' : ''}" data-plan="${plan.key}">
+          <div class="plan-head">
+            <span class="badge ${planKey === 'pro' ? 'pro' : ''}">${plan.badge}</span>
+          </div>
+
+          <div class="price">
+            <span class="amount">${activeOpt.price} ₽</span>
+            <span class="period">/ ${activeOpt.period}</span>
+          </div>
+
+          <div class="plan-name">${plan.planName}</div>
+          <div class="plan-desc">${plan.desc}</div>
+
+          <ul class="features">
+            ${plan.features.map(item => `<li>${item}</li>`).join('')}
+          </ul>
+
+          <div class="plan-card-option">
+            <span class="option-label">Срок</span>
+            <div class="plan-option-strip" data-plan="${plan.key}">
+              ${plan.options.map(option => `
+                <button type="button" class="plan-option ${option.default ? 'is-active' : ''}" data-plan="${plan.key}" data-key="${option.key}" data-label="${option.label}" data-price="${option.price}" data-period="${option.period}">
+                  <small>${option.label}</small>
+                  <strong>${option.price} ₽</strong>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="billboard">
+            ${plan.chips.map(chip => `<span>${chip}</span>`).join('')}
+          </div>
+
+          <button class="choose-btn" type="button">Выбрать ${plan.planName}</button>
+        </article>
+      `;
+    }
+
+    const plansRoot = document.getElementById('plans');
+    plansRoot.innerHTML = Object.keys(PLAN_DEFS).map(renderPlanCard).join('');
+
+    function updateSelectedPlan(planKey, optionButton) {
+      const card = optionButton.closest('.plan-card');
+      const amountEl = card.querySelector('.amount');
+      const periodEl = card.querySelector('.period');
+      const optionButtons = card.querySelectorAll('.plan-option');
+
+      optionButtons.forEach(button => button.classList.toggle('is-active', button === optionButton));
+      amountEl.textContent = `${optionButton.dataset.price} ₽`;
+      periodEl.textContent = `/ ${optionButton.dataset.period}`;
+      const btn = card.querySelector('.choose-btn');
+      btn.textContent = `Выбрать ${PLAN_DEFS[planKey].planName}`;
+    }
+
+    document.querySelectorAll('.plan-option').forEach(button => {
+      button.addEventListener('click', () => {
+        updateSelectedPlan(button.dataset.plan, button);
+      });
     });
   </script>
 </body>
