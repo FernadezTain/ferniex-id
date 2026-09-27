@@ -4,83 +4,70 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Fernie+ · Оплата подписки</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #fbf1e8;
-      --card: rgba(255,255,255,0.82);
-      --ink: #181410;
-      --ink-contrast: #ffffff;
-      --muted: #948b83;
-      --line: rgba(23, 19, 17, 0.09);
-      --field: #f4ece2;
-      --blob-pink: #e9a49e;
-      --blob-sage: #cddac2;
-      --violet: #8a6be0;
-      --blue: #5f7ce8;
-      --green: #3f9d5b;
-      --shadow: 0 28px 56px -30px rgba(29, 21, 17, 0.35);
+      --bg: #171710;
+      --panel: rgba(32, 28, 26, 0.92);
+      --panel-soft: rgba(53, 52, 48, 0.7);
+      --card: rgba(255, 255, 255, 0.08);
+      --card-strong: rgba(255, 255, 255, 0.14);
+      --ink: #f5f0eb;
+      --muted: rgba(245, 240, 235, 0.62);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --button-soft: #e8e2db;
+      --button-ink: #171710;
+      --green: #67c58d;
+      --violet: #6b5cb8;
+      --blue: #6e8df7;
+      --shadow: 0 28px 60px rgba(0, 0, 0, 0.28);
+      --success: #7dd7a7;
+      --danger: #ef7a7a;
     }
 
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-
     body {
       margin: 0;
       min-height: 100vh;
       font-family: 'Inter', sans-serif;
-      background:
-        radial-gradient(circle at top right, rgba(242,183,168,0.46), transparent 22%),
-        radial-gradient(circle at bottom left, rgba(182, 211, 167, 0.42), transparent 26%),
-        linear-gradient(180deg, var(--bg), color-mix(in srgb, var(--bg) 90%, #000 10%));
       color: var(--ink);
-      overflow-x: hidden;
-      position: relative;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.05), transparent 18%),
+        radial-gradient(circle at 86% 28%, rgba(164, 121, 148, 0.12), transparent 14%),
+        radial-gradient(circle at 12% 84%, rgba(125, 167, 127, 0.12), transparent 18%),
+        linear-gradient(180deg, #181714, #11110f 100%);
     }
 
     body::before,
     body::after {
       content: "";
       position: fixed;
-      z-index: 0;
+      inset: auto auto 14% -9% auto;
+      width: 440px;
+      height: 440px;
       border-radius: 50%;
-      filter: blur(18px);
-      opacity: 0.7;
+      filter: blur(86px);
+      opacity: 0.18;
       pointer-events: none;
-      animation: floatBlob 14s ease-in-out infinite;
-    }
-
-    body::before {
-      width: 320px;
-      height: 320px;
-      top: -120px;
-      right: -80px;
-      background: var(--blob-pink);
+      background: rgba(197, 170, 143, 0.8);
     }
 
     body::after {
-      width: 260px;
-      height: 260px;
-      bottom: -90px;
-      left: -60px;
-      background: var(--blob-sage);
-      animation-delay: 2s;
-    }
-
-    @keyframes floatBlob {
-      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-      33% { transform: translate3d(-18px, 18px, 0) scale(1.06); }
-      66% { transform: translate3d(12px, -14px, 0) scale(0.98); }
+      inset: 7% -10% auto auto;
+      background: rgba(138, 114, 219, 0.25);
     }
 
     .page {
       position: relative;
       z-index: 1;
-      max-width: 1120px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 42px 22px 60px;
-      animation: fadeUp .7s cubic-bezier(.16, 1, .3, 1) both;
+      padding: 42px 20px 60px;
+      animation: fadeUp 0.6s ease both;
     }
 
     @keyframes fadeUp {
@@ -88,648 +75,725 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 30px;
-    }
-
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 1.25rem;
-      letter-spacing: -0.04em;
-    }
-
-    .brand-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--ink);
-      box-shadow: 0 0 0 6px rgba(28,23,20,0.08);
-      animation: pulseDot 2s ease-in-out infinite;
-    }
-
-    @keyframes pulseDot {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.18); opacity: 0.85; }
-    }
-
-    .back-link {
-      text-decoration: none;
-      color: var(--ink);
-      font-size: 0.9rem;
-      font-weight: 700;
-      padding: 10px 16px;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--card) 75%, transparent);
-      border: 1px solid var(--line);
-      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-      backdrop-filter: blur(8px);
-    }
-
-    .back-link:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 18px -12px rgba(0, 0, 0, 0.2);
-      border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
-    }
-
-    .header {
+    .hero-shell {
       display: grid;
       grid-template-columns: 1.2fr 0.8fr;
-      gap: 18px;
-      margin-bottom: 28px;
+      gap: 22px;
+      margin-bottom: 24px;
     }
 
-    .header-panel, .info-card, .plan-card, .terms-box, .support-box {
-      background: var(--card);
+    .hero-card,
+    .info-stack,
+    .plan-card,
+    .checkout-panel,
+    .success-card {
+      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 28px;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
-    .header-panel {
-      padding: 30px 28px;
+    .hero-card {
       position: relative;
       overflow: hidden;
+      padding: 28px 30px 26px;
+      min-height: 300px;
     }
 
-    .header-panel::before {
+    .hero-card::before {
       content: "";
       position: absolute;
-      width: 240px;
-      height: 240px;
+      width: 280px;
+      height: 280px;
       right: -80px;
-      top: -90px;
+      top: -70px;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--blob-pink) 55%, transparent);
-      filter: blur(12px);
-      animation: drift 16s ease-in-out infinite alternate;
-    }
-
-    .header-panel::after {
-      content: "";
-      position: absolute;
-      width: 190px;
-      height: 190px;
-      left: -60px;
-      bottom: -100px;
-      border-radius: 50%;
-      background: color-mix(in srgb, var(--blob-sage) 50%, transparent);
-      filter: blur(12px);
-      animation: drift 18s ease-in-out infinite alternate;
+      background: rgba(197, 170, 143, 0.18);
+      filter: blur(28px);
+      animation: drift 14s ease-in-out infinite alternate;
     }
 
     @keyframes drift {
-      0% { transform: translate(0, 0) scale(1); }
-      100% { transform: translate(16px, 12px) scale(1.08); }
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      100% { transform: translate3d(18px, 12px, 0) scale(1.08); }
     }
 
-    .eyebrow {
+    .hero-tag {
       position: relative;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
+      padding: 8px 14px;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--blue) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--blue) 22%, var(--line));
-      color: var(--blue);
+      background: rgba(110, 141, 247, 0.12);
+      border: 1px solid rgba(110, 141, 247, 0.42);
+      color: #a9befe;
       font-size: 0.72rem;
-      font-weight: 800;
+      line-height: 1;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+      font-weight: 800;
+      margin-bottom: 18px;
     }
 
-    h1 {
+    .hero-title {
       position: relative;
-      margin: 16px 0 12px;
+      margin: 0;
       font-family: 'Syne', sans-serif;
-      font-size: clamp(2.2rem, 5vw, 3.6rem);
-      line-height: 0.96;
-      letter-spacing: -0.06em;
+      font-size: clamp(3rem, 6vw, 6rem);
+      line-height: 0.9;
+      letter-spacing: -0.08em;
+      max-width: 620px;
     }
 
-    .subtitle {
+    .hero-desc {
       position: relative;
+      margin-top: 18px;
+      max-width: 640px;
       color: var(--muted);
-      font-size: 1rem;
-      line-height: 1.6;
-      max-width: 500px;
+      font-size: 1.05rem;
+      line-height: 1.56;
     }
 
-    .cta-row {
+    .hero-actions {
       position: relative;
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 22px;
+      margin-top: 30px;
     }
 
-    .primary-btn, .secondary-btn, .choose-btn {
+    .btn {
       border: none;
       border-radius: 999px;
-      padding: 14px 22px;
-      font-family: 'Inter', sans-serif;
+      padding: 16px 26px;
+      font-size: 1rem;
       font-weight: 800;
-      font-size: 0.93rem;
+      letter-spacing: -0.02em;
       cursor: pointer;
-      transition: transform .22s ease, box-shadow .22s ease, opacity .2s ease;
-      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      position: relative;
-      overflow: hidden;
+      gap: 10px;
+      text-decoration: none;
+      white-space: nowrap;
     }
 
-    .primary-btn, .choose-btn {
-      background: linear-gradient(135deg, var(--ink), color-mix(in srgb, var(--ink) 76%, #4d4d4d));
-      color: var(--ink-contrast);
-      box-shadow: 0 18px 26px -18px rgba(28,23,20,0.7);
+    .btn:hover {
+      transform: translateY(-1px);
     }
 
-    .primary-btn:hover, .secondary-btn:hover, .choose-btn:hover {
-      transform: translateY(-2px) scale(1.01);
-      box-shadow: 0 16px 22px -16px rgba(20, 16, 15, 0.36);
+    .btn-primary {
+      background: var(--button-soft);
+      color: var(--button-ink);
+      box-shadow: 0 14px 20px rgba(0, 0, 0, 0.18);
     }
 
-    .secondary-btn {
-      background: color-mix(in srgb, var(--card) 90%, #ffffff 10%);
-      border: 1px solid var(--line);
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.04);
       color: var(--ink);
+      border: 1px solid var(--line-strong);
     }
 
-    .info-card {
-      padding: 22px 22px 18px;
+    .info-stack {
       display: flex;
       flex-direction: column;
-      gap: 16px;
       justify-content: center;
+      gap: 18px;
+      padding: 18px;
+      min-height: 300px;
     }
 
-    .info-item {
-      padding: 12px 14px;
-      border-radius: 17px;
-      background: color-mix(in srgb, var(--card) 88%, rgba(255,255,255,0.35));
+    .info-box {
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--line);
-      transition: transform .2s ease, border-color .2s ease;
-    }
-
-    .info-item:hover {
-      transform: translateY(-2px);
-      border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
+      border-radius: 18px;
+      padding: 18px 16px 16px;
+      color: var(--muted);
     }
 
     .info-label {
       display: block;
-      font-size: 0.68rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      letter-spacing: 0.09em;
-      color: var(--muted);
       font-weight: 800;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.55);
     }
 
     .info-value {
+      color: var(--ink);
       font-family: 'Syne', sans-serif;
-      font-size: 1.3rem;
-      letter-spacing: -0.05em;
+      font-size: clamp(1.6rem, 2vw, 2.3rem);
+      line-height: 1.1;
+      letter-spacing: -0.06em;
     }
 
-    .plans {
+    .plans-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 10px;
+      gap: 26px;
+      margin-top: 12px;
     }
 
     .plan-card {
       position: relative;
-      padding: 24px 22px 20px;
+      padding: 22px 20px 18px;
       overflow: hidden;
+      min-height: 520px;
       display: flex;
       flex-direction: column;
-      border: 1px solid var(--line);
-      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-      animation: riseIn .7s cubic-bezier(.2, .8, .2, 1) both;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      animation: floatCard 0.7s ease both;
     }
 
-    .plan-card:nth-child(2) { animation-delay: .12s; }
+    .plan-card:nth-child(2) { animation-delay: 0.08s; }
 
-    @keyframes riseIn {
-      from { opacity: 0; transform: translateY(18px) scale(0.98); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    @keyframes floatCard {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .plan-card.pro {
-      background: linear-gradient(180deg, color-mix(in srgb, var(--violet) 7%, var(--card) 93%), var(--card));
+      background: linear-gradient(180deg, rgba(140, 110, 233, 0.09), rgba(32, 28, 26, 0.92));
     }
 
     .plan-card::before {
       content: "";
       position: absolute;
-      width: 180px;
-      height: 180px;
-      right: -56px;
-      top: -70px;
+      width: 200px;
+      height: 200px;
+      right: -70px;
+      top: -80px;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--blob-pink) 30%, transparent);
-      filter: blur(8px);
-      animation: floatTiny 12s ease-in-out infinite;
+      filter: blur(26px);
+      background: rgba(196, 160, 160, 0.16);
     }
 
     .plan-card.pro::before {
-      background: color-mix(in srgb, var(--violet) 20%, transparent);
-      animation-delay: .5s;
-    }
-
-    @keyframes floatTiny {
-      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-      50% { transform: translate3d(-12px, 20px, 0) scale(1.08); }
+      background: rgba(117, 99, 223, 0.2);
     }
 
     .plan-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 26px 48px -28px rgba(33, 24, 20, 0.42);
+      transform: translateY(-2px);
+      border-color: var(--line-strong);
     }
 
-    .plan-head {
+    .plan-top {
       position: relative;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 12px;
+      z-index: 1;
     }
 
-    .badge {
+    .plan-badge {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 6px 10px;
+      padding: 7px 12px;
       border-radius: 999px;
-      font-size: 0.66rem;
-      font-weight: 800;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      border: 1px solid rgba(28,23,20,0.1);
-      background: rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
       color: var(--ink);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
-    .badge.pro {
-      background: rgba(138,107,224,0.12);
-      border-color: rgba(138,107,224,0.26);
-      color: #5d42b7;
+    .plan-badge.pro {
+      background: rgba(138, 118, 227, 0.18);
+      border-color: rgba(138, 118, 227, 0.34);
+      color: #d6cdfc;
     }
 
-    .price {
+    .price-row {
       position: relative;
       display: flex;
-      align-items: end;
+      align-items: flex-end;
       gap: 8px;
-      margin-bottom: 10px;
-      font-family: 'Syne', sans-serif;
-      letter-spacing: -0.05em;
+      margin-top: 10px;
+      z-index: 1;
+      min-height: 80px;
     }
 
-    .price .amount {
-      font-size: clamp(2rem, 3vw, 2.6rem);
+    .price-main {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3rem, 4vw, 4rem);
       line-height: 1;
+      letter-spacing: -0.08em;
+      font-weight: 800;
     }
 
-    .price .period {
+    .price-detail {
       color: var(--muted);
-      font-size: 0.82rem;
-      margin-bottom: 7px;
+      font-size: 0.96rem;
+      margin-bottom: 12px;
+      font-weight: 600;
     }
 
-    .plan-name {
+    .plan-title {
       position: relative;
+      z-index: 1;
       font-family: 'Syne', sans-serif;
-      font-size: 1.4rem;
-      margin-bottom: 8px;
-      letter-spacing: -0.05em;
+      font-size: clamp(2.1rem, 3vw, 3rem);
+      line-height: 1;
+      letter-spacing: -0.08em;
+      margin-top: 2px;
+      margin-bottom: 6px;
     }
 
     .plan-desc {
       position: relative;
+      z-index: 1;
       color: var(--muted);
-      font-size: 0.86rem;
+      font-size: 0.97rem;
       line-height: 1.6;
-      margin-bottom: 18px;
-      min-height: 42px;
+      min-height: 80px;
+      max-width: 500px;
     }
 
-    .features {
+    .feature-list {
       position: relative;
-      list-style: none;
+      z-index: 1;
+      margin: 18px 0 0;
       padding: 0;
-      margin: 0 0 18px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
+      list-style: none;
     }
 
-    .features li {
+    .feature-item {
       display: flex;
-      align-items: flex-start;
-      gap: 10px;
+      align-items: center;
+      gap: 11px;
       color: var(--ink);
-      font-size: 0.9rem;
+      font-size: 0.98rem;
       line-height: 1.45;
-      opacity: 0.96;
     }
 
-    .features li::before {
-      content: "";
-      display: inline-block;
+    .feature-dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--green), color-mix(in srgb, var(--green) 58%, white));
-      flex-shrink: 0;
-      margin-top: 6px;
-      box-shadow: 0 0 0 4px rgba(63,157,91,0.08);
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(103, 197, 141, 0.12);
+      flex: 0 0 auto;
     }
 
-    .plan-card-option {
+    .card-divider {
       position: relative;
       z-index: 1;
-      margin-top: 18px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(24, 20, 16, 0.08);
+      height: 1px;
+      margin: 18px 0 14px;
+      background: rgba(255,255,255,0.08);
     }
 
-    .option-label {
-      display: inline-block;
+    .duration-block {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+    }
+
+    .duration-label {
+      display: block;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.58);
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .duration-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
+      padding-bottom: 6px;
+    }
+
+    .duration-option {
+      flex: 0 0 auto;
+      min-width: 90px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      border-radius: 14px;
+      padding: 10px 12px 10px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.18s ease;
+      text-align: left;
+    }
+
+    .duration-option:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+    }
+
+    .duration-option.active {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .duration-option small {
+      color: rgba(255,255,255,0.62);
+      display: block;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 2px;
+    }
+
+    .duration-option strong {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .pay-pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pay-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+    }
+
+    .plan-cta {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      background: var(--button-soft);
+      color: var(--button-ink);
+      border: none;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 1.03rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      margin-top: 6px;
+    }
+
+    .plan-cta.pro {
+      background: rgba(255,255,255,0.18);
+      color: var(--ink);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .plan-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .checkout-panel {
+      margin-top: 26px;
+      padding: 20px 22px 22px;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transform: translateY(12px);
+      transition: opacity 0.28s ease, max-height 0.38s ease, transform 0.28s ease, padding 0.28s ease;
+    }
+
+    .checkout-panel.visible {
+      opacity: 1;
+      max-height: 900px;
+      transform: translateY(0);
+    }
+
+    .checkout-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .checkout-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.56);
+      font-weight: 800;
+    }
+
+    .checkout-summary {
+      color: var(--ink);
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      letter-spacing: -0.07em;
+      margin-bottom: 14px;
+    }
+
+    .step-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px 14px 14px;
+      margin-top: 12px;
+    }
+
+    .step-label {
+      display: block;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.62);
       font-size: 0.72rem;
       font-weight: 800;
       letter-spacing: 0.08em;
       text-transform: uppercase;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .method-option {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 14px 14px;
+      text-align: left;
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+      min-height: 78px;
+    }
+
+    .method-option:hover {
+      transform: translateY(-1px);
+      border-color: var(--line-strong);
+    }
+
+    .method-option.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .method-name {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .method-sub {
+      display: block;
       color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .bank-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .bank-chip {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--ink);
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      font-weight: 700;
+    }
+
+    .bank-chip.active {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .checkout-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    .checkout-submit {
+      background: var(--button-soft);
+      color: var(--button-ink);
+      border: none;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 12px 20px rgba(0,0,0,0.16);
+    }
+
+    .checkout-reset {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .success-card {
+      margin-top: 22px;
+      padding: 20px 22px;
+      display: none;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    .success-card.show {
+      display: block;
+    }
+
+    .success-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: rgba(125, 215, 167, 0.12);
+      border: 1px solid rgba(125, 215, 167, 0.28);
+      color: var(--success);
+      font-size: 1.4rem;
+      font-weight: 800;
       margin-bottom: 10px;
     }
 
-    .plan-option-strip {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(24, 20, 16, 0.2) transparent;
-      scroll-snap-type: x proximity;
-    }
-
-    .plan-option-strip::-webkit-scrollbar {
-      height: 8px;
-    }
-
-    .plan-option-strip::-webkit-scrollbar-thumb {
-      background: rgba(24, 20, 16, 0.15);
-      border-radius: 999px;
-    }
-
-    .plan-option {
-      position: relative;
-      flex: 0 0 auto;
-      min-width: 92px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.28);
-      color: var(--ink);
-      cursor: pointer;
-      text-align: left;
-      transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
-      scroll-snap-align: start;
-    }
-
-    .plan-option:hover {
-      transform: translateY(-1px);
-      border-color: color-mix(in srgb, var(--ink) 18%, var(--line));
-    }
-
-    .plan-option.is-active {
-      background: linear-gradient(135deg, rgba(24, 20, 16, 0.95), rgba(24, 20, 16, 0.8));
-      color: var(--ink-contrast);
-      border-color: rgba(24, 20, 16, 0.9);
-      box-shadow: 0 14px 22px -16px rgba(24,20,16,0.42);
-    }
-
-    .plan-option small {
-      display: block;
-      font-size: 0.64rem;
-      opacity: 0.78;
-      margin-bottom: 2px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
-
-    .plan-option strong {
-      display: block;
-      font-size: 0.76rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-
-    .billboard {
-      position: relative;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 22px 0 18px;
-    }
-
-    .billboard span {
-      display: inline-flex;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.36);
-      border: 1px solid var(--line);
-      color: var(--muted);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      animation: glowTag 4s ease-in-out infinite alternate;
-    }
-
-    .billboard span:nth-child(2) { animation-delay: .3s; }
-
-    @keyframes glowTag {
-      from { transform: translateY(0); box-shadow: inset 0 0 0 0 rgba(255,255,255,0); }
-      to { transform: translateY(-1px); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); }
-    }
-
-    .choose-btn {
-      width: 100%;
-      margin-top: auto;
-      animation: pulseButton 3.5s ease-in-out infinite;
-    }
-
-    @keyframes pulseButton {
-      0%, 100% { box-shadow: 0 18px 26px -18px rgba(28,23,20,0.7); }
-      50% { box-shadow: 0 18px 30px -16px rgba(28,23,20,0.55), 0 0 0 8px rgba(255,255,255,0.04); }
-    }
-
-    .terms-box, .support-box {
-      margin-top: 20px;
-      border-radius: 22px;
-      background: color-mix(in srgb, var(--card) 88%, rgba(255,255,255,0.26));
-      border: 1px solid var(--line);
-      padding: 20px 22px;
-    }
-
-    .terms-box h3 {
-      margin: 0 0 14px;
-      font-size: 1.1rem;
+    .success-title {
       font-family: 'Syne', sans-serif;
-      letter-spacing: -0.04em;
+      font-size: clamp(2rem, 3vw, 2.8rem);
+      letter-spacing: -0.07em;
+      margin: 0 0 8px;
     }
 
-    .terms-list {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px 16px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .terms-list li {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      border-bottom: 1px solid rgba(28,23,20,0.06);
-      padding-bottom: 8px;
-      color: var(--muted);
-      font-size: 0.88rem;
-    }
-
-    .terms-list strong {
-      color: var(--ink);
-      font-weight: 700;
-    }
-
-    .support-box {
+    .success-text {
       color: var(--muted);
       line-height: 1.6;
-      font-size: 0.86rem;
+      margin: 0;
     }
 
-    @media (max-width: 780px) {
-      .header { grid-template-columns: 1fr; }
-      .plans { grid-template-columns: 1fr; }
-      .topbar { align-items: flex-start; flex-direction: column; }
-      .page { padding-top: 20px; }
-      .terms-list { grid-template-columns: 1fr; }
+    .hidden { display: none !important; }
+
+    @media (max-width: 840px) {
+      .hero-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .plans-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .plan-card {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .hero-card,
+      .info-stack,
+      .plan-card,
+      .checkout-panel,
+      .success-card {
+        border-radius: 22px;
+      }
+
+      .option-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .page {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="page">
-    <div class="topbar">
-      <div class="brand"><span class="brand-dot"></span> FernieID</div>
-      <a class="back-link" href="/">← Назад в кабинет</a>
-    </div>
-
-    <div class="header">
-      <div class="header-panel">
-        <div class="eyebrow">Fernie+</div>
-        <h1>Подключи подписку<br>и открой новые возможности.</h1>
-        <div class="subtitle">
+    <div class="hero-shell">
+      <div class="hero-card">
+        <div class="hero-tag">Fernie+</div>
+        <h1 class="hero-title">Подключи подписку<br>и открой новые возможности.</h1>
+        <div class="hero-desc">
           Выбирай тариф, который подходит тебе: быстрый доступ к фонам профиля, расширенные функции и комфорт в работе с FernieID.
         </div>
-        <div class="cta-row">
-          <a class="primary-btn" href="#plans">Смотреть тарифы</a>
-          <a class="secondary-btn" href="https://t.me/FernieXBot" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#plans">Смотреть тарифы</a>
+          <a class="btn btn-secondary" href="https://t.me/FernieXBot" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
         </div>
       </div>
 
-      <div class="info-card">
-        <div class="info-item">
+      <div class="info-stack">
+        <div class="info-box">
           <span class="info-label">Тарифы</span>
           <div class="info-value">Fernie+ / Pro</div>
         </div>
-        <div class="info-item">
+        <div class="info-box">
           <span class="info-label">Подключение</span>
           <div class="info-value">Купить и активировать</div>
         </div>
-        <div class="info-item">
+        <div class="info-box">
           <span class="info-label">Платёж</span>
           <div class="info-value">Через удобный сценарий оплаты</div>
         </div>
       </div>
     </div>
 
-    <div id="plans" class="plans"></div>
+    <div id="plans" class="plans-grid"></div>
 
-    <div class="terms-box">
-      <h3>Условия подписки</h3>
-      <ul class="terms-list">
-        <li><strong>Срок:</strong><span>30 дней с момента активации</span></li>
-        <li><strong>Активация:</strong><span>мгновенно после оплаты</span></li>
-        <li><strong>Продление:</strong><span>вручную, автосписания нет</span></li>
-        <li><strong>Возврат:</strong><span>не производится после активации</span></li>
-      </ul>
-    </div>
+    <section id="checkoutPanel" class="checkout-panel" aria-live="polite"></section>
 
-    <div class="support-box">
-      После выбора тарифа вы будете перенаправлены в пошаговый сценарий оплаты и активации подписки. Срок подписки и активация идут по выбранному тарифу.
-    </div>
+    <section id="successCard" class="success-card" aria-live="polite">
+      <div class="success-icon">✓</div>
+      <h2 class="success-title">Подписка оформлена</h2>
+      <p class="success-text">Подписка активируется в течение нескольких секунд. Все настройки уже применены к вашему аккаунту.</p>
+    </section>
   </div>
 
   <script>
-    const THEME_PRESETS = {
-      cream: { bg: '#fbf1e8', card: 'rgba(255,255,255,0.82)', ink: '#181410', inkContrast: '#ffffff', muted: '#948b83', field: '#f4ece2', line: 'rgba(23, 19, 17, 0.09)', blobPink: '#e9a49e', blobSage: '#cddac2' },
-      noir: { bg: '#141210', card: 'rgba(30,27,23,0.88)', ink: '#f3ede3', inkContrast: '#181410', muted: '#948b83', field: '#26221c', line: 'rgba(255,255,255,0.06)', blobPink: '#4a3530', blobSage: '#334027' },
-      stone: { bg: '#eef0f0', card: 'rgba(255,255,255,0.82)', ink: '#1c1f1f', inkContrast: '#ffffff', muted: '#84898c', field: '#e4e7e7', line: 'rgba(28,31,31,0.08)', blobPink: '#c8b6c9', blobSage: '#b9c9c2' },
-      sage: { bg: '#eef2e8', card: 'rgba(255,255,255,0.8)', ink: '#1c2417', inkContrast: '#ffffff', muted: '#82917a', field: '#e3ebda', line: 'rgba(29,40,23,0.08)', blobPink: '#d9c9a0', blobSage: '#a9c79b' }
-    };
-
-    const THEME_KEY = 'fid_theme';
-
-    function applyTheme(key) {
-      const preset = THEME_PRESETS[key] || THEME_PRESETS.cream;
-      const root = document.documentElement.style;
-      root.setProperty('--bg', preset.bg);
-      root.setProperty('--card', preset.card);
-      root.setProperty('--ink', preset.ink);
-      root.setProperty('--ink-contrast', preset.inkContrast || '#ffffff');
-      root.setProperty('--muted', preset.muted);
-      root.setProperty('--field', preset.field);
-      root.setProperty('--line', preset.line);
-      root.setProperty('--blob-pink', preset.blobPink);
-      root.setProperty('--blob-sage', preset.blobSage);
-    }
-
-    function syncTheme() {
-      const key = localStorage.getItem(THEME_KEY) || 'cream';
-      applyTheme(key);
-    }
-
-    syncTheme();
-    window.addEventListener('storage', (event) => {
-      if (event.key === THEME_KEY) syncTheme();
-    });
-
     const PLAN_DEFS = {
       fp: {
         key: 'fp',
         badge: 'Стандарт',
-        planName: 'Fernie+',
-        desc: 'Все базовые возможности — быстрый доступ к фонам и удобным функциям.',
+        badgeClass: '',
+        title: 'Fernie+',
+        desc: 'Все базовые возможности — быстрый доступ к фонам профиля, сниженный КД и комфортный набор функций.',
         features: ['Стиль профиля', 'Сниженный КД', 'Безлимит /ai', 'Эксклюзивные бонусы'],
-        chips: ['Семена', 'DC'],
+        methods: [
+          { id: 'seeds', name: 'Семена', subtitle: 'Оплата внутри FernieID' },
+          { id: 'dc', name: 'DC', subtitle: 'DigitalCoins' },
+          { id: 'yookassa', name: 'ЮKassa', subtitle: 'Карта / банкинг' }
+        ],
+        banks: ['T-Pay', 'SberPay', 'Карта'],
         options: [
           { key: '5m', label: '5 минут', price: 5, period: '5 минут' },
           { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
@@ -740,15 +804,21 @@
           { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
           { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
           { key: '1y', label: '1 год', price: 799, period: '1 год' }
-        ]
+        ],
+        chips: ['Семена', 'DC']
       },
       pro: {
         key: 'pro',
         badge: 'Pro',
-        planName: 'Fernie+ Pro',
-        desc: 'Максимальные возможности — всё минимум с приоритетом и расширенными опциями.',
+        badgeClass: 'pro',
+        title: 'Fernie+ Pro',
+        desc: 'Максимальные возможности — всё минимум с приоритетом, расширенными опциями и премиальной поддержкой.',
         features: ['Всё из Fernie+', 'Pro-модели ИИ', 'Эксклюзив в игре', 'VIP поддержка'],
-        chips: ['Telegram Stars'],
+        methods: [
+          { id: 'stars', name: 'Telegram Stars', subtitle: 'Оплата внутри Telegram' },
+          { id: 'yookassa', name: 'ЮKassa', subtitle: 'Карта / банкинг' }
+        ],
+        banks: ['T-Pay', 'SberPay', 'Карта'],
         options: [
           { key: '5m', label: '5 минут', price: 5, period: '5 минут' },
           { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
@@ -759,37 +829,83 @@
           { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
           { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
           { key: '1y', label: '1 год', price: 799, period: '1 год' }
-        ]
+        ],
+        chips: ['Telegram Stars']
       }
     };
 
+    const state = {
+      selectedPlan: 'fp',
+      selectedDuration: null,
+      selectedMethod: null,
+      selectedBank: null,
+      started: false
+    };
+
+    const userData = {
+      id: null,
+      telegram_id: null,
+      username: 'user'
+    };
+
+    function getUserFromState() {
+      try {
+        const data = JSON.parse(localStorage.getItem('fernieid_user') || '{}');
+        if (data && data.id) {
+          userData.id = data.id;
+          userData.telegram_id = data.telegram_id || data.telegramId || null;
+          userData.username = data.username || 'user';
+        }
+      } catch (e) {}
+      return userData;
+    }
+
+    function getDefaultDuration(planKey) {
+      const plan = PLAN_DEFS[planKey];
+      return plan.options.find(item => item.default) || plan.options[0];
+    }
+
     function renderPlanCard(planKey) {
       const plan = PLAN_DEFS[planKey];
-      const activeOpt = plan.options.find(option => option.default) || plan.options[plan.options.length - 1];
+      const activeDuration = getDefaultDuration(planKey);
+      const price = activeDuration.price;
+      const durationLabel = activeDuration.period;
 
       return `
-        <article class="plan-card ${planKey === 'pro' ? 'pro' : ''}" data-plan="${plan.key}">
-          <div class="plan-head">
-            <span class="badge ${planKey === 'pro' ? 'pro' : ''}">${plan.badge}</span>
+        <article class="plan-card ${planKey === 'pro' ? 'pro' : ''}" data-plan="${planKey}">
+          <div class="plan-top">
+            <span class="plan-badge ${plan.badgeClass}">${plan.badge}</span>
           </div>
 
-          <div class="price">
-            <span class="amount">${activeOpt.price} ₽</span>
-            <span class="period">/ ${activeOpt.period}</span>
+          <div class="price-row">
+            <div class="price-main">${price} ₽</div>
+            <div class="price-detail">/ ${durationLabel}</div>
           </div>
 
-          <div class="plan-name">${plan.planName}</div>
+          <div class="plan-title">${plan.title}</div>
           <div class="plan-desc">${plan.desc}</div>
 
-          <ul class="features">
-            ${plan.features.map(item => `<li>${item}</li>`).join('')}
+          <ul class="feature-list">
+            ${plan.features.map(item => `
+              <li class="feature-item"><span class="feature-dot"></span><span>${item}</span></li>
+            `).join('')}
           </ul>
 
-          <div class="plan-card-option">
-            <span class="option-label">Срок</span>
-            <div class="plan-option-strip" data-plan="${plan.key}">
-              ${plan.options.map(option => `
-                <button type="button" class="plan-option ${option.default ? 'is-active' : ''}" data-plan="${plan.key}" data-key="${option.key}" data-label="${option.label}" data-price="${option.price}" data-period="${option.period}">
+          <div class="card-divider"></div>
+
+          <div class="duration-block">
+            <span class="duration-label">Срок</span>
+            <div class="duration-strip">
+              ${plan.options.map((option, idx) => `
+                <button
+                  type="button"
+                  class="duration-option ${option.default ? 'active' : ''}"
+                  data-plan="${planKey}"
+                  data-key="${option.key}"
+                  data-price="${option.price}"
+                  data-period="${option.period}"
+                  data-label="${option.label}"
+                >
                   <small>${option.label}</small>
                   <strong>${option.price} ₽</strong>
                 </button>
@@ -797,36 +913,280 @@
             </div>
           </div>
 
-          <div class="billboard">
-            ${plan.chips.map(chip => `<span>${chip}</span>`).join('')}
+          <div class="pay-pill-row">
+            ${plan.chips.map(chip => `<span class="pay-pill">${chip}</span>`).join('')}
           </div>
 
-          <button class="choose-btn" type="button">Выбрать ${plan.planName}</button>
+          <button class="plan-cta ${planKey === 'pro' ? 'pro' : ''}" type="button" data-select-plan="${planKey}">
+            Выбрать ${plan.title}
+          </button>
         </article>
       `;
     }
 
-    const plansRoot = document.getElementById('plans');
-    plansRoot.innerHTML = Object.keys(PLAN_DEFS).map(renderPlanCard).join('');
+    function renderPlans() {
+      const wrap = document.getElementById('plans');
+      wrap.innerHTML = Object.keys(PLAN_DEFS).map(renderPlanCard).join('');
 
-    function updateSelectedPlan(planKey, optionButton) {
-      const card = optionButton.closest('.plan-card');
-      const amountEl = card.querySelector('.amount');
-      const periodEl = card.querySelector('.period');
-      const optionButtons = card.querySelectorAll('.plan-option');
+      wrap.querySelectorAll('.duration-option').forEach(button => {
+        button.addEventListener('click', () => {
+          const plan = button.dataset.plan;
+          const price = Number(button.dataset.price);
+          const period = button.dataset.period;
+          const label = button.dataset.label;
 
-      optionButtons.forEach(button => button.classList.toggle('is-active', button === optionButton));
-      amountEl.textContent = `${optionButton.dataset.price} ₽`;
-      periodEl.textContent = `/ ${optionButton.dataset.period}`;
-      const btn = card.querySelector('.choose-btn');
-      btn.textContent = `Выбрать ${PLAN_DEFS[planKey].planName}`;
+          const card = button.closest('.plan-card');
+          card.querySelectorAll('.duration-option').forEach(el => el.classList.toggle('active', el === button));
+          card.querySelector('.price-main').textContent = `${price} ₽`;
+          card.querySelector('.price-detail').textContent = `/ ${period}`;
+
+          const selectedPlanState = state.selectedPlan === plan ? state.selectedPlan : plan;
+          state.selectedPlan = selectedPlanState;
+          state.selectedDuration = { key: button.dataset.key, price, period, label };
+
+          if (state.started) {
+            renderCheckout();
+          }
+        });
+      });
+
+      wrap.querySelectorAll('.plan-cta').forEach(button => {
+        button.addEventListener('click', () => {
+          const planKey = button.dataset.selectPlan;
+          state.selectedPlan = planKey;
+          state.selectedDuration = getDefaultDuration(planKey);
+          state.selectedMethod = null;
+          state.selectedBank = null;
+          state.started = true;
+          renderCheckout();
+        });
+      });
     }
 
-    document.querySelectorAll('.plan-option').forEach(button => {
-      button.addEventListener('click', () => {
-        updateSelectedPlan(button.dataset.plan, button);
+    function renderCheckout() {
+      const panel = document.getElementById('checkoutPanel');
+      const plan = PLAN_DEFS[state.selectedPlan];
+      const duration = state.selectedDuration || getDefaultDuration(state.selectedPlan);
+      const total = duration.price;
+
+      const methodOptions = plan.methods.map(item => `
+        <button type="button" class="method-option ${state.selectedMethod === item.id ? 'active' : ''}" data-method="${item.id}">
+          <span class="method-name">${item.name}</span>
+          <span class="method-sub">${item.subtitle}</span>
+        </button>
+      `).join('');
+
+      const bankOptions = plan.banks.map(item => `
+        <button type="button" class="bank-chip ${state.selectedBank === item ? 'active' : ''}" data-bank="${item}">${item}</button>
+      `).join('');
+
+      panel.classList.add('visible');
+      panel.innerHTML = `
+        <div class="checkout-header">
+          <div class="checkout-title">Подписка</div>
+        </div>
+
+        <div class="checkout-summary">${plan.title} · ${total} ₽ / ${duration.period}</div>
+
+        <div class="step-box">
+          <span class="step-label">На сколько подписка?</span>
+          <div class="option-grid">
+            ${plan.options.map(option => `
+              <button type="button" class="method-option ${state.selectedDuration && state.selectedDuration.key === option.key ? 'active' : ''}" data-change-duration="${option.key}">
+                <span class="method-name">${option.label}</span>
+                <span class="method-sub">${option.price} ₽</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="step-box">
+          <span class="step-label">Способ оплаты</span>
+          <div class="option-grid">
+            ${methodOptions}
+          </div>
+          ${plan.banks && plan.banks.length ? `
+            <div class="bank-row">
+              ${bankOptions}
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="checkout-actions">
+          <button class="checkout-submit" type="button" id="confirmPaymentBtn">Продолжить оплату</button>
+          <button class="checkout-reset" type="button" id="resetCheckoutBtn">Сбросить</button>
+        </div>
+      `;
+
+      panel.querySelectorAll('[data-change-duration]').forEach(button => {
+        button.addEventListener('click', () => {
+          const key = button.dataset.changeDuration;
+          const matched = plan.options.find(item => item.key === key);
+          if (!matched) return;
+          state.selectedDuration = matched;
+          renderCheckout();
+        });
       });
-    });
+
+      panel.querySelectorAll('[data-method]').forEach(button => {
+        button.addEventListener('click', () => {
+          state.selectedMethod = button.dataset.method;
+          if (state.selectedMethod !== 'yookassa') {
+            state.selectedBank = null;
+          }
+          renderCheckout();
+        });
+      });
+
+      panel.querySelectorAll('[data-bank]').forEach(button => {
+        button.addEventListener('click', () => {
+          state.selectedBank = button.dataset.bank;
+          renderCheckout();
+        });
+      });
+
+      panel.querySelector('#resetCheckoutBtn').addEventListener('click', () => {
+        state.started = false;
+        state.selectedMethod = null;
+        state.selectedBank = null;
+        panel.classList.remove('visible');
+        panel.innerHTML = '';
+      });
+
+      panel.querySelector('#confirmPaymentBtn').addEventListener('click', () => {
+        const method = state.selectedMethod || (plan.methods[0] && plan.methods[0].id);
+        if (!method) return;
+
+        if (method === 'yookassa') {
+          startYookassaFlow(plan, duration, state.selectedBank || 'Карта');
+        } else if (method === 'seeds' || method === 'dc') {
+          activateClassicPayment(method, plan, duration);
+        } else if (method === 'stars') {
+          openStarsPayment(plan, duration);
+        }
+      });
+    }
+
+    async function activateClassicPayment(method, plan, duration) {
+      const user = getUserFromState();
+      const payload = {
+        telegram_id: user.telegram_id || user.id || null,
+        plan_key: duration.key,
+        method,
+        amount: Number(duration.price),
+        username: user.username || 'user'
+      };
+
+      if (!payload.telegram_id) {
+        alert('Для активации нужно привязать Telegram в личном кабинете.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/fernieplus/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (data && data.success) {
+          showSuccessState();
+        } else {
+          alert(data && data.error ? data.error : 'Не удалось активировать подписку');
+        }
+      } catch (error) {
+        alert('Ошибка связи с сервером. Попробуйте позднее.');
+      }
+    }
+
+    async function startYookassaFlow(plan, duration, bank) {
+      const user = getUserFromState();
+      const amount = Number(duration.price);
+      const payload = {
+        userId: user.id,
+        planKey: duration.key,
+        planLabel: plan.title,
+        amount,
+        telegramId: user.telegram_id || user.id || null,
+        username: user.username || 'user',
+        source: 'oplatapodpiski'
+      };
+
+      try {
+        const response = await fetch('/api/fernieplus/create-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (!data || !data.success) {
+          alert(data && data.error ? data.error : 'Не удалось создать платёж.');
+          return;
+        }
+
+        const confirmationUrl = data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru';
+        const script = document.createElement('script');
+        script.src = 'https://yookassa.ru/checkout-widget/v1/checkout.js';
+        script.onload = () => {
+          if (window.YooMoneyCheckoutWidget) {
+            const widget = new window.YooMoneyCheckoutWidget({
+              confirmation_token: data.confirmationToken || data.id || data.paymentId,
+              return_url: window.location.origin + window.location.pathname,
+              error_callback: () => alert('Возникла ошибка оплаты через YooKassa.'),
+              success_callback: () => showSuccessState()
+            });
+            widget.render();
+          } else {
+            window.open(confirmationUrl, '_blank', 'noopener');
+            setTimeout(() => showSuccessState(), 1500);
+          }
+        };
+        document.head.appendChild(script);
+
+        const label = bank && bank !== 'Карта' ? `${bank} · ${duration.label || duration.period}` : `${duration.label || duration.period}`;
+        const paymentNotice = document.createElement('div');
+        paymentNotice.style.marginTop = '12px';
+        paymentNotice.style.fontSize = '0.82rem';
+        paymentNotice.style.color = 'rgba(255,255,255,0.7)';
+        paymentNotice.textContent = `Оплата через ЮKassa для ${plan.title} · ${label}`;
+        document.getElementById('checkoutPanel').appendChild(paymentNotice);
+      } catch (error) {
+        alert('Ошибка подключения к ЮKassa. Попробуйте позже.');
+      }
+    }
+
+    function openStarsPayment(plan, duration) {
+      const user = getUserFromState();
+      const payload = {
+        userId: user.id,
+        telegramId: user.telegram_id || user.id || null,
+        planKey: duration.key,
+        planTitle: plan.title,
+        amount: Number(duration.price)
+      };
+
+      if (!payload.telegramId) {
+        alert('Сначала привяжите Telegram к аккаунту в FernieID.');
+        return;
+      }
+
+      const starsUrl = 'https://t.me/FernieXBot?start=FPro_TS_' + duration.key + '_stars';
+      window.open(starsUrl, '_blank', 'noopener');
+      showSuccessState();
+    }
+
+    function showSuccessState() {
+      document.getElementById('successCard').classList.add('show');
+      const panel = document.getElementById('checkoutPanel');
+      panel.classList.remove('visible');
+      panel.innerHTML = '';
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    renderPlans();
+    getUserFromState();
   </script>
 </body>
 </html>
