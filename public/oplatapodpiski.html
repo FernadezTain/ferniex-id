@@ -1205,7 +1205,11 @@
             </div>
             <div class="payment-modal-body">
               <div class="payment-loader">Подготовка оплаты…</div>
-              <iframe class="payment-modal-frame" title="YooKassa checkout" sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>
+              <div class="payment-info" style="display:flex; align-items:center; justify-content:center; min-height:480px; flex-direction:column; gap:14px; text-align:center; padding:24px; color: rgba(255,255,255,0.82);">
+                <div style="font-size:1.4rem; font-weight:800; letter-spacing:-0.04em;">Оплата открывается в отдельном окне</div>
+                <div style="max-width:430px; color: rgba(255,255,255,0.68); line-height:1.6;">После перехода в ЮKassa нужно завершить оплату. После успешного платежа страница автоматически активирует подписку.</div>
+                <button type="button" class="checkout-submit" style="margin-top:6px;" id="paymentOpenButton">Открыть оплату</button>
+              </div>
             </div>
           </div>
         `;
@@ -1262,12 +1266,12 @@
 
     async function finalizeYookassaSuccess(plan, duration, paymentId) {
       closePaymentModal();
-      await activateSubscription('yookassa', plan, duration);
-      if (paymentId) {
+      const activated = await activateSubscription('yookassa', plan, duration);
+      if (!activated && paymentId) {
         const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
         const statusData = await statusResponse.json();
         if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
-          showSuccessState();
+          await activateSubscription('yookassa', plan, duration);
         }
       }
     }
@@ -1302,11 +1306,10 @@
         const paymentId = data.paymentId || data.id || null;
         const bankLabel = bank && bank !== 'Карта' ? `${bank} · ${duration.label || duration.period}` : `${duration.label || duration.period}`;
         const modal = ensurePaymentModal();
-        const frame = modal.querySelector('.payment-modal-frame');
+        const openBtn = modal.querySelector('#paymentOpenButton');
         const loader = modal.querySelector('.payment-loader');
         modal.querySelector('.payment-modal-header strong').textContent = `${plan.title} · ${bankLabel}`;
         modal.classList.add('open');
-        frame.src = confirmationUrl;
         loader.style.display = 'flex';
 
         const finish = async () => {
@@ -1314,48 +1317,44 @@
         };
 
         if (data.demoMode) {
+          loader.style.display = 'none';
+          const popup = window.open(confirmationUrl, '_blank', 'width=520,height=760,noopener,noreferrer');
+          if (!popup) {
+            alert('Браузер заблокировал всплывающее окно. Разрешите всплывающие окна и попробуйте снова.');
+            return;
+          }
           setTimeout(() => {
-            loader.style.display = 'none';
+            popup.focus();
             finish();
-          }, 1400);
+          }, 1800);
           return;
         }
 
-        const script = document.createElement('script');
-        script.src = 'https://yookassa.ru/checkout-widget/v1/checkout.js';
-        script.onload = () => {
-          if (window.YooMoneyCheckoutWidget) {
-            loader.style.display = 'none';
-            const widget = new window.YooMoneyCheckoutWidget({
-              confirmation_token: data.confirmationToken || data.confirmation_token || data.id || data.paymentId,
-              return_url: window.location.origin + window.location.pathname,
-              error_callback: () => {
-                closePaymentModal();
-                alert('Возникла ошибка оплаты через YooKassa.');
-              },
-              success_callback: () => {
-                finish();
-              }
-            });
-            widget.render();
-            return;
+        let popupWindow = null;
+        const openCheckout = () => {
+          popupWindow = window.open(confirmationUrl, '_blank', 'width=520,height=760,noopener,noreferrer');
+          if (!popupWindow) {
+            alert('Браузер заблокировал всплывающее окно. Разрешите всплывающие окна и попробуйте снова.');
+            return false;
           }
-
+          popupWindow.focus();
           loader.style.display = 'none';
-          const statusTimer = setInterval(async () => {
-            try {
-              const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
-              const statusData = await statusResponse.json();
-              if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
-                clearInterval(statusTimer);
-                await finish();
-              }
-            } catch (e) {}
-          }, 2000);
-
-          frame.src = confirmationUrl;
+          return true;
         };
-        document.head.appendChild(script);
+
+        openBtn.addEventListener('click', openCheckout, { once: true });
+        if (!openCheckout()) return;
+
+        const statusTimer = setInterval(async () => {
+          try {
+            const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
+            const statusData = await statusResponse.json();
+            if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
+              clearInterval(statusTimer);
+              await finish();
+            }
+          } catch (e) {}
+        }, 2000);
 
         const notice = document.createElement('div');
         notice.style.marginTop = '12px';
