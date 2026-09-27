@@ -972,11 +972,25 @@
       return plan.options.find(item => item.default) || plan.options[0];
     }
 
+    function getDisplayMethod(planKey) {
+      const plan = PLAN_DEFS[planKey];
+      return state.selectedMethod || (plan.methods[0] && plan.methods[0].id) || 'yookassa';
+    }
+
+    function formatPriceDisplay(amount, methodId) {
+      const method = methodId || 'yookassa';
+      if (method === 'seeds') return `${amount} 🌱`;
+      if (method === 'dc') return `${amount} DC`;
+      if (method === 'stars') return `${amount} ⭐`;
+      return `${amount} ₽`;
+    }
+
     function renderPlanCard(planKey) {
       const plan = PLAN_DEFS[planKey];
       const activeDuration = getDefaultDuration(planKey);
       const price = activeDuration.price;
       const durationLabel = activeDuration.period;
+      const displayMethod = getDisplayMethod(planKey);
 
       return `
         <article class="plan-card ${planKey === 'pro' ? 'pro' : ''}" data-plan="${planKey}">
@@ -985,7 +999,7 @@
           </div>
 
           <div class="price-row">
-            <div class="price-main">${price} ₽</div>
+            <div class="price-main">${formatPriceDisplay(price, displayMethod)}</div>
             <div class="price-detail">/ ${durationLabel}</div>
           </div>
 
@@ -1014,7 +1028,7 @@
                   data-label="${option.label}"
                 >
                   <small>${option.label}</small>
-                  <strong>${option.price} ₽</strong>
+                  <strong>${formatPriceDisplay(option.price, displayMethod)}</strong>
                 </button>
               `).join('')}
             </div>
@@ -1043,8 +1057,9 @@
           const label = button.dataset.label;
 
           const card = button.closest('.plan-card');
+          const activeMethod = getDisplayMethod(plan);
           card.querySelectorAll('.duration-option').forEach(el => el.classList.toggle('active', el === button));
-          card.querySelector('.price-main').textContent = `${price} ₽`;
+          card.querySelector('.price-main').textContent = formatPriceDisplay(price, activeMethod);
           card.querySelector('.price-detail').textContent = `/ ${period}`;
 
           const selectedPlanState = state.selectedPlan === plan ? state.selectedPlan : plan;
@@ -1075,6 +1090,7 @@
       const plan = PLAN_DEFS[state.selectedPlan];
       const duration = state.selectedDuration || getDefaultDuration(state.selectedPlan);
       const total = duration.price;
+      const activeMethod = state.selectedMethod || (plan.methods[0] && plan.methods[0].id) || 'yookassa';
 
       const methodOptions = plan.methods.map(item => `
         <button type="button" class="method-option ${state.selectedMethod === item.id ? 'active' : ''}" data-method="${item.id}">
@@ -1093,7 +1109,7 @@
           <div class="checkout-title">Подписка</div>
         </div>
 
-        <div class="checkout-summary">${plan.title} · ${total} ₽ / ${duration.period}</div>
+        <div class="checkout-summary">${plan.title} · ${formatPriceDisplay(total, activeMethod)} / ${duration.period}</div>
 
         <div class="step-box">
           <span class="step-label">На сколько подписка?</span>
@@ -1101,7 +1117,7 @@
             ${plan.options.map(option => `
               <button type="button" class="method-option ${state.selectedDuration && state.selectedDuration.key === option.key ? 'active' : ''}" data-change-duration="${option.key}">
                 <span class="method-name">${option.label}</span>
-                <span class="method-sub">${option.price} ₽</span>
+                <span class="method-sub">${formatPriceDisplay(option.price, activeMethod)}</span>
               </button>
             `).join('')}
           </div>
@@ -1313,15 +1329,19 @@
         statusNode.classList.add('visible');
         statusNode.textContent = 'Переносим на страницу оплаты...';
 
-        sessionStorage.setItem('fernie_pending_payment', JSON.stringify({
+        const pendingData = {
           paymentId,
           planKey: plan.key,
           durationKey: duration.key,
           planTitle: plan.title,
           amount,
           bankLabel,
+          method: 'yookassa',
           createdAt: Date.now()
-        }));
+        };
+
+        sessionStorage.setItem('fernie_pending_payment', JSON.stringify(pendingData));
+        localStorage.setItem('fernie_pending_payment', JSON.stringify(pendingData));
 
         setTimeout(() => {
           window.location.href = confirmationUrl;
@@ -1372,12 +1392,14 @@
     }
 
     async function resumePendingYookassaStatus() {
-      const pending = JSON.parse(sessionStorage.getItem('fernie_pending_payment') || 'null');
+      const pendingRaw = sessionStorage.getItem('fernie_pending_payment') || localStorage.getItem('fernie_pending_payment');
+      const pending = JSON.parse(pendingRaw || 'null');
       if (!pending || !pending.paymentId) return;
 
       const planKey = pending.planKey || 'fp';
       const plan = PLAN_DEFS[planKey] || PLAN_DEFS.fp;
       const duration = (plan.options || []).find(item => item.key === (pending.durationKey || pending.planKey)) || getDefaultDuration(plan.key);
+      const pendingMethod = pending.method || 'yookassa';
       const panel = document.getElementById('checkoutPanel');
       if (panel) {
         panel.classList.add('visible');
@@ -1385,7 +1407,7 @@
           <div class="checkout-header">
             <div class="checkout-title">Подписка</div>
           </div>
-          <div class="checkout-summary">${plan.title} · ${duration.price} ₽ / ${duration.period}</div>
+          <div class="checkout-summary">${plan.title} · ${formatPriceDisplay(duration.price, pendingMethod)} / ${duration.period}</div>
           <div class="checkout-status visible">Проверяем статус оплаты...</div>
         `;
       }
