@@ -328,6 +328,63 @@
       line-height: 1;
       letter-spacing: -0.08em;
       font-weight: 800;
+      display: inline-flex;
+      align-items: baseline;
+      white-space: nowrap;
+    }
+
+    .price-digits {
+      display: inline-flex;
+      overflow: hidden;
+      vertical-align: bottom;
+    }
+
+    .price-digit {
+      display: inline-block;
+      height: 1em;
+      overflow: hidden;
+    }
+
+    .price-digit-track {
+      display: flex;
+      flex-direction: column;
+      height: 2em;
+      line-height: 1;
+      transform: translateY(0);
+    }
+
+    .price-digit-track span { flex: 0 0 1em; height: 1em; }
+
+    .price-currency {
+      display: inline-block;
+      margin-left: 0.08em;
+      font-size: 1em;
+      line-height: 1;
+      vertical-align: baseline;
+    }
+
+    .price-currency-slot {
+      display: inline-flex;
+      height: 1em;
+      overflow: hidden;
+      margin-left: 0.08em;
+      vertical-align: bottom;
+    }
+
+    .price-currency-track {
+      display: flex;
+      flex-direction: column;
+      height: 2em;
+      line-height: 1;
+    }
+
+    .price-currency-track span {
+      display: block;
+      flex: 0 0 1em;
+      height: 1em;
+      font-size: 1em;
+      line-height: 1;
+      white-space: nowrap;
     }
 
     .price-detail {
@@ -481,6 +538,18 @@
       color: rgba(255,255,255,0.7);
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--line);
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.18s ease;
+      font: inherit;
+      font-size: 0.72rem;
+    }
+
+    .pay-pill:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+
+    .pay-pill.active {
+      color: var(--ink);
+      background: rgba(255,255,255,0.14);
+      border-color: rgba(255,255,255,0.24);
     }
 
     .plan-cta {
@@ -523,7 +592,7 @@
 
     .checkout-panel.visible {
       opacity: 1;
-      max-height: 900px;
+      max-height: 2000px;
       transform: translateY(0);
     }
 
@@ -557,6 +626,7 @@
       border-radius: 20px;
       padding: 16px 14px 14px;
       margin-top: 12px;
+      min-width: 0;
     }
 
     .step-label {
@@ -573,6 +643,7 @@
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 10px;
+      min-width: 0;
     }
 
     .method-option {
@@ -585,6 +656,9 @@
       cursor: pointer;
       transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
       min-height: 78px;
+      min-width: 0;
+      width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .method-option:hover {
@@ -615,6 +689,7 @@
       gap: 10px;
       margin-top: 12px;
       flex-wrap: wrap;
+      min-width: 0;
     }
 
     .bank-chip {
@@ -626,6 +701,7 @@
       cursor: pointer;
       transition: border-color 0.2s ease, background 0.2s ease;
       font-weight: 700;
+      max-width: 100%;
     }
 
     .bank-chip.active {
@@ -911,8 +987,7 @@
           { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
           { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
           { key: '1y', label: '1 год', price: 799, period: '1 год' }
-        ],
-        chips: ['Семена', 'DC']
+        ]
       },
       pro: {
         key: 'pro',
@@ -936,8 +1011,7 @@
           { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
           { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
           { key: '1y', label: '1 год', price: 799, period: '1 год' }
-        ],
-        chips: ['Telegram Stars']
+        ]
       }
     };
 
@@ -945,6 +1019,7 @@
       selectedPlan: 'fp',
       selectedDuration: null,
       selectedMethod: null,
+      displayMethods: { fp: 'seeds', pro: 'stars' },
       selectedBank: null,
       started: false
     };
@@ -974,7 +1049,10 @@
 
     function getDisplayMethod(planKey) {
       const plan = PLAN_DEFS[planKey];
-      return state.selectedMethod || (plan.methods[0] && plan.methods[0].id) || 'yookassa';
+      const preferred = state.displayMethods[planKey];
+      return plan.methods.some(item => item.id === preferred)
+        ? preferred
+        : (plan.methods[0] && plan.methods[0].id) || 'yookassa';
     }
 
     function formatPriceDisplay(amount, methodId) {
@@ -983,6 +1061,74 @@
       if (method === 'dc') return `${amount} DC`;
       if (method === 'stars') return `${amount} ⭐`;
       return `${amount} ₽`;
+    }
+
+    function setPriceDisplay(node, amount, method, animate = false) {
+      if (!node) return;
+      const previousAmount = Number(node.dataset.amount);
+      const previousMethod = node.dataset.method;
+      const digits = String(amount);
+      const currency = method === 'seeds' ? '🌱' : method === 'dc' ? 'DC' : method === 'stars' ? '⭐' : '₽';
+      const previousCurrency = previousMethod === 'seeds' ? '🌱' : previousMethod === 'dc' ? 'DC' : previousMethod === 'stars' ? '⭐' : '₽';
+
+      if (!animate || !Number.isFinite(previousAmount)) {
+        node.textContent = formatPriceDisplay(amount, method);
+      } else {
+        const previousDigits = String(previousAmount).padStart(digits.length, '0');
+        const increasing = amount >= previousAmount;
+        const rollingDigits = [...digits].map((digit, index) => {
+          const oldDigit = previousDigits[previousDigits.length - digits.length + index] || '0';
+          if (oldDigit === digit) return `<span>${digit}</span>`;
+          const first = increasing ? oldDigit : digit;
+          const second = increasing ? digit : oldDigit;
+          return `<span class="price-digit"><span class="price-digit-track" data-from="${increasing ? '0' : '-50%'}" data-to="${increasing ? '-50%' : '0'}"><span>${first}</span><span>${second}</span></span></span>`;
+        }).join('');
+        node.innerHTML = `<span class="price-digits">${rollingDigits}</span><span class="price-currency">${currency}</span>`;
+        node.querySelectorAll('.price-digit-track').forEach(track => {
+          track.style.transform = `translateY(${track.dataset.from})`;
+          requestAnimationFrame(() => {
+            track.style.transition = 'transform 0.48s cubic-bezier(.22,1,.36,1)';
+            track.style.transform = `translateY(${track.dataset.to})`;
+          });
+        });
+          if (previousMethod && previousMethod !== method) {
+            const ranks = { seeds: 0, dc: 1, yookassa: 2, stars: 3 };
+            const rollingUp = (ranks[method] ?? 0) >= (ranks[previousMethod] ?? 0);
+            const firstCurrency = rollingUp ? previousCurrency : currency;
+            const secondCurrency = rollingUp ? currency : previousCurrency;
+            const from = rollingUp ? '0' : '-50%';
+            const to = rollingUp ? '-50%' : '0';
+            const currencyTrack = document.createElement('span');
+            currencyTrack.className = 'price-currency-track';
+            currencyTrack.style.transform = `translateY(${from})`;
+            currencyTrack.innerHTML = `<span>${firstCurrency}</span><span>${secondCurrency}</span>`;
+            const currencySlot = document.createElement('span');
+            currencySlot.className = 'price-currency-slot';
+            currencySlot.append(currencyTrack);
+            node.querySelector('.price-currency').replaceWith(currencySlot);
+            requestAnimationFrame(() => {
+              currencyTrack.style.transition = 'transform 0.48s cubic-bezier(.22,1,.36,1)';
+              currencyTrack.style.transform = `translateY(${to})`;
+            });
+          }
+      }
+
+      node.dataset.amount = String(amount);
+      node.dataset.method = method;
+    }
+
+    function updateCardPrices(card, planKey) {
+      const method = getDisplayMethod(planKey);
+      const selected = card.querySelector('.duration-option.active') || card.querySelector('.duration-option');
+      if (selected) setPriceDisplay(card.querySelector('.price-main'), Number(selected.dataset.price), method, true);
+      card.querySelectorAll('.duration-option').forEach(button => {
+        setPriceDisplay(button.querySelector('strong'), Number(button.dataset.price), method, true);
+      });
+      card.querySelectorAll('.pay-pill').forEach(button => {
+        const active = button.dataset.method === method;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
     }
 
     function renderPlanCard(planKey) {
@@ -999,7 +1145,7 @@
           </div>
 
           <div class="price-row">
-            <div class="price-main">${formatPriceDisplay(price, displayMethod)}</div>
+            <div class="price-main" data-amount="${price}" data-method="${displayMethod}">${formatPriceDisplay(price, displayMethod)}</div>
             <div class="price-detail">/ ${durationLabel}</div>
           </div>
 
@@ -1028,14 +1174,14 @@
                   data-label="${option.label}"
                 >
                   <small>${option.label}</small>
-                  <strong>${formatPriceDisplay(option.price, displayMethod)}</strong>
+                  <strong data-amount="${option.price}" data-method="${displayMethod}">${formatPriceDisplay(option.price, displayMethod)}</strong>
                 </button>
               `).join('')}
             </div>
           </div>
 
           <div class="pay-pill-row">
-            ${plan.chips.map(chip => `<span class="pay-pill">${chip}</span>`).join('')}
+            ${plan.methods.map(method => `<button type="button" class="pay-pill ${displayMethod === method.id ? 'active' : ''}" data-method="${method.id}" aria-label="Показывать цены в ${method.name}" aria-pressed="${displayMethod === method.id}">${method.name}</button>`).join('')}
           </div>
 
           <button class="plan-cta ${planKey === 'pro' ? 'pro' : ''}" type="button" data-select-plan="${planKey}">
@@ -1059,7 +1205,8 @@
           const card = button.closest('.plan-card');
           const activeMethod = getDisplayMethod(plan);
           card.querySelectorAll('.duration-option').forEach(el => el.classList.toggle('active', el === button));
-          card.querySelector('.price-main').textContent = formatPriceDisplay(price, activeMethod);
+          setPriceDisplay(card.querySelector('.price-main'), price, activeMethod, true);
+          setPriceDisplay(button.querySelector('strong'), price, activeMethod, true);
           card.querySelector('.price-detail').textContent = `/ ${period}`;
 
           const selectedPlanState = state.selectedPlan === plan ? state.selectedPlan : plan;
@@ -1072,12 +1219,23 @@
         });
       });
 
+      wrap.querySelectorAll('.pay-pill').forEach(button => {
+        button.addEventListener('click', () => {
+          const card = button.closest('.plan-card');
+          const planKey = card.dataset.plan;
+          state.displayMethods[planKey] = button.dataset.method;
+          state.selectedPlan = planKey;
+          state.selectedMethod = button.dataset.method;
+          updateCardPrices(card, planKey);
+        });
+      });
+
       wrap.querySelectorAll('.plan-cta').forEach(button => {
         button.addEventListener('click', () => {
           const planKey = button.dataset.selectPlan;
           state.selectedPlan = planKey;
           state.selectedDuration = getDefaultDuration(planKey);
-          state.selectedMethod = null;
+          state.selectedMethod = getDisplayMethod(planKey);
           state.selectedBank = null;
           state.started = true;
           renderCheckout();
