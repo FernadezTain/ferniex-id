@@ -4525,6 +4525,11 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
   if (!['fp', 'pro'].includes(planType)) {
     return res.json({ success: false, error: 'Неизвестный тип подписки' });
   }
+  const resolvedTelegramId = await resolveTelegramId(userId);
+  if (!resolvedTelegramId) {
+    return res.json({ success: false, error: 'Telegram не привязан' });
+  }
+  const paymentTelegramId = String(resolvedTelegramId);
   const returnUrl = getYookassaReturnUrl(req);
   if (!returnUrl) {
     return res.json({ success: false, error: 'Не удалось определить домен возврата. Настройте SITE_ORIGIN.' });
@@ -4546,7 +4551,8 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
       planKey,
       planType,
       planLabel: planLabel || 'Fernie+',
-      telegramId,
+      telegramId: paymentTelegramId,
+      userId: String(userId),
       username: username || 'User',
       source: source || 'remaster',
       confirmationUrl: mockUrl,
@@ -4581,8 +4587,8 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
         },
         description: `Fernie+ ${planLabel || 'Подписка'} ${paymentAmount} ₽`,
         metadata: {
-          userId,
-          telegramId,
+          userId: String(userId),
+          telegramId: paymentTelegramId,
           username: username || 'User',
           planKey,
           planType,
@@ -4604,7 +4610,8 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
       planKey,
       planType,
       planLabel: planLabel || 'Fernie+',
-      telegramId,
+      telegramId: paymentTelegramId,
+      userId: String(userId),
       username: username || 'User',
       source: source || 'remaster',
       confirmationUrl: paymentData.confirmation?.confirmation_url || paymentData.confirmation_url || 'https://yookassa.ru',
@@ -4695,7 +4702,8 @@ app.post('/api/fernieplus/pro/activate', async (req, res) => {
       if (!paymentData || paymentData.status !== 'succeeded') {
         return res.json({ success: false, error: 'Платёж YooKassa ещё не подтверждён' });
       }
-      if (String(paymentData.telegramId) !== String(resolvedTelegramId)
+      if ((String(paymentData.telegramId) !== String(resolvedTelegramId)
+        && String(paymentData.userId) !== String(userId))
         || paymentData.planType !== 'pro'
         || String(paymentData.planKey) !== String(plan_key)
         || Number(paymentData.amount) !== Number(amount)) {
@@ -4714,9 +4722,11 @@ app.post('/api/fernieplus/pro/activate', async (req, res) => {
       }
       const metadata = paymentData.metadata || {};
       const paidAmount = Number(paymentData.amount?.value || 0);
+      const paymentOwnerMatches = String(metadata.telegramId) === String(resolvedTelegramId)
+        || String(metadata.userId) === String(userId);
       if (paymentData.status !== 'succeeded'
         || paymentData.amount?.currency !== 'RUB'
-        || String(metadata.telegramId) !== String(resolvedTelegramId)
+        || !paymentOwnerMatches
         || metadata.planType !== 'pro'
         || String(metadata.planKey) !== String(plan_key)
         || Math.abs(paidAmount - Number(amount)) > 0.009) {
