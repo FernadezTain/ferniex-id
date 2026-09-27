@@ -294,6 +294,16 @@ body{
 .empty-box .title{font-weight:700;color:var(--ink);margin-bottom:.3rem;font-size:.95rem;}
 .empty-box .desc{font-size:.83rem;line-height:1.5;}
 
+.subscription-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;padding:2.2rem 1rem 0.5rem;}
+.subscription-empty-state .plus-emoji{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;background:linear-gradient(135deg,#fff4d7,#f9d9d1);border:1px solid #f3d4b8;box-shadow:0 15px 35px -18px rgba(255,128,66,.45);}
+.subscription-empty-state .plus-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.7rem, 3vw, 2.4rem);letter-spacing:-.06em;line-height:1.05;}
+.subscription-empty-state .plus-desc{max-width:560px;color:var(--muted);font-size:.9rem;line-height:1.6;}
+.subscription-toolbar{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;margin-top:.4rem;}
+.plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
+.plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
+.plus-action.secondary{background:var(--field);border:1px solid var(--field-border);color:var(--ink);box-shadow:none;}
+.plus-action.secondary:hover{background:var(--card);}
+
 .loader{color:var(--muted);font-size:.85rem;padding:1rem 0;}
 
 .game-card{display:flex;align-items:center;gap:.9rem;padding:1rem 1.1rem;border-radius:16px;background:var(--field);border:1px solid var(--field-border);}
@@ -502,6 +512,20 @@ body:hover::-webkit-scrollbar-thumb{
 .modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;margin-bottom:1.1rem;}
 .modal-actions{display:flex;gap:.6rem;margin-top:1.1rem;}
 .modal-actions .btn{flex:1;}
+.pay-shell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;min-height:260px;}
+.pay-hero{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;}
+.pay-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f7ecd0,#e7ddff);color:var(--ink);box-shadow:0 18px 32px -18px rgba(120,100,80,.45);}
+.pay-ring-inner{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--ink);color:var(--ink-contrast);font-size:1.2rem;}
+.pay-success-badge{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#dff7e8,#c9ebd4);color:var(--green);box-shadow:0 18px 32px -18px rgba(46,140,80,.45);font-size:1.8rem;}
+.pay-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.8rem,4vw,2.4rem);letter-spacing:-.07em;line-height:1.04;}
+.pay-subtitle{max-width:360px;color:var(--muted);font-size:.88rem;line-height:1.6;}
+.pay-status-box{width:100%;padding:1rem 1rem;border-radius:16px;background:var(--field);border:1px solid var(--field-border);display:flex;flex-direction:column;gap:.5rem;align-items:center;}
+.pay-spinner{width:26px;height:26px;border-radius:50%;border:3px solid rgba(24,20,16,.14);border-top-color:var(--ink);animation:spin .9s linear infinite;}
+.pay-status-title{font-weight:800;font-size:.9rem;}
+.pay-status-text{font-size:.76rem;color:var(--muted);line-height:1.5;}
+.pay-action-row{display:flex;gap:.6rem;width:100%;}
+.pay-action-row .btn{flex:1;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
 /* --- ticket detail (admin) --- */
 .detail-back{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;color:var(--muted);cursor:pointer;margin-bottom:1rem;}
@@ -1750,17 +1774,6 @@ function renderPlanCard(def, state){
     <div class="plan-term"><b>${escapeHtml(l)}:</b> ${escapeHtml(v)}</div>`).join('');
   const payHtml = def.payChips.map(p => `<span class="plan-pay-chip">${escapeHtml(p)}</span>`).join('');
 
-  let ctaHtml;
-  if(state.needsTelegram){
-    ctaHtml = `<button class="plan-cta ${def.ctaClass}" data-goto-security="1">${icon('link')}Привязать Telegram</button>`;
-  } else if(state.active){
-    ctaHtml = `<button class="plan-cta is-disabled" disabled>${icon('check')}Уже активна</button>`;
-  } else if(def.key === 'fp'){
-    ctaHtml = `<button class="plan-cta ${def.ctaClass}" data-open-payment="fp">${def.ctaLabel} →</button>`;
-  } else {
-    ctaHtml = `<a class="plan-cta ${def.ctaClass}" href="https://t.me/FernieXBot" target="_blank" rel="noopener noreferrer">${def.ctaLabel} →</a>`;
-  }
-
   return `
     <div class="plan-card ${def.key==='pro' ? 'plan-pro' : ''}" data-plan="${def.key}">
       ${def.popular ? `<div class="plan-ribbon">Популярно</div>` : ''}
@@ -1774,9 +1787,58 @@ function renderPlanCard(def, state){
       </div>
       <div class="plan-features">${featuresHtml}</div>
       ${termsHtml ? `<div class="plan-divider"></div><div class="plan-terms"><div class="plan-terms-label">Условия</div>${termsHtml}</div>` : ''}
-      ${ctaHtml}
       <div class="plan-pay-row">${payHtml}</div>
     </div>`;
+}
+
+function getSubscriptionPrimaryLabel(fpActive, proActive){
+  if(!fpActive && !proActive) return 'Подключить подписку';
+  if(fpActive && !proActive) return 'Улучшить до Pro';
+  return 'Улучшить подписку';
+}
+
+function renderSubscriptionActionBar(fpActive, proActive){
+  const hasAny = fpActive || proActive;
+  const label = getSubscriptionPrimaryLabel(fpActive, proActive);
+  return `
+    <div class="subscription-toolbar">
+      <button class="plus-action" type="button" data-subscription-primary="1">${label}</button>
+      ${hasAny ? '<button class="plus-action secondary" type="button" data-cancel-subscription="1">Отменить подписку</button>' : ''}
+    </div>
+  `;
+}
+
+async function cancelSubscription(){
+  const confirmed = await confirmModal('Отключить подписку и снять доступ к Fernie+ / Pro?', {
+    title: 'Подтвердите действие',
+    icon: 'warn',
+    cancelLabel: 'Нет',
+    okLabel: 'Да, отключить',
+    danger: true
+  });
+
+  if(!confirmed) return;
+
+  try {
+    const res = await fetch(`${API}/api/fernieplus/cancel-subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: currentUser?.id || null,
+        telegramId: currentUser?.telegram_id || currentUser?.telegramId || null,
+        username: currentUser?.username || 'user'
+      })
+    });
+    const data = await res.json();
+    if(!data || !data.success){
+      showToastSafe(data?.error || 'Не удалось отменить подписку');
+      return;
+    }
+    showToastSafe('Подписка отключена');
+    await loadSubscription();
+  } catch (error) {
+    showToastSafe('Ошибка связи с сервером');
+  }
 }
 
 function renderPaymentOptionList(){
@@ -2027,24 +2089,40 @@ async function loadSubscription(){
     const fpActive = !!fp.active;
     const proActive = !!pro.active;
 
-    if(!fpActive && !proActive){
-      body.innerHTML = `
-        <div class="empty-plus-state">
-          <div class="plus-emoji">✨</div>
-          <div class="plus-title">У вас нет подписки Fernie+</div>
-          <div class="plus-desc">Подключите подписку, чтобы открыть доступ к фонам профиля и другим возможностям Fernie+.</div>
-          <button class="plus-action" type="button" onclick="window.location.href='https://ferniex-id.vercel.app/oplatapodpiski.html'">Подключить подписку</button>
-        </div>`;
-      return;
-    }
-
     const fpState = { needsTelegram: !linked, active: fpActive };
     const proState = { needsTelegram: !linked, active: proActive };
 
-    body.innerHTML = `<div class="plan-grid">
-      ${renderPlanCard(PLAN_DEFS.fp, fpState)}
-      ${renderPlanCard(PLAN_DEFS.pro, proState)}
-    </div>`;
+    const hasAnySubscription = fpActive || proActive;
+
+    if(!fpActive && !proActive){
+      body.innerHTML = `
+        <div class="subscription-empty-state">
+          <div class="plus-emoji">✨</div>
+          <div class="plus-title">У вас нет подписки Fernie+</div>
+          <div class="plus-desc">Подключите подписку, чтобы открыть доступ к фонам профиля и другим возможностям Fernie+.</div>
+          ${renderSubscriptionActionBar(false, false)}
+        </div>`;
+    } else {
+      body.innerHTML = `
+        <div class="plan-grid">
+          ${renderPlanCard(PLAN_DEFS.fp, fpState)}
+          ${renderPlanCard(PLAN_DEFS.pro, proState)}
+        </div>
+        ${renderSubscriptionActionBar(fpActive, proActive)}
+      `;
+    }
+
+    body.querySelectorAll('[data-subscription-primary]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(!fpActive && !proActive) return openPlanPaymentModal('fp');
+        if(fpActive && !proActive) return openPlanPaymentModal('pro');
+        return openPlanPaymentModal('pro');
+      });
+    });
+
+    body.querySelectorAll('[data-cancel-subscription]').forEach(btn => {
+      btn.addEventListener('click', cancelSubscription);
+    });
 
     body.querySelectorAll('[data-goto-security]').forEach(btn => {
       btn.addEventListener('click', () => switchSection('security'));
@@ -2052,6 +2130,9 @@ async function loadSubscription(){
     body.querySelectorAll('[data-open-payment]').forEach(btn => {
       btn.addEventListener('click', () => openPlanPaymentModal(btn.dataset.openPayment));
     });
+    if(!hasAnySubscription) {
+      body.querySelector('[data-subscription-primary]')?.addEventListener('click', () => openPlanPaymentModal('fp'));
+    }
   } catch(e){
     body.innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div><div class="desc">Попробуй обновить страницу.</div></div>`;
   }
