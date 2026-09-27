@@ -4553,7 +4553,7 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
         capture: true,
         confirmation: {
           type: 'redirect',
-          return_url: 'https://fernie-x.vercel.app/'
+          return_url: 'https://ferniex-id.vercel.app/oplatapodpiski.html'
         },
         description: `Fernie+ ${planLabel || 'Подписка'} ${paymentAmount} ₽`,
         metadata: {
