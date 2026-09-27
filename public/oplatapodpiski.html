@@ -226,6 +226,8 @@
       position: relative;
       padding: 24px 22px 20px;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .plan-card.pro {
@@ -385,6 +387,45 @@
       font-size: 0.86rem;
     }
 
+    .terms-box {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: rgba(255,255,255,0.52);
+      padding: 20px 22px;
+    }
+
+    .terms-box h3 {
+      margin: 0 0 14px;
+      font-size: 1.1rem;
+      font-family: 'Syne', sans-serif;
+      letter-spacing: -0.04em;
+    }
+
+    .terms-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 16px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .terms-list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(28,23,20,0.06);
+      padding-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .terms-list strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
     @media (max-width: 780px) {
       .header { grid-template-columns: 1fr; }
       .plans { grid-template-columns: 1fr; }
@@ -436,12 +477,12 @@
         </div>
         <div class="price"><span class="amount">349 ₽</span><span class="period">/ 30 дней</span></div>
         <div class="plan-name">Fernie+</div>
-        <div class="plan-desc">Базовый подписочный доступ с возможностью персонализации профиля и основными привилегиями FernieID.</div>
+        <div class="plan-desc">Все базовые возможности — оплата семенами или DC прямо через сайт.</div>
         <ul class="features">
-          <li>Фоны профиля и кастомизация внешнего вида</li>
-          <li>Сниженный кулдаун и расширенный функционал</li>
-          <li>Безлимитный доступ к AI-функциям</li>
-          <li>Эксклюзивные бонусы и преимущества</li>
+          <li>Стиль профиля</li>
+          <li>Сниженный КД</li>
+          <li>Безлимит /ai</li>
+          <li>Эксклюзивные бонусы</li>
         </ul>
         <div class="billboard">
           <span>Семена</span>
@@ -456,18 +497,28 @@
         </div>
         <div class="price"><span class="amount">799 ₽</span><span class="period">/ 30 дней</span></div>
         <div class="plan-name">Fernie+ Pro</div>
-        <div class="plan-desc">Максимальный пакет — для тех, кто хочет больше возможностей, ускорения и VIP-поддержки.</div>
+        <div class="plan-desc">Максимальные возможности — оплата через Telegram Stars.</div>
         <ul class="features">
           <li>Всё из Fernie+</li>
-          <li>Pro-модели и расширенные инструменты AI</li>
-          <li>Эксклюзивный контент и внутриигровые бонусы</li>
-          <li>Приоритетная поддержка и сервис</li>
+          <li>Pro-модели ИИ</li>
+          <li>Эксклюзив в игре</li>
+          <li>VIP поддержка</li>
         </ul>
         <div class="billboard">
           <span>Telegram Stars</span>
         </div>
         <button class="choose-btn" type="button">Выбрать Fernie+ Pro</button>
       </article>
+    </div>
+
+    <div class="terms-box">
+      <h3>Условия подписки</h3>
+      <ul class="terms-list">
+        <li><strong>Срок:</strong><span>30 дней с момента активации</span></li>
+        <li><strong>Активация:</strong><span>мгновенно после оплаты</span></li>
+        <li><strong>Продление:</strong><span>вручную, автосписания нет</span></li>
+        <li><strong>Возврат:</strong><span>не производится после активации</span></li>
+      </ul>
     </div>
 
     <div class="support-box">
