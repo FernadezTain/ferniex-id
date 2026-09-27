@@ -1373,7 +1373,7 @@ $('pfChangeUsernameBtn').onclick = () => {
     msg.style.color = 'var(--red)'; msg.textContent = '';
     if(!newUsername){ msg.textContent = 'Введите логин'; return; }
     if(newUsername === currentUser.username){ closeModal(); return; }
-    if(!/^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(newUsername)){
+    if(!/^(?=.{3,20}$)[\p{L}\p{N}_]+$/u.test(newUsername)){
       msg.textContent = 'От 3 до 20 символов: буквы, цифры, подчёркивание';
       return;
     }
@@ -1794,7 +1794,7 @@ function renderPlanCard(def, state){
 function getSubscriptionPrimaryLabel(fpActive, proActive){
   if(!fpActive && !proActive) return 'Подключить подписку';
   if(fpActive && !proActive) return 'Улучшить до Pro';
-  return 'Улучшить подписку';
+  return 'Изменить подписку';
 }
 
 function renderSubscriptionActionBar(fpActive, proActive){
@@ -1841,14 +1841,26 @@ async function cancelSubscription(){
   }
 }
 
-function renderPaymentOptionList(){
+function formatPlanAmount(amount, planKey, methodId = 'yookassa') {
+  const key = planKey || 'fp';
+  const method = methodId || 'yookassa';
+
+  if (key === 'pro' && method === 'stars') return `${amount} ⭐`;
+  if (key === 'fp' && method === 'seeds') return `${amount} 🌱`;
+  if (key === 'fp' && method === 'dc') return `${amount} DC`;
+  return `${amount} ₽`;
+}
+
+function renderPaymentOptionList(planKey){
+  const labelText = planKey === 'pro' ? 'Подписка Fernie+ Pro' : 'Подписка Fernie+';
+
   return SUBSCRIPTION_OPTIONS.map(option => `
     <button class="pay-option" type="button" data-duration-key="${option.key}" data-duration-label="${option.label}" data-duration-price="${option.price}">
       <div class="pay-option-main">
         <label>${escapeHtml(option.label)}</label>
-        <small>Подписка Fernie+</small>
+        <small>${labelText}</small>
       </div>
-      <div class="pay-option-price">${option.price} ₽</div>
+      <div class="pay-option-price">${formatPlanAmount(option.price, planKey, planKey === 'pro' ? 'stars' : 'yookassa')}</div>
     </button>`).join('');
 }
 
@@ -1859,14 +1871,16 @@ async function openPlanPaymentModal(planKey){
     return;
   }
 
+  const planTitle = planKey === 'pro' ? 'Fernie+ Pro' : 'Fernie+';
+
   openModal(`
     <div class="pay-shell">
       <div class="pay-hero">
         <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
-        <div class="pay-title">Подписка Fernie+</div>
-        <div class="pay-subtitle">Выбери срок и оплату банковской картой через YooKassa</div>
+        <div class="pay-title">Подписка ${planTitle}</div>
+        <div class="pay-subtitle">Выбери срок и оплату. Для Fernie+ доступны Seeds / DC / YooKassa, для Pro — Stars / YooKassa.</div>
       </div>
-      <div class="pay-options">${renderPaymentOptionList()}</div>
+      <div class="pay-options">${renderPaymentOptionList(planKey)}</div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
       </div>
@@ -1891,12 +1905,15 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
     return;
   }
 
+  const planTitle = planKey === 'pro' ? 'Fernie+ Pro' : 'Fernie+';
+  const priceLabel = formatPlanAmount(amount, planKey, planKey === 'pro' ? 'yookassa' : 'yookassa');
+
   const paymentHtml = `
     <div class="pay-shell">
       <div class="pay-hero">
         <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
         <div class="pay-title">Создаём оплату</div>
-        <div class="pay-subtitle">Подписка Fernie+ • ${escapeHtml(durationLabel)} • ${amount} ₽</div>
+        <div class="pay-subtitle">Подписка ${planTitle} • ${escapeHtml(durationLabel)} • ${priceLabel}</div>
       </div>
       <div class="pay-status-box">
         <div class="pay-spinner"></div>
@@ -2012,14 +2029,14 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
         <div class="pay-hero">
           <div class="pay-ring"><div class="pay-ring-inner">${icon('spark')}</div></div>
           <div class="pay-title">Ссылка на оплату создана</div>
-          <div class="pay-subtitle">Дальше можно перейти в ЮKassa и оплатить ${amount} ₽ за ${escapeHtml(durationLabel)}.</div>
+          <div class="pay-subtitle">Дальше можно перейти в ЮKassa и оплатить ${formatPlanAmount(amount, planKey, 'yookassa')} за ${escapeHtml(durationLabel)}.</div>
         </div>
         <div class="pay-status-box">
           <div class="pay-status-title">Ожидание оплаты</div>
           <div class="pay-status-text">Сайт следит за статусом оплаты до успешного завершения или отмены.</div>
         </div>
         <div class="pay-action-row">
-          <button class="btn btn-dark" id="openPayBtn">Оплатить ${amount} ₽</button>
+          <button class="btn btn-dark" id="openPayBtn">Оплатить ${formatPlanAmount(amount, planKey, 'yookassa')}</button>
           <button class="btn btn-outline" id="cancelPaymentConfirmBtn">Отмена</button>
         </div>
       </div>`;
@@ -2092,25 +2109,13 @@ async function loadSubscription(){
     const fpState = { needsTelegram: !linked, active: fpActive };
     const proState = { needsTelegram: !linked, active: proActive };
 
-    const hasAnySubscription = fpActive || proActive;
-
-    if(!fpActive && !proActive){
-      body.innerHTML = `
-        <div class="subscription-empty-state">
-          <div class="plus-emoji">✨</div>
-          <div class="plus-title">У вас нет подписки Fernie+</div>
-          <div class="plus-desc">Подключите подписку, чтобы открыть доступ к фонам профиля и другим возможностям Fernie+.</div>
-          ${renderSubscriptionActionBar(false, false)}
-        </div>`;
-    } else {
-      body.innerHTML = `
-        <div class="plan-grid">
-          ${renderPlanCard(PLAN_DEFS.fp, fpState)}
-          ${renderPlanCard(PLAN_DEFS.pro, proState)}
-        </div>
-        ${renderSubscriptionActionBar(fpActive, proActive)}
-      `;
-    }
+    body.innerHTML = `
+      <div class="plan-grid">
+        ${renderPlanCard(PLAN_DEFS.fp, fpState)}
+        ${renderPlanCard(PLAN_DEFS.pro, proState)}
+      </div>
+      ${renderSubscriptionActionBar(fpActive, proActive)}
+    `;
 
     body.querySelectorAll('[data-subscription-primary]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2130,9 +2135,6 @@ async function loadSubscription(){
     body.querySelectorAll('[data-open-payment]').forEach(btn => {
       btn.addEventListener('click', () => openPlanPaymentModal(btn.dataset.openPayment));
     });
-    if(!hasAnySubscription) {
-      body.querySelector('[data-subscription-primary]')?.addEventListener('click', () => openPlanPaymentModal('fp'));
-    }
   } catch(e){
     body.innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div><div class="desc">Попробуй обновить страницу.</div></div>`;
   }
