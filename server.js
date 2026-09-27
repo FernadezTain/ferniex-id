@@ -4502,9 +4502,12 @@ function getYookassaAuthHeader() {
 }
 
 app.post('/api/fernieplus/create-payment', async (req, res) => {
-  const { userId, planKey, planLabel, amount, telegramId, username, source } = req.body;
+  const { userId, planKey, planType = 'fp', planLabel, amount, telegramId, username, source } = req.body;
   if (!userId || !planKey || !amount || !telegramId) {
     return res.json({ success: false, error: 'Нет обязательных полей' });
+  }
+  if (!['fp', 'pro'].includes(planType)) {
+    return res.json({ success: false, error: 'Неизвестный тип подписки' });
   }
 
   const paymentAmount = Number(amount);
@@ -4521,6 +4524,7 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
       status: 'pending',
       amount: paymentAmount,
       planKey,
+      planType,
       planLabel: planLabel || 'Fernie+',
       telegramId,
       username: username || 'User',
@@ -4561,6 +4565,7 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
           telegramId,
           username: username || 'User',
           planKey,
+          planType,
           source: source || 'remaster'
         }
       })
@@ -4577,6 +4582,7 @@ app.post('/api/fernieplus/create-payment', async (req, res) => {
       status: paymentData.status || 'pending',
       amount: paymentAmount,
       planKey,
+      planType,
       planLabel: planLabel || 'Fernie+',
       telegramId,
       username: username || 'User',
@@ -4650,6 +4656,24 @@ app.post('/api/fernieplus/activate', async (req, res) => {
     });
     const data = await botRes.json();
     res.json(data);
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/fernieplus/pro/activate', async (req, res) => {
+  const { userId, telegram_id, plan_key, method, amount, username, payment_id } = req.body;
+  if ((!userId && !telegram_id) || !plan_key || !method || !amount || !payment_id)
+    return res.json({ success: false, error: 'Нет данных об оплате YooKassa' });
+  try {
+    const resolvedTelegramId = userId ? await resolveTelegramId(userId) : telegram_id;
+    if (!resolvedTelegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id: resolvedTelegramId, plan_key, method, amount, username, payment_id })
+    });
+    res.json(await botRes.json());
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
