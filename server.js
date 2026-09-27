@@ -4653,6 +4653,27 @@ app.post('/api/fernieplus/activate', async (req, res) => {
   }
 });
 
+app.post('/api/fernieplus/cancel-subscription', async (req, res) => {
+  const userId = req.body?.userId || req.body?.telegramId || req.body?.telegram_id || null;
+  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+
+  try {
+    const botRes = await fetch(`${BOT_URL}/api/fernieplus/cancel-subscription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId,
+        telegramId: req.body?.telegramId || req.body?.telegram_id || null,
+        username: req.body?.username || 'user'
+      })
+    });
+    const data = await botRes.json();
+    return res.json(data && data.success !== undefined ? data : { success: true, userId });
+  } catch (e) {
+    return res.json({ success: false, error: e.message || 'Ошибка сервера' });
+  }
+});
+
 // ══════════════════════════════════════════
 //  Fernie+ Pro — проверка статуса оплаты
 // ══════════════════════════════════════════
