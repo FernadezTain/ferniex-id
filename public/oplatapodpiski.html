@@ -670,6 +670,97 @@
       animation: fadeUp 0.35s ease both;
     }
 
+    .payment-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 17, 15, 0.74);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      z-index: 60;
+    }
+
+    .payment-modal-backdrop.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .payment-modal {
+      width: min(820px, 100%);
+      max-height: min(86vh, 820px);
+      background: rgba(24, 23, 20, 0.96);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.38);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .payment-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .payment-modal-header strong {
+      font-size: 0.95rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.72);
+    }
+
+    .payment-close {
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--ink);
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    .payment-modal-body {
+      position: relative;
+      width: 100%;
+      min-height: 480px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    }
+
+    .payment-loader {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      background: rgba(17,17,15,0.12);
+      z-index: 1;
+    }
+
+    .payment-modal-frame {
+      width: 100%;
+      height: 480px;
+      border: 0;
+      background: #0f0f0e;
+      display: block;
+    }
+
     .success-card.show {
       display: block;
     }
@@ -1100,6 +1191,87 @@
       }
     }
 
+    function ensurePaymentModal() {
+      let backdrop = document.getElementById('paymentModalBackdrop');
+      if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.id = 'paymentModalBackdrop';
+        backdrop.className = 'payment-modal-backdrop';
+        backdrop.innerHTML = `
+          <div class="payment-modal" role="dialog" aria-modal="true">
+            <div class="payment-modal-header">
+              <strong>Оплата</strong>
+              <button type="button" class="payment-close" aria-label="Закрыть">×</button>
+            </div>
+            <div class="payment-modal-body">
+              <div class="payment-loader">Подготовка оплаты…</div>
+              <iframe class="payment-modal-frame" title="YooKassa checkout" sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>
+            </div>
+          </div>
+        `;
+        backdrop.querySelector('.payment-close').addEventListener('click', () => {
+          backdrop.classList.remove('open');
+        });
+        document.body.appendChild(backdrop);
+      }
+      return backdrop;
+    }
+
+    function closePaymentModal() {
+      const backdrop = document.getElementById('paymentModalBackdrop');
+      if (backdrop) {
+        backdrop.classList.remove('open');
+      }
+    }
+
+    async function activateSubscription(method, plan, duration) {
+      const user = getUserFromState();
+      const payload = {
+        telegram_id: user.telegram_id || user.id || null,
+        plan_key: duration.key,
+        method,
+        amount: Number(duration.price),
+        username: user.username || 'user'
+      };
+
+      if (!payload.telegram_id) {
+        alert('Для активации нужно привязать Telegram в личном кабинете.');
+        return false;
+      }
+
+      try {
+        const response = await fetch('/api/fernieplus/activate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (data && data.success) {
+          showSuccessState();
+          return true;
+        }
+
+        alert(data && data.error ? data.error : 'Не удалось активировать подписку');
+        return false;
+      } catch (error) {
+        alert('Ошибка связи с сервером. Попробуйте позднее.');
+        return false;
+      }
+    }
+
+    async function finalizeYookassaSuccess(plan, duration, paymentId) {
+      closePaymentModal();
+      await activateSubscription('yookassa', plan, duration);
+      if (paymentId) {
+        const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
+        const statusData = await statusResponse.json();
+        if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
+          showSuccessState();
+        }
+      }
+    }
+
     async function startYookassaFlow(plan, duration, bank) {
       const user = getUserFromState();
       const amount = Number(duration.price);
@@ -1127,31 +1299,70 @@
         }
 
         const confirmationUrl = data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru';
+        const paymentId = data.paymentId || data.id || null;
+        const bankLabel = bank && bank !== 'Карта' ? `${bank} · ${duration.label || duration.period}` : `${duration.label || duration.period}`;
+        const modal = ensurePaymentModal();
+        const frame = modal.querySelector('.payment-modal-frame');
+        const loader = modal.querySelector('.payment-loader');
+        modal.querySelector('.payment-modal-header strong').textContent = `${plan.title} · ${bankLabel}`;
+        modal.classList.add('open');
+        frame.src = confirmationUrl;
+        loader.style.display = 'flex';
+
+        const finish = async () => {
+          await finalizeYookassaSuccess(plan, duration, paymentId);
+        };
+
+        if (data.demoMode) {
+          setTimeout(() => {
+            loader.style.display = 'none';
+            finish();
+          }, 1400);
+          return;
+        }
+
         const script = document.createElement('script');
         script.src = 'https://yookassa.ru/checkout-widget/v1/checkout.js';
         script.onload = () => {
           if (window.YooMoneyCheckoutWidget) {
+            loader.style.display = 'none';
             const widget = new window.YooMoneyCheckoutWidget({
-              confirmation_token: data.confirmationToken || data.id || data.paymentId,
+              confirmation_token: data.confirmationToken || data.confirmation_token || data.id || data.paymentId,
               return_url: window.location.origin + window.location.pathname,
-              error_callback: () => alert('Возникла ошибка оплаты через YooKassa.'),
-              success_callback: () => showSuccessState()
+              error_callback: () => {
+                closePaymentModal();
+                alert('Возникла ошибка оплаты через YooKassa.');
+              },
+              success_callback: () => {
+                finish();
+              }
             });
             widget.render();
-          } else {
-            window.open(confirmationUrl, '_blank', 'noopener');
-            setTimeout(() => showSuccessState(), 1500);
+            return;
           }
+
+          loader.style.display = 'none';
+          const statusTimer = setInterval(async () => {
+            try {
+              const statusResponse = await fetch(`/api/fernieplus/payment-status/${paymentId}`);
+              const statusData = await statusResponse.json();
+              if (statusData && statusData.success && ['succeeded', 'paid', 'waiting_for_capture'].includes(statusData.status)) {
+                clearInterval(statusTimer);
+                await finish();
+              }
+            } catch (e) {}
+          }, 2000);
+
+          frame.src = confirmationUrl;
         };
         document.head.appendChild(script);
 
-        const label = bank && bank !== 'Карта' ? `${bank} · ${duration.label || duration.period}` : `${duration.label || duration.period}`;
-        const paymentNotice = document.createElement('div');
-        paymentNotice.style.marginTop = '12px';
-        paymentNotice.style.fontSize = '0.82rem';
-        paymentNotice.style.color = 'rgba(255,255,255,0.7)';
-        paymentNotice.textContent = `Оплата через ЮKassa для ${plan.title} · ${label}`;
-        document.getElementById('checkoutPanel').appendChild(paymentNotice);
+        const notice = document.createElement('div');
+        notice.style.marginTop = '12px';
+        notice.style.fontSize = '0.82rem';
+        notice.style.color = 'rgba(255,255,255,0.7)';
+        notice.textContent = `Оплата через ЮKassa для ${plan.title} · ${bankLabel}`;
+        document.getElementById('checkoutPanel').appendChild(notice);
       } catch (error) {
         alert('Ошибка подключения к ЮKassa. Попробуйте позже.');
       }
