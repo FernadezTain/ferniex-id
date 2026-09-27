@@ -4676,12 +4676,11 @@ app.post('/api/fernieplus/activate', async (req, res) => {
   try {
     const resolvedTelegramId = userId ? await resolveTelegramId(userId) : telegram_id;
     if (!resolvedTelegramId) return res.json({ success: false, error: 'Telegram не привязан' });
-    const botRes = await fetch(`${BOT_URL}/api/fernieplus/activate`, {
+    const data = await fetchBotJson(`${BOT_URL}/api/fernieplus/activate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id: resolvedTelegramId, plan_key, method, amount, username })
     });
-    const data = await botRes.json();
     res.json(data);
   } catch (e) {
     res.json({ success: false, error: e.message });
@@ -4734,12 +4733,12 @@ app.post('/api/fernieplus/pro/activate', async (req, res) => {
       }
     }
 
-    const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/activate`, {
+    const data = await fetchBotJson(`${BOT_URL}/api/fernieplus/pro/activate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id: resolvedTelegramId, plan_key, method, amount, username, payment_id })
     });
-    res.json(await botRes.json());
+    res.json(data);
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
@@ -4774,12 +4773,11 @@ app.post('/api/fernieplus/pro/check-payment', async (req, res) => {
   if (!pay_id || !telegram_id)
     return res.json({ success: false, paid: false });
   try {
-    const botRes = await fetch(`${BOT_URL}/api/fernieplus/pro/check-payment`, {
+    const data = await fetchBotJson(`${BOT_URL}/api/fernieplus/pro/check-payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pay_id, telegram_id })
     });
-    const data = await botRes.json();
     res.json(data);
   } catch (e) {
     res.json({ success: false, paid: false, error: e.message });
