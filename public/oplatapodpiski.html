@@ -1452,7 +1452,9 @@
           button.textContent = 'Оплачено ✓';
         } else {
           button.disabled = false;
-          button.textContent = `Проверить оплату ${formatPriceDisplay(price, method)}`;
+          button.textContent = state.pendingPaymentId
+            ? `Проверить оплату ${formatPriceDisplay(price, method)}`
+            : `Оплатить ${formatPriceDisplay(price, method)}`;
         }
         return;
       }
@@ -1612,6 +1614,11 @@
         });
         const data = await response.json();
         if (!data?.success) {
+          if (/не подтверждён|не соответствует|не совпадают/i.test(data?.error || '')) {
+            state.pendingPaymentId = null;
+            sessionStorage.removeItem('fernie_pending_payment');
+            localStorage.removeItem('fernie_pending_payment');
+          }
           showInlineStatus('error', data?.error || 'Не удалось активировать подписку после оплаты.');
           return false;
         }
@@ -1749,8 +1756,12 @@
         state.paymentInProgress = false;
         button.disabled = false;
         button.classList.remove('is-loading');
-        button.textContent = `Проверить оплату ${formatPriceDisplay(duration.price, 'yookassa')}`;
-        state.pendingPaymentId = pending.paymentId;
+        if (!state.pendingPaymentId) {
+          button.textContent = `Оплатить ${formatPriceDisplay(duration.price, 'yookassa')}`;
+        } else {
+          button.textContent = `Проверить оплату ${formatPriceDisplay(duration.price, 'yookassa')}`;
+        }
+        if (state.pendingPaymentId) state.pendingPaymentId = pending.paymentId;
       }
     }
 
