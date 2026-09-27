@@ -1366,6 +1366,7 @@
     async function activateClassicPayment(method, plan, duration) {
       const user = getUserFromState();
       const payload = {
+        userId: user.id,
         telegram_id: user.telegram_id || user.id || null,
         plan_key: duration.key,
         method,
@@ -1399,6 +1400,7 @@
     async function activateSubscription(method, plan, duration) {
       const user = getUserFromState();
       const payload = {
+        userId: user.id,
         telegram_id: user.telegram_id || user.id || null,
         plan_key: duration.key,
         method,
