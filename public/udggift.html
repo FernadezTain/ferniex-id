@@ -206,17 +206,13 @@ async function copyGiftLink(){
 }
 
 $('copyGiftLink').addEventListener('click', copyGiftLink);
-$('shareGift').addEventListener('click', async () => {
+$('shareGift').addEventListener('click', () => {
   const gift = payload.gift;
   if(!gift) return;
   const title = gift.model_name || gift.gift_id || 'Подарок UDG';
-  try{
-    if(navigator.share){
-      await navigator.share({ title, text:`${title} · ${formatAmount(gift.listed ? gift.listing_price ?? gift.price : gift.market_price ?? gift.price)} FC`, url:location.href });
-    } else {
-      await copyGiftLink();
-    }
-  } catch{}
+  const shareText = `${title} · ${formatAmount(gift.listed ? gift.listing_price ?? gift.price : gift.market_price ?? gift.price)} FC`;
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(shareText)}`;
+  if(!window.open(telegramUrl, '_blank', 'noopener')) copyGiftLink();
 });
 
 async function loadGift(){
