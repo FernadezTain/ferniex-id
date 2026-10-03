@@ -422,8 +422,11 @@ body:hover::-webkit-scrollbar-thumb{
 .exchange-trade-preview b{color:var(--ink);font-weight:800;}
 .udg-exchange-fee{margin-top:.65rem;color:var(--muted);font-size:.76rem;}
 .udg-chart-panel{margin-top:1.25rem;border:1px solid var(--field-border);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 92%,transparent),color-mix(in srgb,var(--field) 82%,transparent));overflow:hidden;}
-.udg-chart{position:relative;height:300px;padding:.65rem .1rem .2rem;}
+.udg-chart{position:relative;height:300px;padding:.65rem .1rem .2rem;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;scrollbar-color:var(--field-border) transparent;}
+.udg-chart-hint{margin:.45rem .25rem 0;color:var(--muted);font-size:.72rem;}
 .udg-chart svg{display:block;width:100%;height:100%;}
+.udg-chart svg .udg-chart-label,.udg-chart svg .udg-chart-axis{font-size:calc(10px / var(--chart-x-scale,1));}
+.udg-chart svg .udg-chart-price{font-size:calc(11px / var(--chart-x-scale,1));}
 .udg-chart-tooltip{display:none;position:absolute;z-index:3;width:max-content;max-width:min(230px,calc(100% - 16px));padding:.75rem .85rem;border:1px solid color-mix(in srgb,var(--ink) 12%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--card) 94%,transparent);box-shadow:0 14px 32px -16px rgba(0,0,0,.6);backdrop-filter:blur(12px);pointer-events:none;}
 .udg-chart-tooltip.active{display:block;animation:fadeUp .14s ease both;}
 .udg-chart-tooltip-time{color:var(--muted);font-size:.67rem;font-weight:700;}
@@ -1191,6 +1194,7 @@ html,body{touch-action:manipulation;}
               <div class="udg-chart-panel">
                 <div class="udg-chart" id="udgExchangeChart" aria-label="График биржи"></div>
               </div>
+              <div class="udg-chart-hint">Телефон: листайте график свайпом · ПК: Ctrl + колесо мыши — масштаб</div>
 
               <div class="udg-exchange-footer">
                 <span id="udgExchangeLow">min —</span>
@@ -1489,6 +1493,24 @@ const STORE_KEY = 'fid_session';
 
 let currentUser = null; // {id, username, role, telegramLinked, telegram_id, avatar_url, banner_url, theme}
 let exchangeMarketData = null;
+let exchangeChartVisibleCandles = null;
+let exchangeChartScrollRatio = 1;
+
+function sizeExchangeChart(chartEl, scrollToLatest = false){
+  const svg = chartEl.querySelector('svg');
+  const candleCount = exchangeMarketData?.candles?.length || 0;
+  const viewportWidth = chartEl.clientWidth;
+  if(!svg || !candleCount || !viewportWidth) return;
+  if(exchangeChartVisibleCandles === null){
+    exchangeChartVisibleCandles = matchMedia('(max-width:720px), (pointer:coarse)').matches ? 36 : 288;
+  }
+  const visibleCount = Math.min(candleCount, exchangeChartVisibleCandles);
+  const canvasWidth = Math.max(viewportWidth, viewportWidth * candleCount / visibleCount);
+  svg.style.width = `${canvasWidth}px`;
+  chartEl.style.setProperty('--chart-x-scale', String(canvasWidth / 900));
+  const maxScroll = chartEl.scrollWidth - chartEl.clientWidth;
+  chartEl.scrollLeft = scrollToLatest ? maxScroll : maxScroll * exchangeChartScrollRatio;
+}
 
 /* ---------- цветовые темы интерфейса ---------- */
 const THEME_STORE_KEY = 'fid_theme';
@@ -1933,6 +1955,25 @@ async function loadExchangeMarket(refresh = false){
 
     const svg = chartEl.querySelector('svg');
     const tooltip = chartEl.querySelector('.udg-chart-tooltip');
+    sizeExchangeChart(chartEl);
+    if(!chartEl.dataset.chartControlsBound){
+      chartEl.dataset.chartControlsBound = 'true';
+      chartEl.addEventListener('scroll', () => {
+        const maxScroll = chartEl.scrollWidth - chartEl.clientWidth;
+        exchangeChartScrollRatio = maxScroll > 0 ? chartEl.scrollLeft / maxScroll : 1;
+      }, { passive:true });
+      chartEl.addEventListener('wheel', event => {
+        if(!event.ctrlKey) return;
+        event.preventDefault();
+        const current = Math.min(exchangeMarketData?.candles?.length || 288, exchangeChartVisibleCandles || 288);
+        const next = Math.max(12, Math.min(288, Math.round(current * (event.deltaY < 0 ? .8 : 1.25))));
+        if(next === current) return;
+        exchangeChartVisibleCandles = next;
+        exchangeChartScrollRatio = 1;
+        sizeExchangeChart(chartEl, true);
+      }, { passive:false });
+      window.addEventListener('resize', () => sizeExchangeChart(chartEl));
+    }
     const candleElements = [...svg.querySelectorAll('.udg-candle')];
     const hoverGroup = svg.querySelector('.udg-chart-hover');
     const hoverLine = hoverGroup.querySelector('.udg-chart-hover-line');
@@ -1994,11 +2035,11 @@ async function loadExchangeMarket(refresh = false){
 
       const svgRect = svg.getBoundingClientRect();
       const chartRect = chartEl.getBoundingClientRect();
-      const pointX = svgRect.left - chartRect.left + x / width * svgRect.width;
+      const pointX = chartEl.scrollLeft + svgRect.left - chartRect.left + x / width * svgRect.width;
       const pointY = svgRect.top - chartRect.top + closeY / height * svgRect.height;
       const tooltipWidth = tooltip.offsetWidth;
       const tooltipHeight = tooltip.offsetHeight;
-      tooltip.style.left = `${Math.max(8, Math.min(chartEl.clientWidth - tooltipWidth - 8, pointX + 14))}px`;
+      tooltip.style.left = `${Math.max(chartEl.scrollLeft + 8, Math.min(chartEl.scrollLeft + chartEl.clientWidth - tooltipWidth - 8, pointX + 14))}px`;
       tooltip.style.top = `${Math.max(8, Math.min(chartEl.clientHeight - tooltipHeight - 8, pointY > chartEl.clientHeight * .55 ? pointY - tooltipHeight - 12 : pointY + 12))}px`;
     });
 
