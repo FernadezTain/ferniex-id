@@ -2309,7 +2309,7 @@ app.get('/api/udg/gift/:uid', async (req, res) => {
   }
 });
 
-app.get('/udggift/:uid', async (req, res) => {
+app.get(['/udggift/:uid', '/api/udg/gift-page/:uid'], async (req, res) => {
   const uid = String(req.params.uid || '');
   let status = 404;
   let payload = { gift: null, error: 'not_found' };
