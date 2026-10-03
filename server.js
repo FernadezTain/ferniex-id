@@ -2177,6 +2177,18 @@ app.get('/api/exchange/summary', async (req, res) => {
   }
 });
 
+app.get('/api/exchange/transactions/:userId', async (req, res) => {
+  try {
+    const telegramId = await resolveTelegramId(req.params.userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан', transactions: [] });
+    const result = await exchangeBotRequest(`/api/exchange/transactions?telegram_id=${encodeURIComponent(telegramId)}`);
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange transactions error:', e);
+    res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен', transactions: [] });
+  }
+});
+
 app.post('/api/exchange/refresh', async (req, res) => {
   try {
     const result = await exchangeBotRequest('/api/exchange/refresh', 'POST', {});
@@ -2189,21 +2201,47 @@ app.post('/api/exchange/refresh', async (req, res) => {
 
 app.post('/api/exchange/trade', async (req, res) => {
   try {
-    const { userId, side, amount } = req.body || {};
+    const { userId, side, amount, transactionId } = req.body || {};
     const parsedAmount = Number(amount);
     if (!userId || !['buy', 'sell'].includes(side) || !Number.isSafeInteger(parsedAmount) || parsedAmount <= 0)
       return res.status(400).json({ success: false, error: 'Укажите действие и целое количество FC' });
+    if (transactionId && !/^[a-f\d]{32}$/i.test(String(transactionId)))
+      return res.status(400).json({ success: false, error: 'Некорректный ID транзакции' });
 
     const telegramId = await resolveTelegramId(userId);
     if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
     const result = await exchangeBotRequest('/api/exchange/trade', 'POST', {
       telegram_id: telegramId,
       side,
-      amount: parsedAmount
+      amount: parsedAmount,
+      transaction_id: transactionId || undefined
     });
     return res.status(result.status).json(result.data);
   } catch (e) {
     console.error('exchange trade error:', e);
+    res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
+  }
+});
+
+app.post('/api/exchange/gift-event', async (req, res) => {
+  try {
+    const { userId, type, itemName, transactionId, details } = req.body || {};
+    if (!userId || !['buy_gift', 'receive_gift'].includes(type) || !String(itemName || '').trim())
+      return res.status(400).json({ success: false, error: 'Укажите тип транзакции и подарок' });
+    if (transactionId && !/^[a-f\d]{32}$/i.test(String(transactionId)))
+      return res.status(400).json({ success: false, error: 'Некорректный ID транзакции' });
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
+    const result = await exchangeBotRequest('/api/exchange/gift-event', 'POST', {
+      telegram_id: telegramId,
+      type,
+      item_name: String(itemName).trim().slice(0, 120),
+      details: String(details || '').slice(0, 500),
+      transaction_id: transactionId || undefined
+    });
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange gift event error:', e);
     res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
   }
 });
