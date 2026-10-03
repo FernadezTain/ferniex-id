@@ -422,8 +422,18 @@ body:hover::-webkit-scrollbar-thumb{
 .exchange-trade-preview b{color:var(--ink);font-weight:800;}
 .udg-exchange-fee{margin-top:.65rem;color:var(--muted);font-size:.76rem;}
 .udg-chart-panel{margin-top:1.25rem;border:1px solid var(--field-border);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 92%,transparent),color-mix(in srgb,var(--field) 82%,transparent));overflow:hidden;}
-.udg-chart{height:300px;padding:.65rem .1rem .2rem;}
+.udg-chart{position:relative;height:300px;padding:.65rem .1rem .2rem;}
 .udg-chart svg{display:block;width:100%;height:100%;}
+.udg-chart-tooltip{display:none;position:absolute;z-index:3;width:max-content;max-width:min(230px,calc(100% - 16px));padding:.75rem .85rem;border:1px solid color-mix(in srgb,var(--ink) 12%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--card) 94%,transparent);box-shadow:0 14px 32px -16px rgba(0,0,0,.6);backdrop-filter:blur(12px);pointer-events:none;}
+.udg-chart-tooltip.active{display:block;animation:fadeUp .14s ease both;}
+.udg-chart-tooltip-time{color:var(--muted);font-size:.67rem;font-weight:700;}
+.udg-chart-tooltip-course{margin-top:.25rem;font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:-.03em;}
+.udg-chart-tooltip-change{display:inline-flex;align-items:center;gap:.25rem;margin-top:.25rem;padding:.2rem .45rem;border-radius:999px;font-size:.68rem;font-weight:800;}
+.udg-chart-tooltip-change.up{background:#e9f6ec;color:var(--green);}
+.udg-chart-tooltip-change.down{background:#fbeceb;color:var(--red);}
+.udg-chart-tooltip-change.flat{background:var(--field);color:var(--muted);}
+.udg-chart-tooltip-ohlc{display:grid;grid-template-columns:1fr 1fr;gap:.25rem .8rem;margin-top:.55rem;padding-top:.5rem;border-top:1px solid var(--line);color:var(--muted);font-size:.65rem;}
+.udg-chart-tooltip-ohlc b{color:var(--ink);font-weight:800;}
 .udg-chart-grid line{stroke:color-mix(in srgb,var(--line) 90%,transparent);stroke-width:1;}
 .udg-chart-label{fill:var(--muted);font:10px Inter,sans-serif;}
 .udg-chart-current{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 5;opacity:.6;}
@@ -436,6 +446,11 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-chart-price-bg{fill:var(--card);stroke:var(--field-border);}
 .udg-chart-price{fill:var(--ink);font:700 11px Inter,sans-serif;}
 .udg-chart-axis{fill:var(--muted);font:10px Inter,sans-serif;}
+.udg-chart-segment-highlight{stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 4px currentColor);pointer-events:none;}
+.udg-chart-hover-line{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 4;opacity:.55;pointer-events:none;}
+.udg-chart-hover-dot{stroke:var(--card);stroke-width:2;pointer-events:none;}
+.udg-chart-interaction{fill:transparent;pointer-events:all;cursor:crosshair;}
+.udg-candle.is-active{filter:drop-shadow(0 0 5px currentColor);}
 @keyframes udgCandleReveal{from{stroke-dashoffset:1;}to{stroke-dashoffset:0;}}
 @keyframes udgCandleBody{from{opacity:0;transform:scaleY(.08);}to{opacity:1;transform:scaleY(1);}}
 @keyframes udgLineReveal{to{stroke-dashoffset:0;}}
@@ -1821,11 +1836,97 @@ async function loadExchangeMarket(refresh = false){
         <polyline class="udg-chart-line" pathLength="1" points="${linePoints}" style="stroke:${color}" />
         <line class="udg-chart-current" x1="${left}" y1="${currentY}" x2="${left + plotWidth}" y2="${currentY}" />
         <g>${candlesSvg}</g>
+        <line class="udg-chart-segment-highlight" visibility="hidden" />
+        <g class="udg-chart-hover" visibility="hidden">
+          <line class="udg-chart-hover-line" y1="${top}" y2="${height - bottom}" />
+          <circle class="udg-chart-hover-dot" r="5" />
+        </g>
         <rect class="udg-chart-price-bg" x="${left + plotWidth + 7}" y="${currentY - 11}" width="64" height="22" rx="11" />
         <text class="udg-chart-price" x="${left + plotWidth + 39}" y="${currentY + 4}" text-anchor="middle">${price.toLocaleString('ru-RU')}</text>
         <text class="udg-chart-axis" x="${left}" y="${height - 9}" text-anchor="start">${firstTime}</text>
         <text class="udg-chart-axis" x="${left + plotWidth}" y="${height - 9}" text-anchor="end">${lastTime}</text>
-      </svg>`;
+        <rect class="udg-chart-interaction" x="${left}" y="${top}" width="${plotWidth}" height="${plotHeight}" />
+      </svg>
+      <div class="udg-chart-tooltip" aria-hidden="true"></div>`;
+
+    const svg = chartEl.querySelector('svg');
+    const tooltip = chartEl.querySelector('.udg-chart-tooltip');
+    const candleElements = [...svg.querySelectorAll('.udg-candle')];
+    const hoverGroup = svg.querySelector('.udg-chart-hover');
+    const hoverLine = hoverGroup.querySelector('.udg-chart-hover-line');
+    const hoverDot = hoverGroup.querySelector('.udg-chart-hover-dot');
+    const segmentHighlight = svg.querySelector('.udg-chart-segment-highlight');
+    const interactionArea = svg.querySelector('.udg-chart-interaction');
+    const formatChartPrice = value => Number(value).toLocaleString('ru-RU');
+
+    interactionArea.addEventListener('pointermove', event => {
+      const point = svg.createSVGPoint();
+      point.x = event.clientX;
+      point.y = event.clientY;
+      const chartPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+      const index = Math.max(0, Math.min(candles.length - 1, Math.round((chartPoint.x - left) / step)));
+      const candle = candles[index];
+      const close = Number(candle.close);
+      const previousClose = index ? Number(candles[index - 1].close) : Number(candle.open);
+      const change = close - previousClose;
+      const changePercent = previousClose ? change / previousClose * 100 : 0;
+      const direction = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+      const directionLabel = change > 0 ? 'Рост' : change < 0 ? 'Снижение' : 'Без изменений';
+      const directionArrow = change > 0 ? '↑' : change < 0 ? '↓' : '→';
+      const changeSign = change > 0 ? '+' : '';
+      const candleTime = Number(candle.time);
+      const timeRange = `${new Date(candleTime * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })}–${new Date((candleTime + 300) * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })}`;
+      const closeY = y(close);
+      const x = xAt(index);
+
+      candleElements.forEach((element, candleIndex) => element.classList.toggle('is-active', candleIndex === index));
+      hoverGroup.setAttribute('visibility', 'visible');
+      hoverLine.setAttribute('x1', String(x));
+      hoverLine.setAttribute('x2', String(x));
+      hoverDot.setAttribute('cx', String(x));
+      hoverDot.setAttribute('cy', String(closeY));
+      hoverDot.setAttribute('fill', direction === 'down' ? '#ef5264' : '#42bd76');
+      if(index){
+        segmentHighlight.setAttribute('visibility', 'visible');
+        segmentHighlight.setAttribute('x1', String(xAt(index - 1)));
+        segmentHighlight.setAttribute('y1', String(y(candles[index - 1].close)));
+        segmentHighlight.setAttribute('x2', String(x));
+        segmentHighlight.setAttribute('y2', String(closeY));
+        segmentHighlight.style.color = direction === 'down' ? '#ef5264' : '#42bd76';
+      } else {
+        segmentHighlight.setAttribute('visibility', 'hidden');
+      }
+
+      tooltip.innerHTML = `
+        <div class="udg-chart-tooltip-time">${timeRange} · 5 минут</div>
+        <div class="udg-chart-tooltip-course">${formatChartPrice(close)} ¤ за 1 FC</div>
+        <div class="udg-chart-tooltip-change ${direction}">${directionArrow} ${directionLabel}: ${changeSign}${formatChartPrice(change)} ¤ (${changeSign}${changePercent.toLocaleString('ru-RU', { maximumFractionDigits:2 })}%)</div>
+        <div class="udg-chart-tooltip-ohlc">
+          <span>Открытие <b>${formatChartPrice(candle.open)}</b></span>
+          <span>Максимум <b>${formatChartPrice(candle.high)}</b></span>
+          <span>Минимум <b>${formatChartPrice(candle.low)}</b></span>
+          <span>Закрытие <b>${formatChartPrice(candle.close)}</b></span>
+        </div>`;
+      tooltip.classList.add('active');
+      tooltip.setAttribute('aria-hidden', 'false');
+
+      const svgRect = svg.getBoundingClientRect();
+      const chartRect = chartEl.getBoundingClientRect();
+      const pointX = svgRect.left - chartRect.left + x / width * svgRect.width;
+      const pointY = svgRect.top - chartRect.top + closeY / height * svgRect.height;
+      const tooltipWidth = tooltip.offsetWidth;
+      const tooltipHeight = tooltip.offsetHeight;
+      tooltip.style.left = `${Math.max(8, Math.min(chartEl.clientWidth - tooltipWidth - 8, pointX + 14))}px`;
+      tooltip.style.top = `${Math.max(8, Math.min(chartEl.clientHeight - tooltipHeight - 8, pointY > chartEl.clientHeight * .55 ? pointY - tooltipHeight - 12 : pointY + 12))}px`;
+    });
+
+    interactionArea.addEventListener('pointerleave', () => {
+      candleElements.forEach(element => element.classList.remove('is-active'));
+      hoverGroup.setAttribute('visibility', 'hidden');
+      segmentHighlight.setAttribute('visibility', 'hidden');
+      tooltip.classList.remove('active');
+      tooltip.setAttribute('aria-hidden', 'true');
+    });
   } catch(error){
     $('udgExchangePrice').textContent = 'Биржа недоступна';
     $('udgExchangeMeta').textContent = error.message || 'Ошибка загрузки';
