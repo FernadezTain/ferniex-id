@@ -2246,6 +2246,83 @@ app.post('/api/exchange/gift-event', async (req, res) => {
   }
 });
 
+async function enrichUdgGifts(items) {
+  const giftIds = [...new Set(items.map(item => String(item.gift_id)).filter(id => /^[a-zA-Z0-9_-]{1,64}$/.test(id)))];
+  const userIds = [...new Set(items.map(item => String(item.owner_user_id)).filter(id => /^[a-zA-Z0-9-]{1,64}$/.test(id)))];
+  const assetsRequest = giftIds.length
+    ? fetch(`${SB_URL}/rest/v1/udg_gift_assets?select=gift_id,background_id,collection_name,model_name,background_name,symbol_name,image_url,background_url&gift_id=in.(${giftIds.map(id => `"${id}"`).join(',')})`, { headers: sbHeaders })
+    : Promise.resolve(null);
+  const usersRequest = userIds.length
+    ? fetch(`${SB_URL}/rest/v1/users?select=id,username&id=in.(${userIds.map(id => `"${id}"`).join(',')})`, { headers: sbHeaders })
+    : Promise.resolve(null);
+  const [assetsResponse, usersResponse] = await Promise.all([assetsRequest, usersRequest]);
+  const assets = assetsResponse?.ok ? await assetsResponse.json() : [];
+  const users = usersResponse?.ok ? await usersResponse.json() : [];
+  const assetsByVariant = new Map(assets.map(asset => [`${asset.gift_id}:${asset.background_id}`, asset]));
+  const usernames = new Map(users.map(user => [String(user.id), user.username]));
+  return items.map(item => ({
+    ...item,
+    ...assetsByVariant.get(`${item.gift_id}:${item.background_id}`),
+    owner_username: usernames.get(String(item.owner_user_id)) || 'Пользователь'
+  }));
+}
+
+app.get('/api/udg/market', async (req, res) => {
+  try {
+    const result = await exchangeBotRequest('/api/udg/market');
+    if (!result.data?.success) return res.status(result.status).json(result.data);
+    return res.json({ ...result.data, items: await enrichUdgGifts(result.data.items || []) });
+  } catch (e) {
+    console.error('UDG market error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось загрузить рынок UDG', items: [] });
+  }
+});
+
+app.get('/api/udg/inventory/:userId', async (req, res) => {
+  try {
+    const telegramId = await resolveTelegramId(req.params.userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан', items: [] });
+    const result = await exchangeBotRequest(`/api/udg/inventory?telegram_id=${encodeURIComponent(telegramId)}`);
+    if (!result.data?.success) return res.status(result.status).json(result.data);
+    return res.json({ ...result.data, items: await enrichUdgGifts(result.data.items || []) });
+  } catch (e) {
+    console.error('UDG inventory error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось загрузить инвентарь UDG', items: [] });
+  }
+});
+
+app.post('/api/udg/market/list', async (req, res) => {
+  try {
+    const { userId, uid, listed } = req.body || {};
+    if (!userId || !/^[a-f\d]{32}$/i.test(String(uid || '')) || typeof listed !== 'boolean')
+      return res.status(400).json({ success: false, error: 'Укажите UID и действие с подарком' });
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
+    const result = await exchangeBotRequest('/api/udg/market/list', 'POST', { telegram_id: telegramId, uid, listed });
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('UDG list error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось изменить объявление' });
+  }
+});
+
+app.post('/api/udg/market/buy', async (req, res) => {
+  try {
+    const { userId, uid, transactionId } = req.body || {};
+    if (!userId || !/^[a-f\d]{32}$/i.test(String(uid || '')) || !/^[a-f\d]{32}$/i.test(String(transactionId || '')))
+      return res.status(400).json({ success: false, error: 'Некорректный UID или ID транзакции' });
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
+    const result = await exchangeBotRequest('/api/udg/market/buy', 'POST', {
+      telegram_id: telegramId, user_id: String(userId), uid, transaction_id: transactionId
+    });
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('UDG buy error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось купить подарок' });
+  }
+});
+
 app.get('/api/card-market/state/:userId', async (req, res) => {
   try {
     const telegramId = await resolveTelegramId(req.params.userId);
