@@ -3,10 +3,13 @@ import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 
 dotenv.config();
 
 const app = express();
+const UDG_GIFT_PAGE_PATH = fileURLToPath(new URL('./udggift.html', import.meta.url));
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static("public"));
@@ -2267,6 +2270,102 @@ async function enrichUdgGifts(items) {
   }));
 }
 
+function publicUdgGift(item) {
+  return {
+    uid: item.uid,
+    gift_id: item.gift_id,
+    background_id: item.background_id,
+    collection_name: item.collection_name || 'UDG',
+    model_name: item.model_name || item.gift_id,
+    background_name: item.background_name || item.background_id,
+    symbol_name: item.symbol_name || null,
+    image_url: item.image_url || null,
+    background_url: item.background_url || null,
+    owner_username: item.owner_username || 'Пользователь',
+    price: Number(item.price),
+    market_price: Number(item.market_price ?? item.price),
+    listing_price: Number(item.listing_price ?? item.price),
+    listed: Boolean(item.listed)
+  };
+}
+
+async function getPublicUdgGift(uid) {
+  const result = await exchangeBotRequest(`/api/udg/gift?uid=${encodeURIComponent(uid)}`);
+  if (!result.data?.success || !result.data.gift) return result;
+  const [item] = await enrichUdgGifts([result.data.gift]);
+  return { ...result, data: { success: true, gift: publicUdgGift(item) } };
+}
+
+app.get('/api/udg/gift/:uid', async (req, res) => {
+  const uid = String(req.params.uid || '');
+  if (!/^[a-f\d]{32}$/i.test(uid))
+    return res.status(400).json({ success: false, error: 'Некорректный UID подарка' });
+  try {
+    const result = await getPublicUdgGift(uid);
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('UDG gift lookup error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось загрузить подарок' });
+  }
+});
+
+app.get('/udggift/:uid', async (req, res) => {
+  const uid = String(req.params.uid || '');
+  let status = 404;
+  let payload = { gift: null, error: 'not_found' };
+  if (/^[a-f\d]{32}$/i.test(uid)) {
+    try {
+      const result = await getPublicUdgGift(uid);
+      if (result.data?.success && result.data.gift) {
+        status = 200;
+        payload = { gift: result.data.gift, error: null };
+      } else if (result.status >= 500) {
+        status = 502;
+        payload = { gift: null, error: 'unavailable' };
+      }
+    } catch (e) {
+      console.error('UDG gift page error:', e);
+      status = 502;
+      payload = { gift: null, error: 'unavailable' };
+    }
+  }
+  try {
+    const template = await readFile(UDG_GIFT_PAGE_PATH, 'utf8');
+    const gift = payload.gift;
+    const pageTitle = gift ? `${gift.model_name} · подарок UDG | FernieID` : 'Подарок UDG | FernieID';
+    const pageDescription = gift
+      ? `${gift.model_name} · ${gift.collection_name}${gift.listed ? ` · ${Number(gift.listing_price).toLocaleString('ru-RU')} FC` : ' · цифровой подарок FernieID'}`
+      : 'Цифровой подарок UDG в FernieID';
+    const forwardedProtocol = String(req.get('x-forwarded-proto') || req.protocol).split(',')[0].trim();
+    const hostOrigin = req.get('host')
+      ? `${forwardedProtocol}://${req.get('host')}`
+      : process.env.SITE_ORIGIN || 'https://ferniex-id.vercel.app';
+    const pageUrl = new URL(`/udggift/${encodeURIComponent(uid)}`, hostOrigin).toString();
+    const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+    const safePayload = JSON.stringify(payload).replace(/[<>&]/g, character => ({
+      '<': '\\u003c', '>': '\\u003e', '&': '\\u0026'
+    })[character]);
+    const replacements = {
+      '__UDG_PAGE_TITLE__': escapeHtml(pageTitle),
+      '__UDG_META_DESCRIPTION__': escapeHtml(pageDescription),
+      '__UDG_OG_TITLE__': escapeHtml(pageTitle),
+      '__UDG_OG_DESCRIPTION__': escapeHtml(pageDescription),
+      '__UDG_OG_IMAGE__': escapeHtml(gift?.image_url || ''),
+      '__UDG_OG_URL__': escapeHtml(pageUrl),
+      '__UDG_GIFT_PAYLOAD__': safePayload
+    };
+    const html = Object.entries(replacements).reduce(
+      (content, [marker, value]) => content.replaceAll(marker, () => value), template
+    );
+    return res.status(status).type('html').send(html);
+  } catch (e) {
+    console.error('UDG gift template error:', e);
+    return res.status(500).send('Подарок временно недоступен');
+  }
+});
+
 app.get('/api/udg/market', async (req, res) => {
   try {
     const result = await exchangeBotRequest('/api/udg/market');
@@ -2293,12 +2392,14 @@ app.get('/api/udg/inventory/:userId', async (req, res) => {
 
 app.post('/api/udg/market/list', async (req, res) => {
   try {
-    const { userId, uid, listed } = req.body || {};
+    const { userId, uid, listed, price } = req.body || {};
     if (!userId || !/^[a-f\d]{32}$/i.test(String(uid || '')) || typeof listed !== 'boolean')
       return res.status(400).json({ success: false, error: 'Укажите UID и действие с подарком' });
+    if (listed && (!Number.isSafeInteger(price) || price <= 0))
+      return res.status(400).json({ success: false, error: 'Укажите целую цену в FC' });
     const telegramId = await resolveTelegramId(userId);
     if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
-    const result = await exchangeBotRequest('/api/udg/market/list', 'POST', { telegram_id: telegramId, uid, listed });
+    const result = await exchangeBotRequest('/api/udg/market/list', 'POST', { telegram_id: telegramId, uid, listed, price });
     return res.status(result.status).json(result.data);
   } catch (e) {
     console.error('UDG list error:', e);
