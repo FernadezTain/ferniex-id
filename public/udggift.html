@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#fbf1e8">
-<meta name="description" content="__UDG_META_DESCRIPTION__">
-<link rel="canonical" href="__UDG_OG_URL__">
+<meta name="description" content="Цифровой подарок UDG в FernieID">
+<link rel="canonical">
 <meta property="og:type" content="website">
-<meta property="og:title" content="__UDG_OG_TITLE__">
-<meta property="og:description" content="__UDG_OG_DESCRIPTION__">
-<meta property="og:image" content="__UDG_OG_IMAGE__">
-<meta property="og:url" content="__UDG_OG_URL__">
+<meta property="og:title" content="Подарок UDG · FernieID">
+<meta property="og:description" content="Цифровой подарок UDG в FernieID">
+<meta property="og:image" content="">
+<meta property="og:url" content="">
 <meta name="twitter:card" content="summary_large_image">
-<title>__UDG_PAGE_TITLE__</title>
+<title>Подарок UDG · FernieID</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -131,8 +131,14 @@ function renderGift(gift){
   $('giftView').hidden = false;
   $('giftCollection').textContent = gift.collection_name || 'UDG · ЦИФРОВОЙ ПОДАРОК';
   $('giftName').textContent = gift.model_name || gift.gift_id || 'Подарок UDG';
-  document.title = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · подарок UDG | FernieID`;
-  document.querySelector('meta[name="description"]').content = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · цифровой подарок FernieID`;
+  const title = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · подарок UDG | FernieID`;
+  const description = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · цифровой подарок FernieID`;
+  document.title = title;
+  document.querySelector('meta[name="description"]').content = description;
+  document.querySelector('meta[property="og:title"]').content = title;
+  document.querySelector('meta[property="og:description"]').content = description;
+  document.querySelector('meta[property="og:image"]').content = gift.image_url || '';
+  document.querySelector('meta[property="og:url"]').content = location.href;
   document.querySelector('link[rel="canonical"]').href = location.href;
   $('giftSubtitle').textContent = gift.owner_username
     ? `Коллекционный подарок FernieID · владелец ${gift.owner_username}`
