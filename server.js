@@ -2143,6 +2143,35 @@ app.get('/api/dc/:userId', async (req, res) => {
   }
 });
 
+app.get('/api/exchange/summary', async (req, res) => {
+  try {
+    if (!FERNIE_SERVER_KEY)
+      return res.status(503).json({ success: false, error: 'Интеграция с ботом не настроена' });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const botRes = await fetch(`${BOT_URL}/api/exchange`, {
+      headers: { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY },
+      signal: controller.signal
+    }).finally(() => clearTimeout(timeout));
+
+    const rawText = await botRes.text();
+    let botData = { success: false, error: 'Сервис биржи бота недоступен' };
+    if (rawText) {
+      try { botData = JSON.parse(rawText); }
+      catch { botData = { success: false, error: rawText.trim() || 'Сервис биржи бота недоступен' }; }
+    }
+
+    if (!botRes.ok || !botData?.success)
+      return res.status(botRes.ok ? 502 : botRes.status || 502).json({ success: false, error: botData?.error || 'Сервис биржи бота недоступен' });
+
+    return res.json({ success: true, ...botData });
+  } catch (e) {
+    console.error('exchange summary error:', e);
+    res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
+  }
+});
+
 app.get('/api/card-market/state/:userId', async (req, res) => {
   try {
     const telegramId = await resolveTelegramId(req.params.userId);
