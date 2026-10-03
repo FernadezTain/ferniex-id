@@ -173,6 +173,30 @@ async function fetchBotJson(url, init) {
   }
 }
 
+async function exchangeBotRequest(path, method = 'GET', body) {
+  if (!FERNIE_SERVER_KEY) return { status: 503, data: { success: false, error: 'Интеграция с ботом не настроена' } };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(`${BOT_URL}${path}`, {
+      method,
+      headers: {
+        'X-Fernie-Server-Key': FERNIE_SERVER_KEY,
+        ...(body ? { 'Content-Type': 'application/json' } : {})
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      signal: controller.signal
+    });
+    const raw = await response.text();
+    let data;
+    try { data = raw ? JSON.parse(raw) : { success: false, error: 'Пустой ответ бота' }; }
+    catch { data = { success: false, error: raw.trim() || 'Бот вернул некорректный ответ' }; }
+    return { status: response.status, data };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ====== Регистрация ======
 app.post("/api/register", async (req, res) => {
   const { username, password } = req.body;
@@ -2145,29 +2169,41 @@ app.get('/api/dc/:userId', async (req, res) => {
 
 app.get('/api/exchange/summary', async (req, res) => {
   try {
-    if (!FERNIE_SERVER_KEY)
-      return res.status(503).json({ success: false, error: 'Интеграция с ботом не настроена' });
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const botRes = await fetch(`${BOT_URL}/api/exchange`, {
-      headers: { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY },
-      signal: controller.signal
-    }).finally(() => clearTimeout(timeout));
-
-    const rawText = await botRes.text();
-    let botData = { success: false, error: 'Сервис биржи бота недоступен' };
-    if (rawText) {
-      try { botData = JSON.parse(rawText); }
-      catch { botData = { success: false, error: rawText.trim() || 'Сервис биржи бота недоступен' }; }
-    }
-
-    if (!botRes.ok || !botData?.success)
-      return res.status(botRes.ok ? 502 : botRes.status || 502).json({ success: false, error: botData?.error || 'Сервис биржи бота недоступен' });
-
-    return res.json({ success: true, ...botData });
+    const result = await exchangeBotRequest('/api/exchange');
+    return res.status(result.status).json(result.data);
   } catch (e) {
     console.error('exchange summary error:', e);
+    res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
+  }
+});
+
+app.post('/api/exchange/refresh', async (req, res) => {
+  try {
+    const result = await exchangeBotRequest('/api/exchange/refresh', 'POST', {});
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange refresh error:', e);
+    res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
+  }
+});
+
+app.post('/api/exchange/trade', async (req, res) => {
+  try {
+    const { userId, side, amount } = req.body || {};
+    const parsedAmount = Number(amount);
+    if (!userId || !['buy', 'sell'].includes(side) || !Number.isSafeInteger(parsedAmount) || parsedAmount <= 0)
+      return res.status(400).json({ success: false, error: 'Укажите действие и целое количество FC' });
+
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
+    const result = await exchangeBotRequest('/api/exchange/trade', 'POST', {
+      telegram_id: telegramId,
+      side,
+      amount: parsedAmount
+    });
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange trade error:', e);
     res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
   }
 });
