@@ -498,6 +498,18 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-gift-detail-value{font-weight:800;text-align:right;overflow-wrap:anywhere;}
 .udg-gift-detail-value.price{color:var(--amber);}
 .udg-gift-market-note{color:var(--muted);font-size:.72rem;line-height:1.5;text-align:center;}
+.udg-share-preview{display:flex;align-items:center;gap:.85rem;padding:.8rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);}
+.udg-share-art{position:relative;display:grid;place-items:center;width:64px;height:64px;flex:0 0 64px;overflow:hidden;border-radius:12px;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);}
+.udg-share-art::before{position:absolute;inset:0;background-image:var(--gift-background);background-size:cover;background-position:center;content:'';}
+.udg-share-art img{position:relative;z-index:1;width:75%;height:75%;object-fit:contain;filter:drop-shadow(0 4px 5px rgba(0,0,0,.2));}
+.udg-share-art span{position:relative;z-index:1;font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:rgba(24,20,16,.6);}
+.udg-share-copy{min-width:0;}
+.udg-share-title{font-size:.84rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.udg-share-subtitle{margin-top:.25rem;color:var(--muted);font-size:.72rem;}
+.udg-share-link{width:100%;margin-top:.9rem;padding:11px 12px;border:1px solid var(--field-border);border-radius:12px;background:var(--field);color:var(--muted);font:500 .74rem ui-monospace,monospace;outline:none;}
+.udg-share-actions{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin-top:.7rem;}
+.udg-share-actions .btn{display:flex;align-items:center;justify-content:center;gap:.4rem;border-radius:12px;}
+.udg-share-hint{margin-top:.7rem;color:var(--muted);font-size:.7rem;line-height:1.5;text-align:center;}
 .udg-transaction-list{display:flex;flex-direction:column;gap:.65rem;}
 .udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;}
 .udg-transaction:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 8px 18px -14px rgba(0,0,0,.35);}
@@ -2455,12 +2467,41 @@ function openUdgGiftDetails(uid, inventory = false){
   </div>`);
   $('udgGiftShare').addEventListener('click', async () => {
     const title = udgGiftTitle(item);
-    const shareUrl = new URL(`/udggift/${encodeURIComponent(item.uid)}`, location.origin === 'null' ? API : location.origin).toString();
-    const shareText = `${title} · ${Number(item.price).toLocaleString('ru-RU')} FC`;
-    try{
-      if(navigator.share) await navigator.share({ title, text:shareText, url:shareUrl });
-      else if(await copyUdgTransactionId(shareUrl)) showToastSafe('Ссылка на подарок скопирована');
-    } catch{}
+    const shareOrigin = ['http:', 'https:'].includes(location.protocol) ? location.origin : API;
+    const shareUrl = new URL(`/udggift/${encodeURIComponent(item.uid)}`, shareOrigin).toString();
+    const previewArt = item.image_url
+      ? `<img src="${escapeHtml(item.image_url)}" alt="">`
+      : `<span>${escapeHtml((title[0] || 'G').toUpperCase())}</span>`;
+    openModal(`
+      <div class="modal-title">Поделиться подарком</div>
+      <div class="udg-share-preview">
+        <div class="udg-share-art" style="${item.background_url ? `--gift-background:url('${escapeHtml(item.background_url)}')` : ''}">${previewArt}</div>
+        <div class="udg-share-copy">
+          <div class="udg-share-title">${escapeHtml(title)}</div>
+          <div class="udg-share-subtitle">${Number(item.price).toLocaleString('ru-RU')} FC · UID ${escapeHtml(item.uid)}</div>
+        </div>
+      </div>
+      <input class="udg-share-link" id="udgShareLink" type="text" value="${escapeHtml(shareUrl)}" readonly aria-label="Ссылка на подарок">
+      <div class="udg-share-actions">
+        <button type="button" class="btn btn-dark" id="udgShareCopy">Копировать ссылку</button>
+        <button type="button" class="btn btn-outline" id="udgShareTelegram">Отправить в Telegram</button>
+      </div>
+      <div class="udg-share-hint">Ссылка откроет страницу подарка с изображением и информацией о нём.</div>`);
+    $('udgShareLink').addEventListener('click', event => event.currentTarget.select());
+    $('udgShareCopy').addEventListener('click', async () => {
+      if(await copyUdgTransactionId(shareUrl)){
+        $('udgShareCopy').textContent = 'Ссылка скопирована';
+        showToastSafe('Ссылка на подарок скопирована');
+      } else {
+        $('udgShareLink').focus();
+        $('udgShareLink').select();
+        showToastSafe('Выделили ссылку — скопируйте её вручную');
+      }
+    });
+    $('udgShareTelegram').addEventListener('click', () => {
+      const shareText = `${title} · ${Number(item.price).toLocaleString('ru-RU')} FC`;
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, '_blank', 'noopener');
+    });
   });
   const buyButton = $('udgGiftDetailBuy');
   if(buyButton) buyButton.addEventListener('click', () => buyUdgGift(item));
