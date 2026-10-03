@@ -474,9 +474,13 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-gift-card-body{padding:.8rem .85rem .85rem;}
 .udg-gift-card-name{font-weight:800;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .udg-gift-card-meta{margin-top:.25rem;color:var(--muted);font-size:.7rem;line-height:1.45;}
-.udg-gift-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.65rem;}
-.udg-gift-card-price{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800;color:var(--ink);white-space:nowrap;}
+.udg-gift-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-top:.65rem;}
+.udg-gift-card-price{min-width:0;overflow:hidden;text-overflow:ellipsis;font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;color:var(--ink);white-space:nowrap;}
 .udg-gift-card-price span{color:var(--amber);font-size:.72rem;}
+.udg-gift-market-badge{display:inline-flex;align-items:center;flex:0 0 auto;gap:.3rem;padding:.28rem .48rem;border:1px solid #cfe9d5;border-radius:999px;background:#e9f6ec;color:var(--green);font-size:.56rem;font-weight:800;letter-spacing:.035em;line-height:1;white-space:nowrap;}
+.udg-gift-market-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;}
+.udg-gift-price-reference{margin-top:.28rem;color:var(--muted);font-size:.67rem;}
+.udg-price-range{padding:.75rem .85rem;border:1px solid var(--field-border);border-radius:12px;background:var(--field);color:var(--muted);font-size:.77rem;line-height:1.5;}
 .udg-gift-card-actions{display:flex;gap:.45rem;margin-top:.65rem;}
 .udg-gift-card-actions .btn{flex:1;padding:8px 10px;font-size:.7rem;}
 .udg-gift-detail{display:flex;flex-direction:column;gap:.85rem;}
@@ -2358,7 +2362,9 @@ function renderUdgGiftCard(item, inventory = false){
   const backgroundName = escapeHtml(item.background_name || item.background_id);
   const owner = inventory ? '' : `<div class="udg-gift-card-meta">Владелец: ${escapeHtml(item.owner_username || 'Пользователь')}</div>`;
   const action = inventory
-    ? `<button type="button" class="btn ${item.listed ? 'btn-outline' : 'btn-dark'}" data-toggle-udg-listing="${escapeHtml(item.uid)}">${item.listed ? 'Снять с рынка' : 'На рынок'}</button>`
+    ? item.listed
+      ? `<button type="button" class="btn btn-outline" data-open-udg-gift="${escapeHtml(item.uid)}">Цена</button><button type="button" class="btn btn-outline" data-toggle-udg-listing="${escapeHtml(item.uid)}">Снять</button>`
+      : `<button type="button" class="btn btn-dark" data-toggle-udg-listing="${escapeHtml(item.uid)}">На рынок</button>`
     : `<button type="button" class="btn btn-dark" data-open-udg-gift="${escapeHtml(item.uid)}">Подробнее</button>`;
   return `<article class="udg-gift-card">
     <button type="button" class="udg-gift-art" style="${item.background_url ? `--gift-background:url('${escapeHtml(item.background_url)}')` : ''}" data-open-udg-gift="${escapeHtml(item.uid)}" aria-label="Открыть ${title}">
@@ -2368,7 +2374,8 @@ function renderUdgGiftCard(item, inventory = false){
       <div class="udg-gift-card-name">${title}</div>
       <div class="udg-gift-card-meta">${collection} · ${backgroundName}</div>
       ${owner}
-      <div class="udg-gift-card-bottom"><div class="udg-gift-card-price">${Number(item.price).toLocaleString('ru-RU')} <span>FC</span></div>${item.listed ? '<span class="pill pill-green">На рынке</span>' : ''}</div>
+      <div class="udg-gift-card-bottom"><div class="udg-gift-card-price">${Number(item.price).toLocaleString('ru-RU')} <span>FC</span></div>${item.listed ? '<span class="udg-gift-market-badge">НА РЫНКЕ</span>' : ''}</div>
+      ${inventory && item.listed ? `<div class="udg-gift-price-reference">Рыночный ориентир: ${Number(item.market_price ?? item.price).toLocaleString('ru-RU')} FC</div>` : ''}
       <div class="udg-gift-card-actions">${action}</div>
     </div>
   </article>`;
@@ -2425,9 +2432,10 @@ function udgGiftDetailRows(item){
     ['Фон', item.background_name || item.background_id],
     item.symbol_name ? ['Символ', item.symbol_name] : null,
     ['UID подарка', item.uid],
-    ['Цена', `${Number(item.price).toLocaleString('ru-RU')} FC`]
+    ['Рыночный ориентир', `${Number(item.market_price ?? item.price).toLocaleString('ru-RU')} FC`],
+    ['Цена объявления', item.listed ? `${Number(item.listing_price ?? item.price).toLocaleString('ru-RU')} FC` : 'Не выставлен']
   ].filter(Boolean);
-  return rows.map(([label, value], index) => `<div class="udg-gift-detail-row"><span class="udg-gift-detail-label">${escapeHtml(label)}</span><span class="udg-gift-detail-value${index === rows.length - 1 ? ' price' : ''}">${escapeHtml(value)}</span></div>`).join('');
+  return rows.map(([label, value]) => `<div class="udg-gift-detail-row"><span class="udg-gift-detail-label">${escapeHtml(label)}</span><span class="udg-gift-detail-value${label === 'Цена объявления' ? ' price' : ''}">${escapeHtml(value)}</span></div>`).join('');
 }
 
 function openUdgGiftDetails(uid, inventory = false){
@@ -2439,32 +2447,37 @@ function openUdgGiftDetails(uid, inventory = false){
     <div class="udg-gift-detail-title">${escapeHtml(udgGiftTitle(item))}</div>
     <div class="udg-gift-detail-uid">UID ${escapeHtml(item.uid)}</div>
     <div class="udg-gift-detail-actions">
-      ${inventory ? `<button type="button" class="btn ${item.listed ? 'btn-outline' : 'btn-dark'}" id="udgGiftDetailListing">${item.listed ? 'Снять с рынка' : 'Выставить'}</button>` : isOwner ? '<span class="pill">Твой подарок</span>' : '<button type="button" class="btn btn-exchange-buy" id="udgGiftDetailBuy">Купить</button>'}
+      ${inventory ? item.listed ? '<button type="button" class="btn btn-dark" id="udgGiftDetailPrice">Изменить цену</button><button type="button" class="btn btn-outline" id="udgGiftDetailListing">Снять с рынка</button>' : '<button type="button" class="btn btn-dark" id="udgGiftDetailListing">Выставить на рынок</button>' : isOwner ? '<span class="pill">Твой подарок</span>' : '<button type="button" class="btn btn-exchange-buy" id="udgGiftDetailBuy">Купить</button>'}
       <button type="button" class="btn btn-outline" id="udgGiftShare">Поделиться</button>
     </div>
     <div class="udg-gift-detail-rows">${udgGiftDetailRows(item)}</div>
     <div class="udg-gift-market-note">Рыночная цена пересчитывается раз в 12 часов. Оплата и расчёт только в FernieCoins.</div>
   </div>`);
   $('udgGiftShare').addEventListener('click', async () => {
-    const shareText = `${udgGiftTitle(item)} · ${Number(item.price).toLocaleString('ru-RU')} FC · UID ${item.uid}`;
+    const title = udgGiftTitle(item);
+    const shareUrl = new URL(`/udggift/${encodeURIComponent(item.uid)}`, location.origin === 'null' ? API : location.origin).toString();
+    const shareText = `${title} · ${Number(item.price).toLocaleString('ru-RU')} FC`;
     try{
-      if(navigator.share) await navigator.share({ title:udgGiftTitle(item), text:shareText });
-      else if(await copyUdgTransactionId(item.uid)) showToastSafe('UID подарка скопирован');
+      if(navigator.share) await navigator.share({ title, text:shareText, url:shareUrl });
+      else if(await copyUdgTransactionId(shareUrl)) showToastSafe('Ссылка на подарок скопирована');
     } catch{}
   });
   const buyButton = $('udgGiftDetailBuy');
   if(buyButton) buyButton.addEventListener('click', () => buyUdgGift(item));
   const listingButton = $('udgGiftDetailListing');
   if(listingButton) listingButton.addEventListener('click', () => toggleUdgGiftListing(item.uid));
+  const priceButton = $('udgGiftDetailPrice');
+  if(priceButton) priceButton.addEventListener('click', () => openUdgListingPriceModal(item.uid));
 }
 
 async function toggleUdgGiftListing(uid){
   const item = udgInventoryCache.find(gift => String(gift.uid) === String(uid));
   if(!item || !currentUser) return;
+  if(!item.listed){ openUdgListingPriceModal(uid); return; }
   try{
     const res = await fetch(`${API}/api/udg/market/list`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ userId:currentUser.id, uid, listed:!item.listed })
+      body:JSON.stringify({ userId:currentUser.id, uid, listed:false })
     });
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось изменить объявление');
@@ -2473,6 +2486,58 @@ async function toggleUdgGiftListing(uid){
     showToastSafe(data.listed ? 'Подарок выставлен на рынок' : 'Подарок снят с рынка');
   } catch(error){
     showToastSafe(error.message || 'Ошибка связи с сервером');
+  }
+}
+
+function openUdgListingPriceModal(uid){
+  const item = udgInventoryCache.find(gift => String(gift.uid) === String(uid));
+  if(!item || !currentUser) return;
+  const marketPrice = Number(item.market_price ?? item.price);
+  const minimum = Number(item.min_price ?? Math.max(1, Math.ceil(marketPrice * .7)));
+  const maximum = Number(item.max_price ?? Math.max(minimum, Math.floor(marketPrice * 1.3)));
+  const startingPrice = Number(item.listing_price || item.price || marketPrice);
+  openModal(`
+    <div class="modal-title">${item.listed ? 'Изменить цену подарка' : 'Выставить подарок'}</div>
+    <div class="panel-sub" style="margin:-.55rem 0 1rem;">${escapeHtml(udgGiftTitle(item))} · UID ${escapeHtml(item.uid)}</div>
+    <div class="udg-price-range">Рыночный ориентир: <b>${marketPrice.toLocaleString('ru-RU')} FC</b><br>Можно установить от <b>${minimum.toLocaleString('ru-RU')}</b> до <b>${maximum.toLocaleString('ru-RU')} FC</b> (70–130% от ориентира).</div>
+    <div class="field" style="margin:1rem 0 .3rem;">
+      <label class="field-label" for="udgListingPriceInput">Твоя цена продажи</label>
+      <input class="field-input" id="udgListingPriceInput" type="number" min="${minimum}" max="${maximum}" step="1" value="${Math.min(maximum, Math.max(minimum, startingPrice))}" inputmode="numeric">
+    </div>
+    <div class="form-msg" id="udgListingPriceMsg"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" id="udgListingPriceCancel">Отмена</button>
+      <button type="button" class="btn btn-dark" id="udgListingPriceSubmit">${item.listed ? 'Сохранить цену' : 'Выставить'}</button>
+    </div>`);
+  $('udgListingPriceCancel').addEventListener('click', closeModal);
+  $('udgListingPriceSubmit').addEventListener('click', () => submitUdgListingPrice(uid, minimum, maximum));
+}
+
+async function submitUdgListingPrice(uid, minimum, maximum){
+  const input = $('udgListingPriceInput');
+  const msg = $('udgListingPriceMsg');
+  const price = Number(input.value);
+  if(!Number.isSafeInteger(price) || price < minimum || price > maximum){
+    msg.textContent = `Укажи целую цену от ${minimum.toLocaleString('ru-RU')} до ${maximum.toLocaleString('ru-RU')} FC.`;
+    input.focus();
+    return;
+  }
+  const button = $('udgListingPriceSubmit');
+  const defaultText = button.textContent;
+  setBtnLoading(button, true, defaultText);
+  try{
+    const res = await fetch(`${API}/api/udg/market/list`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ userId:currentUser.id, uid, listed:true, price })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось сохранить цену');
+    closeModal();
+    await Promise.all([loadUdgInventory(), loadUdgMarket(true)]);
+    showToastSafe(`Цена объявления: ${Number(data.price).toLocaleString('ru-RU')} FC`);
+  } catch(error){
+    msg.textContent = error.message || 'Ошибка связи с сервером';
+    setBtnLoading(button, false, defaultText);
   }
 }
 
