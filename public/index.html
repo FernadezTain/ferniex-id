@@ -463,6 +463,37 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-my-panel{display:none;}
 .udg-my-panel.active{display:block;animation:fadeUp .2s ease both;}
 .udg-my-panel[hidden]{display:none;}
+.udg-gift-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem;}
+.udg-gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.85rem;}
+.udg-gift-card{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:17px;background:var(--field);transition:transform .18s,border-color .18s,box-shadow .18s;}
+.udg-gift-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 12px 24px -18px rgba(0,0,0,.4);}
+.udg-gift-art{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1/1;overflow:hidden;padding:0;border:0;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);cursor:pointer;}
+.udg-gift-art::before{content:'';position:absolute;inset:0;background-image:var(--gift-background);background-size:cover;background-position:center;opacity:.95;}
+.udg-gift-art img{position:relative;z-index:1;width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(0,0,0,.2));}
+.udg-gift-no-image{position:relative;z-index:1;color:rgba(24,20,16,.55);font-family:'Syne',sans-serif;font-size:2.6rem;font-weight:800;}
+.udg-gift-card-body{padding:.8rem .85rem .85rem;}
+.udg-gift-card-name{font-weight:800;font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.udg-gift-card-meta{margin-top:.25rem;color:var(--muted);font-size:.7rem;line-height:1.45;}
+.udg-gift-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.65rem;}
+.udg-gift-card-price{font-family:'Syne',sans-serif;font-size:.92rem;font-weight:800;color:var(--ink);white-space:nowrap;}
+.udg-gift-card-price span{color:var(--amber);font-size:.72rem;}
+.udg-gift-card-actions{display:flex;gap:.45rem;margin-top:.65rem;}
+.udg-gift-card-actions .btn{flex:1;padding:8px 10px;font-size:.7rem;}
+.udg-gift-detail{display:flex;flex-direction:column;gap:.85rem;}
+.udg-gift-detail-art{position:relative;display:grid;place-items:center;width:min(100%,280px);aspect-ratio:1/1;overflow:hidden;margin:0 auto;border-radius:20px;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);}
+.udg-gift-detail-art::before{content:'';position:absolute;inset:0;background-image:var(--gift-background);background-size:cover;background-position:center;}
+.udg-gift-detail-art img{position:relative;z-index:1;width:72%;height:72%;object-fit:contain;filter:drop-shadow(0 16px 16px rgba(0,0,0,.22));}
+.udg-gift-detail-title{text-align:center;font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;}
+.udg-gift-detail-uid{margin-top:-.6rem;text-align:center;color:var(--muted);font:600 .68rem ui-monospace,monospace;overflow-wrap:anywhere;}
+.udg-gift-detail-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;}
+.udg-gift-detail-actions .btn{display:flex;align-items:center;justify-content:center;gap:.4rem;border-radius:13px;}
+.udg-gift-detail-rows{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--field) 55%,transparent);}
+.udg-gift-detail-row{display:flex;justify-content:space-between;gap:1rem;padding:.72rem .8rem;border-bottom:1px solid var(--line);font-size:.78rem;}
+.udg-gift-detail-row:last-child{border-bottom:0;}
+.udg-gift-detail-label{color:var(--muted);}
+.udg-gift-detail-value{font-weight:800;text-align:right;overflow-wrap:anywhere;}
+.udg-gift-detail-value.price{color:var(--amber);}
+.udg-gift-market-note{color:var(--muted);font-size:.72rem;line-height:1.5;text-align:center;}
 .udg-transaction-list{display:flex;flex-direction:column;gap:.65rem;}
 .udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;}
 .udg-transaction:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 8px 18px -14px rgba(0,0,0,.35);}
@@ -1101,12 +1132,12 @@ html,body{touch-action:manipulation;}
           </div>
           <div class="tabs udg-tabs" role="tablist" aria-label="Разделы UDG">
             <div class="tabs-slider"></div>
-            <button type="button" class="tab-btn" data-udgtab="exchange" role="tab" aria-selected="false">Биржа</button>
+            <button type="button" class="tab-btn active" data-udgtab="exchange" role="tab" aria-selected="true">Биржа</button>
             <button type="button" class="tab-btn" data-udgtab="market" role="tab" aria-selected="false">Рынок</button>
-            <button type="button" class="tab-btn active" data-udgtab="my" role="tab" aria-selected="true">Моё</button>
+            <button type="button" class="tab-btn" data-udgtab="my" role="tab" aria-selected="false">Моё</button>
           </div>
 
-          <div class="udgtab-panel" data-udgtab-panel="exchange" role="tabpanel" hidden>
+          <div class="udgtab-panel active" data-udgtab-panel="exchange" role="tabpanel">
             <div class="udg-exchange-shell">
               <div class="udg-exchange-head">
                 <div class="udg-exchange-brand">
@@ -1141,15 +1172,17 @@ html,body{touch-action:manipulation;}
           </div>
 
           <div class="udgtab-panel" data-udgtab-panel="market" role="tabpanel" hidden>
-            <div class="udg-workspace-state">
-              <div class="udg-state-mark">⌕</div>
-              <span class="udg-state-kicker">UDG · РЫНОК</span>
-              <div class="title">Рынок в разработке</div>
-              <div class="desc">Покупка и продажа UDG-подарков появятся здесь позже.</div>
+            <div class="udg-gift-toolbar">
+              <div>
+                <span class="udg-state-kicker">UDG · РЫНОК ПОДАРКОВ</span>
+                <div class="panel-sub">Подарки пользователей · цены пересчитываются каждые 12 часов</div>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" id="udgMarketRefresh">↻ Обновить</button>
             </div>
+            <div id="udgMarketBody"><div class="loader">Загрузка рынка…</div></div>
           </div>
 
-          <div class="udgtab-panel active" data-udgtab-panel="my" role="tabpanel">
+          <div class="udgtab-panel" data-udgtab-panel="my" role="tabpanel" hidden>
             <div class="udg-balance-card">
               <div class="udg-balance-copy">
                 <span class="udg-state-kicker">ТВОЙ БАЛАНС</span>
@@ -1172,11 +1205,7 @@ html,body{touch-action:manipulation;}
                 </div>
                 <span class="pill">Скоро</span>
               </div>
-              <div class="udg-inventory-state">
-                <div class="udg-inventory-icon"><i class="cico cico-cards"></i></div>
-                <div class="title">Инвентарь в разработке</div>
-                <div class="desc">Скоро здесь появятся твои UDG-подарки.</div>
-              </div>
+              <div id="udgInventoryBody"><div class="loader">Загрузка инвентаря…</div></div>
             </div>
 
             <div class="udg-my-panel" data-udg-my-panel="transactions" hidden>
@@ -1697,6 +1726,8 @@ document.querySelectorAll('#section-udg .tab-btn').forEach(btn => {
     });
     if(btn.dataset.udgtab === 'my') loadUdgBalance();
     if(btn.dataset.udgtab === 'exchange') loadExchangeMarket();
+    if(btn.dataset.udgtab === 'market') loadUdgMarket();
+    if(btn.dataset.udgtab === 'my') loadUdgInventory();
     requestAnimationFrame(() => positionTabSlider(btn.closest('.tabs')));
   });
 });
@@ -1717,6 +1748,7 @@ document.querySelectorAll('#section-udg [data-udg-my-tab]').forEach(btn => {
   });
 });
 $('udgTransactionsRefresh').addEventListener('click', () => loadUdgTransactions(true));
+$('udgMarketRefresh').addEventListener('click', () => loadUdgMarket(true));
 
 /* ---------- переключатель СОЦИАЛИЗАЦИЯ: Главная / Общение / Мой профиль ---------- */
 document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
@@ -2274,7 +2306,6 @@ const loaded = {};
 async function loadSectionData(name){
   if(!currentUser) return;
   if(name === 'udg') {
-    loadUdgBalance();
     loadExchangeMarket();
     return;
   }
@@ -2303,6 +2334,172 @@ async function loadUdgBalance(){
     balanceEl.textContent = `${balance.toLocaleString('ru-RU')} FC`;
   } catch(error){
     balanceEl.textContent = error.message === 'Telegram не привязан' ? 'Привяжите Telegram' : 'Баланс недоступен';
+  }
+}
+
+let udgMarketCache = [];
+let udgInventoryCache = [];
+
+function udgGiftTitle(item){
+  return item.model_name || item.gift_id || 'Подарок UDG';
+}
+
+function udgGiftArt(item, detail = false){
+  const image = item.image_url
+    ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(udgGiftTitle(item))}" loading="lazy">`
+    : `<span class="udg-gift-no-image">${escapeHtml((udgGiftTitle(item)[0] || 'G').toUpperCase())}</span>`;
+  const background = item.background_url ? `--gift-background:url('${escapeHtml(item.background_url)}')` : '';
+  return `<div class="${detail ? 'udg-gift-detail-art' : 'udg-gift-art'}" style="${background}">${image}</div>`;
+}
+
+function renderUdgGiftCard(item, inventory = false){
+  const title = escapeHtml(udgGiftTitle(item));
+  const collection = escapeHtml(item.collection_name || 'UDG');
+  const backgroundName = escapeHtml(item.background_name || item.background_id);
+  const owner = inventory ? '' : `<div class="udg-gift-card-meta">Владелец: ${escapeHtml(item.owner_username || 'Пользователь')}</div>`;
+  const action = inventory
+    ? `<button type="button" class="btn ${item.listed ? 'btn-outline' : 'btn-dark'}" data-toggle-udg-listing="${escapeHtml(item.uid)}">${item.listed ? 'Снять с рынка' : 'На рынок'}</button>`
+    : `<button type="button" class="btn btn-dark" data-open-udg-gift="${escapeHtml(item.uid)}">Подробнее</button>`;
+  return `<article class="udg-gift-card">
+    <button type="button" class="udg-gift-art" style="${item.background_url ? `--gift-background:url('${escapeHtml(item.background_url)}')` : ''}" data-open-udg-gift="${escapeHtml(item.uid)}" aria-label="Открыть ${title}">
+      ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${title}" loading="lazy">` : `<span class="udg-gift-no-image">${escapeHtml((udgGiftTitle(item)[0] || 'G').toUpperCase())}</span>`}
+    </button>
+    <div class="udg-gift-card-body">
+      <div class="udg-gift-card-name">${title}</div>
+      <div class="udg-gift-card-meta">${collection} · ${backgroundName}</div>
+      ${owner}
+      <div class="udg-gift-card-bottom"><div class="udg-gift-card-price">${Number(item.price).toLocaleString('ru-RU')} <span>FC</span></div>${item.listed ? '<span class="pill pill-green">На рынке</span>' : ''}</div>
+      <div class="udg-gift-card-actions">${action}</div>
+    </div>
+  </article>`;
+}
+
+function renderUdgGiftGrid(items, inventory = false){
+  const container = $(inventory ? 'udgInventoryBody' : 'udgMarketBody');
+  if(!items.length){
+    container.innerHTML = `<div class="empty-box"><div class="udg-inventory-icon"><i class="cico cico-cards"></i></div><div class="title">${inventory ? 'У тебя пока нет подарков' : 'На рынке пока нет подарков'}</div><div class="desc">${inventory ? 'Полученные подарки появятся здесь. Их можно будет выставить на рынок.' : 'Владельцы подарков смогут выставлять их здесь на продажу.'}</div></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="udg-gift-grid">${items.map(item => renderUdgGiftCard(item, inventory)).join('')}</div>`;
+  container.querySelectorAll('[data-open-udg-gift]').forEach(button => {
+    button.addEventListener('click', () => openUdgGiftDetails(button.dataset.openUdgGift, inventory));
+  });
+  container.querySelectorAll('[data-toggle-udg-listing]').forEach(button => {
+    button.addEventListener('click', () => toggleUdgGiftListing(button.dataset.toggleUdgListing));
+  });
+}
+
+async function loadUdgMarket(showLoading = false){
+  const container = $('udgMarketBody');
+  if(showLoading || !udgMarketCache.length) container.innerHTML = '<div class="loader">Загрузка рынка…</div>';
+  try{
+    const res = await fetch(`${API}/api/udg/market`);
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Рынок временно недоступен');
+    udgMarketCache = Array.isArray(data.items) ? data.items : [];
+    renderUdgGiftGrid(udgMarketCache);
+  } catch(error){
+    container.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить рынок</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
+  }
+}
+
+async function loadUdgInventory(){
+  const container = $('udgInventoryBody');
+  if(!container || !currentUser) return;
+  container.innerHTML = '<div class="loader">Загрузка инвентаря…</div>';
+  try{
+    const res = await fetch(`${API}/api/udg/inventory/${encodeURIComponent(currentUser.id)}`);
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить подарки');
+    udgInventoryCache = Array.isArray(data.items) ? data.items : [];
+    renderUdgGiftGrid(udgInventoryCache, true);
+  } catch(error){
+    container.innerHTML = `<div class="empty-box"><div class="title">Инвентарь недоступен</div><div class="desc">${escapeHtml(error.message || 'Ошибка загрузки')}</div></div>`;
+  }
+}
+
+function udgGiftDetailRows(item){
+  const rows = [
+    ['Коллекция', item.collection_name || 'UDG'],
+    ['Модель', item.model_name || item.gift_id],
+    ['Фон', item.background_name || item.background_id],
+    item.symbol_name ? ['Символ', item.symbol_name] : null,
+    ['UID подарка', item.uid],
+    ['Цена', `${Number(item.price).toLocaleString('ru-RU')} FC`]
+  ].filter(Boolean);
+  return rows.map(([label, value], index) => `<div class="udg-gift-detail-row"><span class="udg-gift-detail-label">${escapeHtml(label)}</span><span class="udg-gift-detail-value${index === rows.length - 1 ? ' price' : ''}">${escapeHtml(value)}</span></div>`).join('');
+}
+
+function openUdgGiftDetails(uid, inventory = false){
+  const item = (inventory ? udgInventoryCache : udgMarketCache).find(gift => String(gift.uid) === String(uid));
+  if(!item) return;
+  const isOwner = String(item.owner_user_id) === String(currentUser?.id);
+  openModal(`<div class="udg-gift-detail">
+    ${udgGiftArt(item, true)}
+    <div class="udg-gift-detail-title">${escapeHtml(udgGiftTitle(item))}</div>
+    <div class="udg-gift-detail-uid">UID ${escapeHtml(item.uid)}</div>
+    <div class="udg-gift-detail-actions">
+      ${inventory ? `<button type="button" class="btn ${item.listed ? 'btn-outline' : 'btn-dark'}" id="udgGiftDetailListing">${item.listed ? 'Снять с рынка' : 'Выставить'}</button>` : isOwner ? '<span class="pill">Твой подарок</span>' : '<button type="button" class="btn btn-exchange-buy" id="udgGiftDetailBuy">Купить</button>'}
+      <button type="button" class="btn btn-outline" id="udgGiftShare">Поделиться</button>
+    </div>
+    <div class="udg-gift-detail-rows">${udgGiftDetailRows(item)}</div>
+    <div class="udg-gift-market-note">Рыночная цена пересчитывается раз в 12 часов. Оплата и расчёт только в FernieCoins.</div>
+  </div>`);
+  $('udgGiftShare').addEventListener('click', async () => {
+    const shareText = `${udgGiftTitle(item)} · ${Number(item.price).toLocaleString('ru-RU')} FC · UID ${item.uid}`;
+    try{
+      if(navigator.share) await navigator.share({ title:udgGiftTitle(item), text:shareText });
+      else if(await copyUdgTransactionId(item.uid)) showToastSafe('UID подарка скопирован');
+    } catch{}
+  });
+  const buyButton = $('udgGiftDetailBuy');
+  if(buyButton) buyButton.addEventListener('click', () => buyUdgGift(item));
+  const listingButton = $('udgGiftDetailListing');
+  if(listingButton) listingButton.addEventListener('click', () => toggleUdgGiftListing(item.uid));
+}
+
+async function toggleUdgGiftListing(uid){
+  const item = udgInventoryCache.find(gift => String(gift.uid) === String(uid));
+  if(!item || !currentUser) return;
+  try{
+    const res = await fetch(`${API}/api/udg/market/list`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ userId:currentUser.id, uid, listed:!item.listed })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось изменить объявление');
+    closeModal();
+    await Promise.all([loadUdgInventory(), loadUdgMarket(true)]);
+    showToastSafe(data.listed ? 'Подарок выставлен на рынок' : 'Подарок снят с рынка');
+  } catch(error){
+    showToastSafe(error.message || 'Ошибка связи с сервером');
+  }
+}
+
+async function buyUdgGift(item){
+  if(!hasTelegramLinked()){
+    showToastSafe('Для покупки сначала привяжите Telegram');
+    switchSection('security');
+    return;
+  }
+  if(!(await confirmModal(`Купить «${udgGiftTitle(item)}» за ${Number(item.price).toLocaleString('ru-RU')} FC?`, {
+    title:'Подтвердите покупку', icon:'cards', okLabel:'Купить'
+  }))) return;
+  const transactionId = createTransactionId();
+  openModal('<div class="udg-tx-status"><div class="udg-tx-spinner"></div><div class="udg-tx-title">Покупаем подарок…</div><div class="udg-tx-copy">Проверяем объявление и переводим FernieCoins владельцу.</div></div>');
+  try{
+    const res = await fetch(`${API}/api/udg/market/buy`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ userId:currentUser.id, uid:item.uid, transactionId })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось купить подарок');
+    closeModal();
+    showToastSafe(`Подарок куплен за ${Number(data.price).toLocaleString('ru-RU')} FC`);
+    await Promise.all([loadUdgMarket(true), loadUdgBalance(), loadUdgInventory()]);
+  } catch(error){
+    closeModal();
+    showToastSafe(error.message || 'Ошибка связи с сервером');
   }
 }
 
