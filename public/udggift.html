@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#fbf1e8">
+<meta name="description" content="__UDG_META_DESCRIPTION__">
+<link rel="canonical" href="__UDG_OG_URL__">
+<meta property="og:type" content="website">
+<meta property="og:title" content="__UDG_OG_TITLE__">
+<meta property="og:description" content="__UDG_OG_DESCRIPTION__">
+<meta property="og:image" content="__UDG_OG_IMAGE__">
+<meta property="og:url" content="__UDG_OG_URL__">
+<meta name="twitter:card" content="summary_large_image">
+<title>__UDG_PAGE_TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#fbf1e8;--card:#fff;--ink:#181410;--muted:#948b83;--field:#f4ece2;--line:#efe6da;--pink:#e9a49e;--sage:#cddac2;--green:#27864b;--amber:#a66c17;--shadow:0 28px 80px -42px rgba(60,40,20,.35)}
+*{box-sizing:border-box}
+body{min-height:100vh;margin:0;padding:24px;font-family:Inter,system-ui,sans-serif;color:var(--ink);background:radial-gradient(circle at 90% 3%,rgba(233,164,158,.45),transparent 28rem),radial-gradient(circle at 6% 100%,rgba(205,218,194,.55),transparent 28rem),var(--bg);-webkit-font-smoothing:antialiased}
+button,a{-webkit-tap-highlight-color:transparent}
+.shell{width:min(100%,760px);margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 22px;padding:4px 2px}
+.brand{display:inline-flex;align-items:center;gap:9px;color:var(--ink);font-family:Syne,Inter,sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:-.04em;text-decoration:none}
+.brand-mark{display:grid;width:27px;height:27px;place-items:center;border-radius:9px;background:var(--ink);color:white;font-size:.8rem}
+.top-link{color:var(--muted);font-size:.82rem;font-weight:700;text-decoration:none}
+.top-link:hover{color:var(--ink)}
+.card{overflow:hidden;border:1px solid rgba(239,230,218,.95);border-radius:30px;background:rgba(255,255,255,.9);box-shadow:var(--shadow);backdrop-filter:blur(18px)}
+.art{position:relative;display:grid;min-height:clamp(290px,58vw,450px);place-items:center;overflow:hidden;background:linear-gradient(135deg,#f5ded2,#dbe1d1)}
+.art::before{position:absolute;inset:0;background-image:var(--gift-bg);background-position:center;background-size:cover;content:"";opacity:.92}
+.art::after{position:absolute;inset:0;background:linear-gradient(180deg,transparent 56%,rgba(24,20,16,.18));content:"";pointer-events:none}
+.art img{position:relative;z-index:1;width:min(58%,320px);height:min(58vw,320px);object-fit:contain;filter:drop-shadow(0 22px 24px rgba(24,20,16,.25))}
+.art-fallback{position:relative;z-index:1;display:grid;width:132px;height:132px;place-items:center;border:1px solid rgba(255,255,255,.7);border-radius:38px;background:rgba(255,255,255,.42);color:rgba(24,20,16,.62);font-family:Syne,sans-serif;font-size:4rem;font-weight:800;backdrop-filter:blur(8px)}
+.content{padding:clamp(22px,5vw,42px)}
+.kicker{color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.heading-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-top:10px}
+h1{margin:0;font-family:Syne,Inter,sans-serif;font-size:clamp(1.75rem,6vw,2.7rem);font-weight:800;letter-spacing:-.065em;line-height:1.04;overflow-wrap:anywhere}
+.status{display:inline-flex;flex:0 0 auto;align-items:center;gap:7px;padding:9px 12px;border:1px solid #cfe9d5;border-radius:999px;background:#e9f6ec;color:var(--green);font-size:.68rem;font-weight:800;white-space:nowrap}
+.status::before{width:7px;height:7px;border-radius:50%;background:currentColor;content:""}
+.status.held{border-color:var(--line);background:var(--field);color:var(--muted)}
+.subtitle{margin:10px 0 0;color:var(--muted);font-size:.88rem;line-height:1.55}
+.price-card{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:24px 0;padding:17px 19px;border:1px solid rgba(233,164,158,.38);border-radius:18px;background:linear-gradient(110deg,rgba(233,164,158,.18),rgba(205,218,194,.3))}
+.price-label{color:var(--muted);font-size:.72rem;font-weight:700}
+.price-value{margin-top:4px;font-family:Syne,Inter,sans-serif;font-size:clamp(1.45rem,5vw,2rem);font-weight:800;letter-spacing:-.055em}
+.price-unit{color:var(--amber);font-size:.78rem;letter-spacing:0}
+.price-icon{display:grid;width:48px;height:48px;flex:0 0 auto;place-items:center;border:1px solid rgba(166,108,23,.2);border-radius:16px;background:#fff6df;color:var(--amber);font-family:Syne,sans-serif;font-size:1.35rem;font-weight:800}
+.details{overflow:hidden;border:1px solid var(--line);border-radius:17px;background:rgba(244,236,226,.43)}
+.detail-row{display:flex;justify-content:space-between;gap:20px;padding:13px 15px;border-bottom:1px solid var(--line);font-size:.79rem}
+.detail-row:last-child{border-bottom:0}
+.detail-label{color:var(--muted)}
+.detail-value{max-width:65%;font-weight:700;text-align:right;overflow-wrap:anywhere}
+.detail-value.uid{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.69rem}
+.actions{display:flex;gap:10px;margin-top:20px}
+.button{display:inline-flex;min-height:46px;flex:1;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border:1px solid transparent;border-radius:14px;background:var(--ink);color:#fff;font:700 .82rem Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer;transition:transform .16s,opacity .16s}
+.button:hover{opacity:.9;transform:translateY(-1px)}
+.button.secondary{border-color:var(--line);background:var(--card);color:var(--ink)}
+.footer{padding:19px 0 4px;color:var(--muted);font-size:.72rem;text-align:center}
+.state{display:grid;min-height:440px;place-items:center;padding:32px;text-align:center}
+.state-mark{display:grid;width:58px;height:58px;margin:0 auto 16px;place-items:center;border:1px solid var(--line);border-radius:19px;background:var(--field);font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800}
+.state h1{font-size:1.7rem}
+.state p{max-width:390px;margin:10px auto 20px;color:var(--muted);font-size:.86rem;line-height:1.6}
+.toast{position:fixed;right:20px;bottom:20px;z-index:5;max-width:calc(100vw - 40px);padding:12px 16px;border-radius:13px;background:#181410;color:#fff;font-size:.8rem;font-weight:700;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast.visible{opacity:1;transform:translateY(0)}
+[hidden]{display:none!important}
+@media(max-width:520px){body{padding:14px}.topbar{margin-bottom:14px}.card{border-radius:23px}.art{min-height:290px}.content{padding:22px 18px}.heading-row{flex-direction:column;gap:12px}.status{order:-1}.detail-row{padding:12px}.actions{flex-direction:column}.button{flex:auto}.footer{padding-bottom:20px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="brand-mark">F</span>FernieID</a>
+    <a class="top-link" href="/">Открыть сайт ↗</a>
+  </header>
+  <main class="card" id="giftView" hidden>
+    <div class="art" id="giftArt"><span class="art-fallback" id="giftFallback">G</span></div>
+    <section class="content">
+      <div class="kicker" id="giftCollection">UDG · ЦИФРОВОЙ ПОДАРОК</div>
+      <div class="heading-row">
+        <h1 id="giftName">Подарок UDG</h1>
+        <span class="status" id="giftStatus">На рынке</span>
+      </div>
+      <p class="subtitle" id="giftSubtitle">Коллекционный подарок FernieID с уникальным UID.</p>
+      <div class="price-card">
+        <div><div class="price-label" id="priceLabel">Цена объявления</div><div class="price-value"><span id="giftPrice">—</span> <span class="price-unit">FC</span></div></div>
+        <span class="price-icon" aria-hidden="true">F</span>
+      </div>
+      <div class="details" id="giftDetails"></div>
+      <div class="actions">
+        <button type="button" class="button" id="shareGift">Поделиться подарком</button>
+        <button type="button" class="button secondary" id="copyGiftLink">Скопировать ссылку</button>
+      </div>
+    </section>
+  </main>
+  <main class="card state" id="giftState">
+    <div><div class="state-mark">F</div><h1 id="stateTitle">Загружаем подарок…</h1><p id="stateMessage">Проверяем информацию в FernieID.</p><a class="button secondary" href="/">На главную</a></div>
+  </main>
+  <footer class="footer">Цифровые подарки FernieID · UDG</footer>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script id="udgGiftPayload" type="application/json">__UDG_GIFT_PAYLOAD__</script>
+<script>
+const $ = id => document.getElementById(id);
+let payload = null;
+try{ payload = JSON.parse($('udgGiftPayload').textContent || '{}'); } catch{}
+let toastTimer;
+
+function showToast(message){
+  const toast = $('toast');
+  toast.textContent = message;
+  toast.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2200);
+}
+
+function formatAmount(value){
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount.toLocaleString('ru-RU') : '—';
+}
+
+function renderGift(gift){
+  if(!gift){
+    $('stateTitle').textContent = payload.error === 'not_found' ? 'Подарок не найден' : 'Подарок временно недоступен';
+    $('stateMessage').textContent = payload.error === 'not_found'
+      ? 'Ссылка может быть неверной или подарок больше не существует.'
+      : 'Не удалось получить данные подарка. Попробуйте открыть ссылку позже.';
+    return;
+  }
+  $('giftState').hidden = true;
+  $('giftView').hidden = false;
+  $('giftCollection').textContent = gift.collection_name || 'UDG · ЦИФРОВОЙ ПОДАРОК';
+  $('giftName').textContent = gift.model_name || gift.gift_id || 'Подарок UDG';
+  document.title = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · подарок UDG | FernieID`;
+  document.querySelector('meta[name="description"]').content = `${gift.model_name || gift.gift_id || 'Подарок UDG'} · цифровой подарок FernieID`;
+  document.querySelector('link[rel="canonical"]').href = location.href;
+  $('giftSubtitle').textContent = gift.owner_username
+    ? `Коллекционный подарок FernieID · владелец ${gift.owner_username}`
+    : 'Коллекционный подарок FernieID с уникальным UID.';
+  $('giftStatus').textContent = gift.listed ? 'На рынке' : 'У владельца';
+  $('giftStatus').classList.toggle('held', !gift.listed);
+  $('priceLabel').textContent = gift.listed ? 'Цена объявления' : 'Рыночный ориентир';
+  $('giftPrice').textContent = formatAmount(gift.listed ? gift.listing_price ?? gift.price : gift.market_price ?? gift.price);
+  $('giftFallback').textContent = (gift.model_name || gift.gift_id || 'G').trim().charAt(0).toUpperCase() || 'G';
+  try{
+    const backgroundUrl = new URL(gift.background_url);
+    if(['http:', 'https:'].includes(backgroundUrl.protocol)) $('giftArt').style.setProperty('--gift-bg', `url("${backgroundUrl.href}")`);
+  } catch{}
+  if(gift.image_url){
+    try{
+      const imageUrl = new URL(gift.image_url);
+      if(['http:', 'https:'].includes(imageUrl.protocol)){
+        const image = document.createElement('img');
+        image.src = imageUrl.href;
+        image.alt = gift.model_name || gift.gift_id || 'Подарок UDG';
+        image.addEventListener('error', () => { image.remove(); $('giftFallback').hidden = false; }, { once:true });
+        $('giftArt').appendChild(image);
+        $('giftFallback').hidden = true;
+      }
+    } catch{}
+  }
+  const details = [
+    ['Коллекция', gift.collection_name || 'UDG'],
+    ['Модель', gift.model_name || gift.gift_id || '—'],
+    ['Фон', gift.background_name || gift.background_id || '—'],
+    gift.symbol_name ? ['Символ', gift.symbol_name] : null,
+    gift.owner_username ? ['Владелец', gift.owner_username] : null,
+    ['UID подарка', gift.uid]
+  ].filter(Boolean);
+  $('giftDetails').replaceChildren(...details.map(([label, value], index) => {
+    const row = document.createElement('div');
+    row.className = 'detail-row';
+    const name = document.createElement('span');
+    name.className = 'detail-label';
+    name.textContent = label;
+    const content = document.createElement('span');
+    content.className = `detail-value${index === details.length - 1 ? ' uid' : ''}`;
+    content.textContent = value;
+    row.append(name, content);
+    return row;
+  }));
+}
+
+async function copyGiftLink(){
+  try{
+    await navigator.clipboard.writeText(location.href);
+    showToast('Ссылка на подарок скопирована');
+  } catch{
+    const field = document.createElement('textarea');
+    field.value = location.href;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    const copied = document.execCommand('copy');
+    field.remove();
+    showToast(copied ? 'Ссылка на подарок скопирована' : 'Не удалось скопировать ссылку');
+  }
+}
+
+$('copyGiftLink').addEventListener('click', copyGiftLink);
+$('shareGift').addEventListener('click', async () => {
+  const gift = payload.gift;
+  if(!gift) return;
+  const title = gift.model_name || gift.gift_id || 'Подарок UDG';
+  try{
+    if(navigator.share){
+      await navigator.share({ title, text:`${title} · ${formatAmount(gift.listed ? gift.listing_price ?? gift.price : gift.market_price ?? gift.price)} FC`, url:location.href });
+    } else {
+      await copyGiftLink();
+    }
+  } catch{}
+});
+
+async function loadGift(){
+  if(payload?.gift || payload?.error){
+    renderGift(payload.gift || null);
+    return;
+  }
+  const pathUid = location.pathname.match(/\/udggift\/([a-f\d]{32})\/?$/i)?.[1];
+  const uid = pathUid || new URLSearchParams(location.search).get('uid');
+  if(!uid){
+    payload = { gift:null, error:'not_found' };
+    renderGift(null);
+    return;
+  }
+  try{
+    const origin = location.protocol === 'file:' ? 'https://ferniex-id.vercel.app' : location.origin;
+    const response = await fetch(`${origin}/api/udg/gift/${encodeURIComponent(uid)}`);
+    const data = await response.json();
+    payload = response.ok && data.success
+      ? { gift:data.gift, error:null }
+      : { gift:null, error:response.status === 404 ? 'not_found' : 'unavailable' };
+  } catch{
+    payload = { gift:null, error:'unavailable' };
+  }
+  renderGift(payload.gift || null);
+}
+
+loadGift();
+</script>
+</body>
+</html>
