@@ -408,6 +408,18 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-exchange-meta .down{color:var(--danger);}
 .udg-exchange-actions{display:flex;gap:.65rem;flex-wrap:wrap;margin-top:1rem;}
 .udg-exchange-actions .btn{min-width:130px;}
+.btn-exchange-buy{background:linear-gradient(135deg,#138c58,#29bd78);color:#fff;box-shadow:0 9px 20px -13px rgba(18,145,88,.8);}
+.btn-exchange-buy:hover{filter:brightness(1.06);}
+.btn-exchange-sell{background:linear-gradient(135deg,#d83e50,#f06470);color:#fff;box-shadow:0 9px 20px -13px rgba(220,65,82,.75);}
+.btn-exchange-sell:hover{filter:brightness(1.06);}
+.exchange-trade-input-wrap{position:relative;margin-top:.1rem;}
+.exchange-trade-input{height:58px;padding:0 64px 0 16px;border-radius:15px;background:color-mix(in srgb,var(--field) 88%,var(--card));font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:.02em;transition:border-color .18s,box-shadow .18s,background .18s;}
+.exchange-trade-input:focus{border-color:color-mix(in srgb,var(--ink) 42%,var(--field-border));background:var(--card);box-shadow:0 0 0 4px color-mix(in srgb,var(--ink) 10%,transparent);}
+.exchange-trade-input::-webkit-inner-spin-button,.exchange-trade-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+.exchange-trade-input{-moz-appearance:textfield;appearance:textfield;}
+.exchange-trade-unit{position:absolute;top:50%;right:12px;transform:translateY(-50%);padding:.38rem .58rem;border:1px solid var(--field-border);border-radius:9px;background:var(--card);color:var(--muted);font-size:.72rem;font-weight:800;pointer-events:none;}
+.exchange-trade-preview{margin-top:.8rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:14px;background:var(--field);color:var(--muted);font-size:.84rem;line-height:1.7;}
+.exchange-trade-preview b{color:var(--ink);font-weight:800;}
 .udg-exchange-fee{margin-top:.65rem;color:var(--muted);font-size:.76rem;}
 .udg-chart-panel{margin-top:1.25rem;border:1px solid var(--field-border);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 92%,transparent),color-mix(in srgb,var(--field) 82%,transparent));overflow:hidden;}
 .udg-chart{height:300px;padding:.65rem .1rem .2rem;}
@@ -1042,8 +1054,8 @@ html,body{touch-action:manipulation;}
               <div class="udg-exchange-meta" id="udgExchangeMeta">Синхронизация данных…</div>
               <div class="udg-exchange-actions">
                 <button type="button" class="btn btn-outline" id="udgExchangeRefresh">↻ Обновить курс</button>
-                <button type="button" class="btn btn-dark" id="udgExchangeBuy">Купить FC</button>
-                <button type="button" class="btn btn-outline" id="udgExchangeSell">Продать FC</button>
+                <button type="button" class="btn btn-exchange-buy" id="udgExchangeBuy">Купить FC</button>
+                <button type="button" class="btn btn-exchange-sell" id="udgExchangeSell">Продать FC</button>
               </div>
               <div class="udg-exchange-fee" id="udgExchangeVersion">Комиссия биржи: 2,5% · версия курса —</div>
 
@@ -1744,14 +1756,17 @@ function openExchangeTrade(side){
   }
   const title = side === 'buy' ? 'Купить FernieCoins' : 'Продать FernieCoins';
   openModal(`
-    <div class="modal-title">${title}</div>
+    <div class="modal-title" style="color:${side === 'buy' ? '#15945d' : '#d94352'};">${title}</div>
     <div style="color:var(--muted);font-size:.84rem;line-height:1.55;margin-bottom:1rem;">Курс: 1 FC = ${Number(exchangeMarketData.rate).toLocaleString('ru-RU')} ферников · комиссия ${String(exchangeMarketData.fee_percent).replace('.', ',')}%</div>
     <label class="field-label" for="exchangeTradeAmount">Количество FC</label>
-    <input class="input" id="exchangeTradeAmount" type="number" min="1" max="1000000000" step="1" value="1" inputmode="numeric">
+    <div class="exchange-trade-input-wrap">
+      <input class="field-input exchange-trade-input" id="exchangeTradeAmount" type="number" min="1" max="1000000000" step="1" value="1" inputmode="numeric">
+      <span class="exchange-trade-unit">FC</span>
+    </div>
     <div class="exchange-trade-preview" id="exchangeTradePreview"></div>
     <div class="modal-actions">
       <button type="button" class="btn btn-outline" id="exchangeTradeCancel">Отмена</button>
-      <button type="button" class="btn btn-dark" id="exchangeTradeSubmit">${side === 'buy' ? 'Купить' : 'Продать'}</button>
+      <button type="button" class="btn ${side === 'buy' ? 'btn-exchange-buy' : 'btn-exchange-sell'}" id="exchangeTradeSubmit">${side === 'buy' ? 'Купить FC' : 'Продать FC'}</button>
     </div>`);
   $('exchangeTradeCancel').addEventListener('click', closeModal);
   $('exchangeTradeAmount').addEventListener('input', () => updateExchangeTradePreview(side));
@@ -1796,7 +1811,7 @@ async function submitExchangeTrade(side){
     loadUdgBalance();
   } catch(error){
     showToastSafe(error.message || 'Сделка не выполнена');
-    if(button){ button.disabled = false; button.textContent = side === 'buy' ? 'Купить' : 'Продать'; }
+    if(button){ button.disabled = false; button.textContent = side === 'buy' ? 'Купить FC' : 'Продать FC'; }
   }
 }
 
