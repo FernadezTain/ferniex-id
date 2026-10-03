@@ -1494,6 +1494,7 @@ document.querySelectorAll('[data-goto]').forEach(el=>{
 $('profileCardBtn').onclick = () => switchSection('profile');
 
 let activeNavSection = null;
+let hoveredNavSection = null;
 
 /* ---------- плавный "слайдер" фона для .tabs (Активные/Закрытые) ---------- */
 function positionTabSlider(tabsEl){
@@ -1598,9 +1599,18 @@ function updateNavCascade(focusSection){
 /* при наведении на любой пункт меню — временно подсвечиваем цепочку под курсором,
    при уходе курсора — возвращаем цепочку к реально открытому разделу */
 function attachNavHoverCascade(){
-  document.querySelectorAll('.sidebar .nav-block[data-section]').forEach(b => {
-    b.addEventListener('mouseenter', () => updateNavCascade(b.dataset.section));
-    b.addEventListener('mouseleave', () => updateNavCascade(activeNavSection));
+  const sidebar = document.querySelector('.sidebar');
+  if(!sidebar) return;
+  sidebar.addEventListener('pointermove', event => {
+    const navBlock = event.target.closest('.nav-block[data-section]');
+    if(!navBlock || navBlock.dataset.section === hoveredNavSection) return;
+    hoveredNavSection = navBlock.dataset.section;
+    updateNavCascade(hoveredNavSection);
+  });
+  sidebar.addEventListener('pointerleave', () => {
+    if(hoveredNavSection === null) return;
+    hoveredNavSection = null;
+    updateNavCascade(activeNavSection);
   });
 }
 attachNavHoverCascade();
