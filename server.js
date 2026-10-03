@@ -60,6 +60,7 @@ const SB_KEY    = process.env.SUPABASE_KEY;
 const SB_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || SB_KEY;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const BOT_URL   = process.env.BOT_URL || 'https://a37690-25aa.j.d-f.pw';
+const FERNIE_SERVER_KEY = process.env.FERNIE_SERVER_KEY || '';
 
 const sbHeaders = {
   apikey: SB_SERVICE_KEY,
@@ -2108,17 +2109,27 @@ app.get('/api/user-cards', async (req, res) => {
 app.get('/api/dc/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
+    if (!FERNIE_SERVER_KEY)
+      return res.status(503).json({ success: false, dc: 0, error: 'Интеграция с ботом не настроена' });
+
     const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
     const users = await userRes.json();
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, dc: 0, error: 'Telegram не привязан' });
 
-    const botRes = await fetch(`${BOT_URL}/api/dc?telegram_id=${users[0].telegram_id}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const botRes = await fetch(
+      `${BOT_URL}/api/dc?telegram_id=${encodeURIComponent(users[0].telegram_id)}`,
+      { headers: { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY }, signal: controller.signal }
+    ).finally(() => clearTimeout(timeout));
     const botData = await botRes.json();
-    res.json({ success: true, dc: Number(botData.dc ?? botData.balance ?? 0) });
+    if (!botRes.ok || !botData.success || !Number.isFinite(Number(botData.dc)))
+      return res.status(502).json({ success: false, dc: 0, error: botData.error || 'Сервис баланса бота недоступен' });
+    res.json({ success: true, dc: Number(botData.dc) });
   } catch (e) {
     console.error('dc error:', e);
-    res.json({ success: false, dc: 0, error: e.message });
+    res.status(502).json({ success: false, dc: 0, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис баланса бота недоступен' });
   }
 });
 
