@@ -378,6 +378,31 @@ body:hover::-webkit-scrollbar-thumb{
 .tabs-slider{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:100px;background:var(--ink);transition:transform .32s cubic-bezier(.65,0,.35,1), width .32s cubic-bezier(.65,0,.35,1);z-index:0;}
 .tab-btn{position:relative;z-index:1;padding:8px 16px;border-radius:100px;border:none;background:none;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:700;color:var(--muted);cursor:pointer;transition:color .2s .05s;}
 .tab-btn.active{background:none;color:var(--ink-contrast);}
+.udg-tabs{margin-bottom:1.5rem;}
+.udgtab-panel{display:none;}
+.udgtab-panel.active{display:block;animation:fadeUp .24s ease both;}
+.udgtab-panel[hidden]{display:none;}
+.udg-balance-card{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:164px;overflow:hidden;padding:1.5rem 1.7rem;border:1px solid color-mix(in srgb,var(--blob-pink) 35%,var(--line));border-radius:22px;background:linear-gradient(120deg,color-mix(in srgb,var(--blob-pink) 27%,var(--card)),color-mix(in srgb,var(--blob-sage) 34%,var(--card)));}
+.udg-balance-card::after{content:'';position:absolute;width:220px;height:220px;right:44px;top:-145px;border-radius:50%;background:color-mix(in srgb,var(--blob-pink) 34%,transparent);filter:blur(3px);}
+.udg-balance-copy,.udg-coin-mark{position:relative;z-index:1;}
+.udg-state-kicker{display:block;font-size:.65rem;font-weight:800;letter-spacing:1.4px;color:var(--muted);}
+.udg-balance-label{margin-top:.5rem;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;}
+.udg-balance-value{margin-top:.2rem;font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;}
+.udg-coin-mark{display:grid;place-items:center;width:72px;height:72px;border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:50%;background:linear-gradient(145deg,#ffe3a2,#e9a44f);box-shadow:0 12px 26px -15px rgba(135,82,20,.55);color:#fff;font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;}
+.udg-inventory-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1.8rem 0 .8rem;}
+.udg-inventory-state,.udg-workspace-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:210px;padding:1.5rem;text-align:center;border:1px dashed var(--field-border);border-radius:18px;background:color-mix(in srgb,var(--field) 62%,transparent);}
+.udg-inventory-icon,.udg-state-mark{display:grid;place-items:center;width:48px;height:48px;margin-bottom:.85rem;border:1px solid var(--field-border);border-radius:15px;background:var(--card);color:var(--muted);}
+.udg-inventory-icon .cico{transform:scale(1.4);}
+.udg-state-mark{font-family:'Syne',sans-serif;font-size:1.45rem;font-weight:800;}
+.udg-workspace-state .udg-state-kicker{margin-bottom:.55rem;}
+.udg-workspace-state .title,.udg-inventory-state .title{font-weight:800;color:var(--ink);font-size:.98rem;}
+.udg-workspace-state .desc,.udg-inventory-state .desc{max-width:380px;margin-top:.35rem;font-size:.84rem;line-height:1.55;color:var(--muted);}
+@media(max-width:480px){
+  .udg-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
+  .udg-tabs .tab-btn{padding:9px 8px;}
+  .udg-balance-card{min-height:145px;padding:1.2rem;border-radius:18px;}
+  .udg-coin-mark{width:58px;height:58px;font-size:1.5rem;}
+}
 .gstab-panel{display:none;}
 .gstab-panel.active{display:block;}
 
@@ -822,7 +847,7 @@ html,body{touch-action:manipulation;}
         <div class="nav-block" data-section="subscription"><span class="nav-ico"><i class="cico cico-spark"></i></span>Подписка<span class="nav-badge" id="subBadge">Fernie+</span></div>
         <div class="nav-block" data-section="gamestats"><span class="nav-ico"><i class="cico cico-bars"></i></span>Игровая Статистика</div>
         <div class="nav-block" data-section="social"><span class="nav-ico"><i class="cico cico-globe"></i></span>Социализация</div>
-        <div class="nav-block" data-section="collection"><span class="nav-ico"><i class="cico cico-cards"></i></span>Коллекция</div>
+        <div class="nav-block" data-section="udg"><span class="nav-ico"><i class="cico cico-cards"></i></span>UDG</div>
         <div class="nav-block" data-section="security"><span class="nav-ico"><i class="cico cico-shield"></i></span>Безопасность</div>
         <div class="nav-block" data-section="tickets"><span class="nav-ico"><i class="cico cico-mail"></i></span>Обращения</div>
         <div class="nav-block sub" data-section="mytickets"><span class="nav-ico"><i class="cico cico-list"></i></span>Мои обращения</div>
@@ -950,18 +975,63 @@ html,body{touch-action:manipulation;}
         </div>
       </div>
 
-      <!-- КОЛЛЕКЦИЯ -->
-      <div class="dash-section" id="section-collection">
-        <div class="panel">
-          <div class="panel-head"><div class="panel-title"><i class="cico cico-cards ic"></i>Коллекционные карты</div></div>
-          <div class="empty-box" style="padding:2.4rem 1rem 2rem;">
-            <div class="emoji-ico"><i class="cico cico-cards"></i></div>
-            <div class="title">Коллекционные карты</div>
-            <div class="desc" style="margin-bottom:1.5rem;">Все твои карты, редкости и обмены теперь живут в отдельном разделе — там удобнее их листать и собирать коллекцию.</div>
-            <a class="link-cta" href="https://www.ferniex.ru/CollectionCard.html" target="_blank" rel="noopener noreferrer">
-              Открыть коллекцию карт
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
-            </a>
+      <!-- UDG -->
+      <div class="dash-section" id="section-udg">
+        <div class="panel udg-panel">
+          <div class="panel-head udg-heading">
+            <div>
+              <div class="panel-title"><i class="cico cico-cards ic"></i>UDG</div>
+              <div class="panel-sub">Биржа, рынок и твои цифровые подарки</div>
+            </div>
+            <span class="pill">Новый раздел</span>
+          </div>
+          <div class="tabs udg-tabs" role="tablist" aria-label="Разделы UDG">
+            <div class="tabs-slider"></div>
+            <button type="button" class="tab-btn" data-udgtab="exchange" role="tab" aria-selected="false">Биржа</button>
+            <button type="button" class="tab-btn" data-udgtab="market" role="tab" aria-selected="false">Рынок</button>
+            <button type="button" class="tab-btn active" data-udgtab="my" role="tab" aria-selected="true">Моё</button>
+          </div>
+
+          <div class="udgtab-panel" data-udgtab-panel="exchange" role="tabpanel" hidden>
+            <div class="udg-workspace-state">
+              <div class="udg-state-mark">↗</div>
+              <span class="udg-state-kicker">UDG · БИРЖА</span>
+              <div class="title">Биржа в разработке</div>
+              <div class="desc">Здесь появится обмен и управление цифровыми активами.</div>
+            </div>
+          </div>
+
+          <div class="udgtab-panel" data-udgtab-panel="market" role="tabpanel" hidden>
+            <div class="udg-workspace-state">
+              <div class="udg-state-mark">⌕</div>
+              <span class="udg-state-kicker">UDG · РЫНОК</span>
+              <div class="title">Рынок в разработке</div>
+              <div class="desc">Покупка и продажа UDG-подарков появятся здесь позже.</div>
+            </div>
+          </div>
+
+          <div class="udgtab-panel active" data-udgtab-panel="my" role="tabpanel">
+            <div class="udg-balance-card">
+              <div class="udg-balance-copy">
+                <span class="udg-state-kicker">ТВОЙ БАЛАНС</span>
+                <div class="udg-balance-label">FernieCoins</div>
+                <div class="udg-balance-value" id="udgBalanceValue" aria-live="polite">Загрузка…</div>
+              </div>
+              <div class="udg-coin-mark" aria-hidden="true">F</div>
+            </div>
+
+            <div class="udg-inventory-head">
+              <div>
+                <div class="panel-title" style="font-size:1rem;"><i class="cico cico-cards ic"></i>Инвентарь</div>
+                <div class="panel-sub">Твои UDG-подарки</div>
+              </div>
+              <span class="pill">Скоро</span>
+            </div>
+            <div class="udg-inventory-state">
+              <div class="udg-inventory-icon"><i class="cico cico-cards"></i></div>
+              <div class="title">Инвентарь в разработке</div>
+              <div class="desc">Скоро здесь появятся твои UDG-подарки.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1453,6 +1523,24 @@ document.querySelectorAll('#section-gamestats .tab-btn').forEach(btn => {
   });
 });
 
+/* ---------- переключатель UDG: Биржа / Рынок / Моё ---------- */
+document.querySelectorAll('#section-udg .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#section-udg .tab-btn').forEach(tab => {
+      const active = tab === btn;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('#section-udg .udgtab-panel').forEach(panel => {
+      const active = panel.dataset.udgtabPanel === btn.dataset.udgtab;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+    if(btn.dataset.udgtab === 'my') loadUdgBalance();
+    requestAnimationFrame(() => positionTabSlider(btn.closest('.tabs')));
+  });
+});
+
 /* ---------- переключатель СОЦИАЛИЗАЦИЯ: Главная / Общение / Мой профиль ---------- */
 document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1712,6 +1800,7 @@ function showToastSafe(msg){
 const loaded = {};
 async function loadSectionData(name){
   if(!currentUser) return;
+  if(name === 'udg') return loadUdgBalance();
   if(name === 'subscription') return loadSubscription();
   if(name === 'social') return loadSocial();
   if(name === 'security') return loadSecurity();
@@ -1722,6 +1811,22 @@ async function loadSectionData(name){
   if(name === 'admin' && currentUser.role === 'admin') return loadAdmin();
   if(name === 'admintickets' && currentUser.role === 'admin') return loadAdminTicketsList();
   if(name === 'adminapplies' && currentUser.role === 'admin') return loadAdminAppliesList();
+}
+
+async function loadUdgBalance(){
+  const balanceEl = $('udgBalanceValue');
+  if(!balanceEl || !currentUser) return;
+  balanceEl.textContent = 'Загрузка…';
+  try{
+    const res = await fetch(`${API}/api/dc/${encodeURIComponent(currentUser.id)}`);
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить баланс');
+    const balance = Number(data.dc);
+    if(!Number.isFinite(balance)) throw new Error('Сервер вернул некорректный баланс');
+    balanceEl.textContent = `${balance.toLocaleString('ru-RU')} FC`;
+  } catch(error){
+    balanceEl.textContent = error.message === 'Telegram не привязан' ? 'Привяжите Telegram' : 'Баланс недоступен';
+  }
 }
 
 /* ═══════════════ ПОДПИСКИ: красивые карточки Fernie+ / Fernie+ Pro ═══════════════ */
@@ -2769,26 +2874,6 @@ async function publishPost(){
   }
 }
 $('feedAddBtn').addEventListener('click', openCreatePostModal);
-
-async function loadInventory(){
-  if(loaded.collection) return; loaded.collection = true;
-  try{
-    const res = await fetch(`${API}/api/inventory/${currentUser.id}`);
-    const data = await res.json();
-    const items = data.items || [];
-    if(!items.length){
-      $('invBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('cards')}</div><div class="title">Коллекция пуста</div><div class="desc">Открывай кейсы и получай предметы — они появятся здесь.</div></div>`;
-      return;
-    }
-    $('invBody').innerHTML = `<div class="grid2">` + items.map(it => `
-      <div class="item-card">
-        <div class="item-ico">${icon('cards')}</div>
-        <div><div class="game-name">${escapeHtml(it.name || it.item_name || 'Предмет')}</div></div>
-      </div>`).join('') + `</div>`;
-  } catch(e){
-    $('invBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div></div>`;
-  }
-}
 
 async function loadSecurity(){
   const linked = currentUser.telegramLinked;
