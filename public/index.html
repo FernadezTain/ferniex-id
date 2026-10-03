@@ -406,12 +406,29 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-exchange-meta{margin-top:.4rem;color:var(--muted);font-size:.95rem;}
 .udg-exchange-meta .up{color:var(--success);}
 .udg-exchange-meta .down{color:var(--danger);}
+.udg-exchange-actions{display:flex;gap:.65rem;flex-wrap:wrap;margin-top:1rem;}
+.udg-exchange-actions .btn{min-width:130px;}
+.udg-exchange-fee{margin-top:.65rem;color:var(--muted);font-size:.76rem;}
 .udg-chart-panel{margin-top:1.25rem;border:1px solid var(--field-border);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 92%,transparent),color-mix(in srgb,var(--field) 82%,transparent));overflow:hidden;}
-.udg-chart{height:280px;padding:.75rem .1rem .2rem;}
+.udg-chart{height:300px;padding:.65rem .1rem .2rem;}
 .udg-chart svg{display:block;width:100%;height:100%;}
 .udg-chart-grid line{stroke:color-mix(in srgb,var(--line) 90%,transparent);stroke-width:1;}
-.udg-chart-fill{fill:url(#udgChartFill);opacity:.24;}
-.udg-chart-line{fill:none;stroke:var(--danger);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
+.udg-chart-label{fill:var(--muted);font:10px Inter,sans-serif;}
+.udg-chart-current{stroke:var(--muted);stroke-width:1;stroke-dasharray:4 5;opacity:.6;}
+.udg-candle-wick{stroke:currentColor;stroke-width:1.7;stroke-dasharray:1;stroke-dashoffset:1;animation:udgCandleReveal .32s ease-out var(--delay) both;}
+.udg-candle-body{fill:currentColor;opacity:0;transform-box:fill-box;transform-origin:center bottom;animation:udgCandleBody .3s cubic-bezier(.2,.8,.2,1) var(--delay) both;}
+.udg-candle.up{color:#42bd76;}
+.udg-candle.down{color:#ef5264;}
+.udg-chart-line{fill:none;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:udgLineReveal 1.1s ease-out .12s forwards;}
+.udg-chart-fill{fill:url(#udgChartFill);opacity:0;animation:udgAreaReveal .45s ease-out .15s forwards;}
+.udg-chart-price-bg{fill:var(--card);stroke:var(--field-border);}
+.udg-chart-price{fill:var(--ink);font:700 11px Inter,sans-serif;}
+.udg-chart-axis{fill:var(--muted);font:10px Inter,sans-serif;}
+@keyframes udgCandleReveal{from{stroke-dashoffset:1;}to{stroke-dashoffset:0;}}
+@keyframes udgCandleBody{from{opacity:0;transform:scaleY(.08);}to{opacity:1;transform:scaleY(1);}}
+@keyframes udgLineReveal{to{stroke-dashoffset:0;}}
+@keyframes udgAreaReveal{to{opacity:.17;}}
+@media(prefers-reduced-motion:reduce){.udg-candle-wick,.udg-candle-body,.udg-chart-line,.udg-chart-fill{animation-duration:.01ms;animation-delay:0ms;}}
 .udg-exchange-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.78rem;letter-spacing:.02em;}
 @media(max-width:480px){
   .udg-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
@@ -1015,7 +1032,7 @@ html,body{touch-action:manipulation;}
                   <div class="udg-state-mark">◆</div>
                   <div>
                     <span class="udg-state-kicker">UDG · БИРЖА</span>
-                    <div class="udg-exchange-name">Gram (бывш. Toncoin)</div>
+                    <div class="udg-exchange-name">FernieCoins · FC</div>
                   </div>
                 </div>
                 <span class="udg-exchange-pill" id="udgExchangePill">…</span>
@@ -1023,6 +1040,12 @@ html,body{touch-action:manipulation;}
 
               <div class="udg-exchange-price" id="udgExchangePrice">Загрузка…</div>
               <div class="udg-exchange-meta" id="udgExchangeMeta">Синхронизация данных…</div>
+              <div class="udg-exchange-actions">
+                <button type="button" class="btn btn-outline" id="udgExchangeRefresh">↻ Обновить курс</button>
+                <button type="button" class="btn btn-dark" id="udgExchangeBuy">Купить FC</button>
+                <button type="button" class="btn btn-outline" id="udgExchangeSell">Продать FC</button>
+              </div>
+              <div class="udg-exchange-fee" id="udgExchangeVersion">Комиссия биржи: 2,5% · версия курса —</div>
 
               <div class="udg-chart-panel">
                 <div class="udg-chart" id="udgExchangeChart" aria-label="График биржи"></div>
@@ -1287,6 +1310,7 @@ const $ = id => document.getElementById(id);
 const STORE_KEY = 'fid_session';
 
 let currentUser = null; // {id, username, role, telegramLinked, telegram_id, avatar_url, banner_url, theme}
+let exchangeMarketData = null;
 
 /* ---------- цветовые темы интерфейса ---------- */
 const THEME_STORE_KEY = 'fid_theme';
@@ -1608,88 +1632,181 @@ function switchSection(name){
   window.scrollTo(0, 0);
 }
 
-async function loadExchangeMarket(){
-  const chartEl = document.getElementById('udgExchangeChart');
-  const priceEl = document.getElementById('udgExchangePrice');
-  const metaEl = document.getElementById('udgExchangeMeta');
-  const pillEl = document.getElementById('udgExchangePill');
-  const lowEl = document.getElementById('udgExchangeLow');
-  const highEl = document.getElementById('udgExchangeHigh');
-  const volumeEl = document.getElementById('udgExchangeVolume');
-  if(!chartEl || !priceEl || !metaEl) return;
-
+async function loadExchangeMarket(refresh = false){
+  const chartEl = $('udgExchangeChart');
+  const refreshButton = $('udgExchangeRefresh');
+  if(!chartEl) return;
   try{
-    priceEl.textContent = 'Загрузка…';
-    metaEl.textContent = 'Синхронизация данных…';
-    const res = await fetch(`${API}/api/exchange/summary`);
+    if(refreshButton && refresh){ refreshButton.disabled = true; refreshButton.textContent = 'Проверяю…'; }
+    const res = await fetch(`${API}${refresh ? '/api/exchange/refresh' : '/api/exchange/summary'}`, refresh ? {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'
+    } : {});
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Биржа недоступна');
+    if(exchangeMarketData && Number(exchangeMarketData.version) === Number(data.version)) return;
 
+    exchangeMarketData = data;
     const candles = Array.isArray(data.candles) ? data.candles : [];
-    const price = Number(data.price ?? candles.at(-1)?.close ?? 0);
+    const price = Number(data.rate ?? 0);
     const delta = Number(data.day_change ?? 0);
     const pct = Number(data.change_percent ?? 0);
-    const label = delta >= 0 ? 'up' : 'down';
-    const sign = delta >= 0 ? '+' : '';
-    priceEl.textContent = `${price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
-    metaEl.innerHTML = `<span class="${label}">${sign}${pct.toFixed(2)}%</span> · ${sign}${delta.toFixed(2)} ₽ · сегодня`;
-    pillEl.textContent = `${sign}${pct.toFixed(2)}%`;
-    pillEl.style.color = delta >= 0 ? 'var(--success)' : 'var(--danger)';
-    pillEl.style.borderColor = delta >= 0 ? 'color-mix(in srgb,var(--sage) 45%,var(--line))' : 'color-mix(in srgb,var(--danger) 35%,var(--line))';
-    pillEl.style.background = delta >= 0 ? 'color-mix(in srgb,var(--sage) 20%,var(--card))' : 'color-mix(in srgb,var(--danger) 14%,var(--card))';
-    lowEl.textContent = `min ${Number(data.low ?? 0).toFixed(2)}`;
-    highEl.textContent = `max ${Number(data.high ?? 0).toFixed(2)}`;
-    volumeEl.textContent = `vol ${(Number(data.volume ?? 0) / 1000000).toFixed(2)}M`;
+    const rising = delta >= 0;
+    const sign = rising ? '+' : '';
+    const changeClass = rising ? 'up' : 'down';
+    const priceText = price.toLocaleString('ru-RU');
 
-    if(!candles.length) {
-      chartEl.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);">Нет данных по графику</div>';
+    $('udgExchangePrice').textContent = `${priceText} ферников за 1 FC`;
+    $('udgExchangeMeta').innerHTML = `<span class="${changeClass}">${sign}${pct.toFixed(2)}%</span> · ${sign}${delta.toLocaleString('ru-RU')} ферников за период`;
+    $('udgExchangePill').textContent = `Версия #${data.version}`;
+    $('udgExchangePill').style.color = rising ? 'var(--success)' : 'var(--danger)';
+    $('udgExchangeLow').textContent = `min ${Number(data.low).toLocaleString('ru-RU')} ¤`;
+    $('udgExchangeHigh').textContent = `max ${Number(data.high).toLocaleString('ru-RU')} ¤`;
+    $('udgExchangeVolume').textContent = `Объём ${Number(data.volume).toLocaleString('ru-RU')} FC · ${Number(data.history_hours || 0)}/24 ч`;
+    $('udgExchangeVersion').textContent = `Автообновление каждые 5 минут · комиссия ${String(data.fee_percent).replace('.', ',')}% · курс #${data.version}`;
+
+    if(!candles.length){
+      chartEl.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);">Нет данных графика</div>';
       return;
     }
 
-    const values = candles.map(item => Number(item.close));
-    const min = Math.min(...values) * 0.98;
-    const max = Math.max(...values) * 1.02;
-    const width = 760;
-    const height = 240;
-    const left = 14;
-    const right = 10;
+    const width = 900;
+    const height = 280;
+    const left = 58;
+    const right = 76;
     const top = 18;
-    const bottom = 18;
-    const innerWidth = width - left - right;
-    const innerHeight = height - top - bottom;
-
-    const linePoints = candles.map((item, index) => {
-      const x = left + (index / (candles.length - 1)) * innerWidth;
-      const y = top + ((max - Number(item.close)) / (max - min || 1)) * innerHeight;
-      return `${x},${y}`;
-    }).join(' ');
-
-    const areaPoints = `${linePoints} ${left + innerWidth},${height - bottom} ${left},${height - bottom}`;
-    const grid = Array.from({ length: 4 }, (_, idx) => {
-      const y = top + (idx / 3) * innerHeight;
-      return `<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" />`;
+    const bottom = 34;
+    const plotWidth = width - left - right;
+    const plotHeight = height - top - bottom;
+    const min = Math.min(...candles.map(item => Number(item.low)));
+    const max = Math.max(...candles.map(item => Number(item.high)));
+    const padding = Math.max((max - min) * 0.12, 8);
+    const floor = min - padding;
+    const ceiling = max + padding;
+    const range = ceiling - floor;
+    const y = value => top + ((ceiling - Number(value)) / range) * plotHeight;
+    const step = plotWidth / candles.length;
+    const bodyWidth = Math.min(18, step * 0.54);
+    const linePoints = candles.map((item, index) => `${left + step * (index + 0.5)},${y(item.close)}`).join(' ');
+    const areaPoints = `${linePoints} ${left + plotWidth},${height - bottom} ${left},${height - bottom}`;
+    const grid = Array.from({ length: 5 }, (_, index) => {
+      const value = ceiling - (range * index / 4);
+      const gridY = top + plotHeight * index / 4;
+      return `<g><line x1="${left}" y1="${gridY}" x2="${left + plotWidth}" y2="${gridY}" /><text class="udg-chart-label" x="${left - 9}" y="${gridY + 3}" text-anchor="end">${Math.round(value).toLocaleString('ru-RU')}</text></g>`;
     }).join('');
+    const candlesSvg = candles.map((item, index) => {
+      const x = left + step * (index + 0.5);
+      const openY = y(item.open);
+      const closeY = y(item.close);
+      const highY = y(item.high);
+      const lowY = y(item.low);
+      const bodyY = Math.min(openY, closeY);
+      const bodyHeight = Math.max(Math.abs(closeY - openY), 2);
+      const candleClass = Number(item.close) >= Number(item.open) ? 'up' : 'down';
+      const timeLabel = new Date(Number(item.time) * 1000).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      const tooltip = `${timeLabel} · O ${item.open} · H ${item.high} · L ${item.low} · C ${item.close}`;
+      return `<g class="udg-candle ${candleClass}" style="--delay:${Math.min(index * 28, 650)}ms"><title>${tooltip}</title><line class="udg-candle-wick" pathLength="1" x1="${x}" y1="${highY}" x2="${x}" y2="${lowY}" /><rect class="udg-candle-body" x="${x - bodyWidth / 2}" y="${bodyY}" width="${bodyWidth}" height="${bodyHeight}" rx="2" /></g>`;
+    }).join('');
+    const currentY = y(price);
+    const firstTime = new Date(Number(candles[0].time) * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+    const lastTime = new Date(Number(candles[candles.length - 1].time) * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+    const color = rising ? '#42bd76' : '#ef5264';
 
     chartEl.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Диаграмма курса Gram">
-        <defs>
-          <linearGradient id="udgChartFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stop-color="var(--danger)" stop-opacity="0.55" />
-            <stop offset="100%" stop-color="var(--danger)" stop-opacity="0.05" />
-          </linearGradient>
-        </defs>
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Почасовой график FernieCoins за последние 24 часа">
+        <defs><linearGradient id="udgChartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.32" /><stop offset="100%" stop-color="${color}" stop-opacity="0.02" /></linearGradient></defs>
         <g class="udg-chart-grid">${grid}</g>
         <polygon class="udg-chart-fill" points="${areaPoints}" />
-        <polyline class="udg-chart-line" points="${linePoints}" />
-      </svg>
-    `;
+        <polyline class="udg-chart-line" pathLength="1" points="${linePoints}" style="stroke:${color}" />
+        <line class="udg-chart-current" x1="${left}" y1="${currentY}" x2="${left + plotWidth}" y2="${currentY}" />
+        <g>${candlesSvg}</g>
+        <rect class="udg-chart-price-bg" x="${left + plotWidth + 7}" y="${currentY - 11}" width="64" height="22" rx="11" />
+        <text class="udg-chart-price" x="${left + plotWidth + 39}" y="${currentY + 4}" text-anchor="middle">${price.toLocaleString('ru-RU')}</text>
+        <text class="udg-chart-axis" x="${left}" y="${height - 9}" text-anchor="start">${firstTime}</text>
+        <text class="udg-chart-axis" x="${left + plotWidth}" y="${height - 9}" text-anchor="end">${lastTime}</text>
+      </svg>`;
   } catch(error){
-    priceEl.textContent = 'Биржа недоступна';
-    metaEl.textContent = error.message || 'Ошибка загрузки';
-    pillEl.textContent = '—';
+    $('udgExchangePrice').textContent = 'Биржа недоступна';
+    $('udgExchangeMeta').textContent = error.message || 'Ошибка загрузки';
     chartEl.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);">Данные недоступны</div>';
+  } finally {
+    if(refreshButton){ refreshButton.disabled = false; refreshButton.textContent = '↻ Обновить курс'; }
   }
 }
+
+function openExchangeTrade(side){
+  if(!currentUser?.telegramLinked){
+    showToastSafe('Для торговли сначала привяжите Telegram');
+    return;
+  }
+  if(!exchangeMarketData){
+    showToastSafe('Сначала загрузите актуальный курс');
+    return;
+  }
+  const title = side === 'buy' ? 'Купить FernieCoins' : 'Продать FernieCoins';
+  openModal(`
+    <div class="modal-title">${title}</div>
+    <div style="color:var(--muted);font-size:.84rem;line-height:1.55;margin-bottom:1rem;">Курс: 1 FC = ${Number(exchangeMarketData.rate).toLocaleString('ru-RU')} ферников · комиссия ${String(exchangeMarketData.fee_percent).replace('.', ',')}%</div>
+    <label class="field-label" for="exchangeTradeAmount">Количество FC</label>
+    <input class="input" id="exchangeTradeAmount" type="number" min="1" max="1000000000" step="1" value="1" inputmode="numeric">
+    <div class="exchange-trade-preview" id="exchangeTradePreview"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" id="exchangeTradeCancel">Отмена</button>
+      <button type="button" class="btn btn-dark" id="exchangeTradeSubmit">${side === 'buy' ? 'Купить' : 'Продать'}</button>
+    </div>`);
+  $('exchangeTradeCancel').addEventListener('click', closeModal);
+  $('exchangeTradeAmount').addEventListener('input', () => updateExchangeTradePreview(side));
+  $('exchangeTradeSubmit').addEventListener('click', () => submitExchangeTrade(side));
+  updateExchangeTradePreview(side);
+}
+
+function updateExchangeTradePreview(side){
+  const input = $('exchangeTradeAmount');
+  const preview = $('exchangeTradePreview');
+  if(!input || !preview || !exchangeMarketData) return;
+  const amount = Number(input.value);
+  if(!Number.isSafeInteger(amount) || amount <= 0){
+    preview.textContent = 'Введите целое количество FC больше нуля.';
+    return;
+  }
+  const gross = amount * Number(exchangeMarketData.rate);
+  const fee = Math.ceil(gross * Number(exchangeMarketData.fee_percent) / 100);
+  const total = side === 'buy' ? gross + fee : gross - fee;
+  preview.innerHTML = `Комиссия: <b>${fee.toLocaleString('ru-RU')} ферников</b><br>${side === 'buy' ? 'К оплате' : 'К получению'}: <b>${total.toLocaleString('ru-RU')} ферников</b>`;
+}
+
+async function submitExchangeTrade(side){
+  const amount = Number($('exchangeTradeAmount')?.value);
+  const button = $('exchangeTradeSubmit');
+  if(!Number.isSafeInteger(amount) || amount <= 0 || amount > 1_000_000_000){
+    showToastSafe('Введите целое количество FC от 1 до 1 000 000 000');
+    return;
+  }
+  button.disabled = true;
+  button.textContent = 'Обработка…';
+  try{
+    const res = await fetch(`${API}/api/exchange/trade`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({userId:currentUser.id,side,amount})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Сделка не выполнена');
+    closeModal();
+    showToastSafe(`${side === 'buy' ? 'Куплено' : 'Продано'} ${Number(data.amount).toLocaleString('ru-RU')} FC · комиссия ${Number(data.fee).toLocaleString('ru-RU')} ферников`);
+    loadUdgBalance();
+  } catch(error){
+    showToastSafe(error.message || 'Сделка не выполнена');
+    if(button){ button.disabled = false; button.textContent = side === 'buy' ? 'Купить' : 'Продать'; }
+  }
+}
+
+$('udgExchangeRefresh').addEventListener('click', () => loadExchangeMarket(true));
+$('udgExchangeBuy').addEventListener('click', () => openExchangeTrade('buy'));
+$('udgExchangeSell').addEventListener('click', () => openExchangeTrade('sell'));
+setInterval(() => {
+  const exchangeTabActive = document.querySelector('#section-udg .udgtab-panel.active')?.dataset.udgtabPanel === 'exchange';
+  if(activeNavSection === 'udg' && exchangeTabActive) loadExchangeMarket();
+}, 30000);
 
 /* ---------- цепочка: боковые блоки сдвигаются "стрелкой" к активному/наведённому пункту ---------- */
 function updateNavCascade(focusSection){
