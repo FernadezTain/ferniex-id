@@ -464,6 +464,16 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-my-panel.active{display:block;animation:fadeUp .2s ease both;}
 .udg-my-panel[hidden]{display:none;}
 .udg-gift-toolbar{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem;}
+.udg-market-controls{display:grid;grid-template-columns:minmax(220px,1.6fr) repeat(3,minmax(130px,1fr));gap:.65rem;margin:0 0 .8rem;}
+.udg-market-search-wrap{position:relative;min-width:0;}
+.udg-market-search-icon{position:absolute;left:13px;top:50%;width:15px;height:15px;color:var(--muted);pointer-events:none;transform:translateY(-50%);}
+.udg-market-search{height:44px;padding:0 14px 0 39px;border-radius:13px;font-size:.8rem;}
+.udg-market-select{width:100%;height:44px;padding:0 31px 0 12px;border:1px solid var(--field-border);border-radius:13px;background:var(--field);color:var(--ink);font:600 .76rem Inter,sans-serif;outline:none;}
+.udg-market-select:focus,.udg-market-search:focus{border-color:color-mix(in srgb,var(--ink) 35%,var(--field-border));box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 10%,transparent);}
+.udg-market-filter-row{display:flex;align-items:center;justify-content:space-between;gap:.65rem;margin-bottom:1rem;}
+.udg-market-count{color:var(--muted);font-size:.74rem;}
+.udg-market-clear{padding:5px 9px;border:1px solid var(--field-border);border-radius:999px;background:transparent;color:var(--muted);font:700 .68rem Inter,sans-serif;cursor:pointer;}
+.udg-market-clear:hover{background:var(--field);color:var(--ink);}
 .udg-gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.85rem;}
 .udg-gift-card{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:17px;background:var(--field);transition:transform .18s,border-color .18s,box-shadow .18s;}
 .udg-gift-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 12px 24px -18px rgba(0,0,0,.4);}
@@ -559,6 +569,9 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-tx-id{padding:.45rem .65rem;border:1px solid var(--field-border);border-radius:9px;background:var(--field);font:600 .72rem ui-monospace,monospace;color:var(--muted);user-select:all;}
 .udg-tx-close{min-width:145px;margin-top:.25rem;}
 @media(max-width:480px){
+  .udg-market-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;}
+  .udg-market-search-wrap{grid-column:1/-1;}
+  .udg-market-select,.udg-market-search{height:42px;}
   .udg-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
   .udg-tabs .tab-btn{padding:9px 8px;}
   .udg-balance-card{min-height:145px;padding:1.2rem;border-radius:18px;}
@@ -1194,6 +1207,27 @@ html,body{touch-action:manipulation;}
                 <div class="panel-sub">Подарки пользователей · цены пересчитываются каждые 12 часов</div>
               </div>
               <button type="button" class="btn btn-outline btn-sm" id="udgMarketRefresh">↻ Обновить</button>
+            </div>
+            <div class="udg-market-controls" aria-label="Поиск и фильтры подарков">
+              <div class="udg-market-search-wrap">
+                <i class="cico cico-search udg-market-search-icon" aria-hidden="true"></i>
+                <input class="field-input udg-market-search" id="udgMarketSearch" type="search" placeholder="Поиск: модель, фон, UID…" autocomplete="off" aria-label="Поиск подарков">
+              </div>
+              <select class="udg-market-select" id="udgMarketCollection" aria-label="Фильтр по коллекции"><option value="">Все коллекции</option></select>
+              <select class="udg-market-select" id="udgMarketModel" aria-label="Фильтр по модели"><option value="">Все модели</option></select>
+              <select class="udg-market-select" id="udgMarketBackground" aria-label="Фильтр по фону"><option value="">Все фоны</option></select>
+              <select class="udg-market-select" id="udgMarketSort" aria-label="Сортировка">
+                <option value="newest">Сначала новые</option>
+                <option value="price-asc">Цена: по возрастанию</option>
+                <option value="price-desc">Цена: по убыванию</option>
+                <option value="model-asc">Модель: А—Я</option>
+                <option value="collection-asc">Коллекция: А—Я</option>
+                <option value="background-asc">Фон: А—Я</option>
+              </select>
+            </div>
+            <div class="udg-market-filter-row">
+              <span class="udg-market-count" id="udgMarketCount" aria-live="polite">Загрузка объявлений…</span>
+              <button type="button" class="udg-market-clear" id="udgMarketClear" hidden>Сбросить фильтры</button>
             </div>
             <div id="udgMarketBody"><div class="loader">Загрузка рынка…</div></div>
           </div>
@@ -2356,6 +2390,81 @@ async function loadUdgBalance(){
 let udgMarketCache = [];
 let udgInventoryCache = [];
 
+function setUdgMarketFilterOptions(id, emptyLabel, values, selectedValue){
+  const select = $(id);
+  if(!select) return;
+  const options = [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+  select.innerHTML = `<option value="">${emptyLabel}</option>${options.map(value =>
+    `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`
+  ).join('')}`;
+  if(options.includes(selectedValue)) select.value = selectedValue;
+}
+
+function renderUdgMarketControls(){
+  setUdgMarketFilterOptions('udgMarketCollection', 'Все коллекции', udgMarketCache.map(item => item.collection_name || 'UDG'), $('udgMarketCollection')?.value || '');
+  setUdgMarketFilterOptions('udgMarketModel', 'Все модели', udgMarketCache.map(item => item.model_name || item.gift_id), $('udgMarketModel')?.value || '');
+  setUdgMarketFilterOptions('udgMarketBackground', 'Все фоны', udgMarketCache.map(item => item.background_name || item.background_id), $('udgMarketBackground')?.value || '');
+}
+
+function getFilteredUdgMarket(){
+  const query = ($('udgMarketSearch')?.value || '').trim().toLocaleLowerCase('ru');
+  const collection = $('udgMarketCollection')?.value || '';
+  const model = $('udgMarketModel')?.value || '';
+  const background = $('udgMarketBackground')?.value || '';
+  const sort = $('udgMarketSort')?.value || 'newest';
+  const items = udgMarketCache.filter(item => {
+    const itemCollection = item.collection_name || 'UDG';
+    const itemModel = item.model_name || item.gift_id || '';
+    const itemBackground = item.background_name || item.background_id || '';
+    const searchable = [
+      itemModel, item.gift_id, itemCollection, itemBackground, item.background_id,
+      item.symbol_name, item.uid, item.owner_username
+    ].filter(Boolean).join(' ').toLocaleLowerCase('ru');
+    return (!query || searchable.includes(query))
+      && (!collection || itemCollection === collection)
+      && (!model || itemModel === model)
+      && (!background || itemBackground === background);
+  });
+  const compareText = (left, right) => String(left || '').localeCompare(String(right || ''), 'ru', { sensitivity:'base' });
+  items.sort((left, right) => {
+    if(sort === 'price-asc') return Number(left.price) - Number(right.price);
+    if(sort === 'price-desc') return Number(right.price) - Number(left.price);
+    if(sort === 'model-asc') return compareText(left.model_name || left.gift_id, right.model_name || right.gift_id);
+    if(sort === 'collection-asc') return compareText(left.collection_name, right.collection_name);
+    if(sort === 'background-asc') return compareText(left.background_name || left.background_id, right.background_name || right.background_id);
+    return Number(right.listed_at || 0) - Number(left.listed_at || 0);
+  });
+  return items;
+}
+
+function renderFilteredUdgMarket(){
+  const results = getFilteredUdgMarket();
+  const count = $('udgMarketCount');
+  const clearButton = $('udgMarketClear');
+  if(count) count.textContent = `Показано ${results.length} из ${udgMarketCache.length} подарков`;
+  if(clearButton){
+    clearButton.hidden = !($('udgMarketSearch')?.value || $('udgMarketCollection')?.value || $('udgMarketModel')?.value || $('udgMarketBackground')?.value || $('udgMarketSort')?.value !== 'newest');
+  }
+  if(!results.length && udgMarketCache.length){
+    $('udgMarketBody').innerHTML = '<div class="empty-box"><div class="title">Ничего не найдено</div><div class="desc">Измени запрос или сбрось фильтры рынка.</div></div>';
+    return;
+  }
+  renderUdgGiftGrid(results);
+}
+
+['udgMarketCollection', 'udgMarketModel', 'udgMarketBackground', 'udgMarketSort'].forEach(id => {
+  $(id).addEventListener('change', renderFilteredUdgMarket);
+});
+$('udgMarketSearch').addEventListener('input', renderFilteredUdgMarket);
+$('udgMarketClear').addEventListener('click', () => {
+  $('udgMarketSearch').value = '';
+  $('udgMarketCollection').value = '';
+  $('udgMarketModel').value = '';
+  $('udgMarketBackground').value = '';
+  $('udgMarketSort').value = 'newest';
+  renderFilteredUdgMarket();
+});
+
 function udgGiftTitle(item){
   return item.model_name || item.gift_id || 'Подарок UDG';
 }
@@ -2416,7 +2525,8 @@ async function loadUdgMarket(showLoading = false){
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Рынок временно недоступен');
     udgMarketCache = Array.isArray(data.items) ? data.items : [];
-    renderUdgGiftGrid(udgMarketCache);
+    renderUdgMarketControls();
+    renderFilteredUdgMarket();
   } catch(error){
     container.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить рынок</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
   }
