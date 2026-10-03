@@ -442,6 +442,33 @@ body:hover::-webkit-scrollbar-thumb{
 @keyframes udgAreaReveal{to{opacity:.17;}}
 @media(prefers-reduced-motion:reduce){.udg-candle-wick,.udg-candle-body,.udg-chart-line,.udg-chart-fill{animation-duration:.01ms;animation-delay:0ms;}}
 .udg-exchange-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.78rem;letter-spacing:.02em;}
+.udg-my-tabs{display:flex;gap:.45rem;margin:1.5rem 0 1rem;padding:4px;border:1px solid var(--field-border);border-radius:999px;background:var(--field);width:fit-content;}
+.udg-my-tab{padding:.55rem .95rem;border:0;border-radius:999px;background:transparent;color:var(--muted);font:700 .78rem Inter,sans-serif;cursor:pointer;}
+.udg-my-tab.active{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(20,16,10,.08);}
+.udg-my-panel{display:none;}
+.udg-my-panel.active{display:block;animation:fadeUp .2s ease both;}
+.udg-my-panel[hidden]{display:none;}
+.udg-transaction-list{display:flex;flex-direction:column;gap:.65rem;}
+.udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);}
+.udg-transaction-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:var(--card);font-size:1rem;}
+.udg-transaction-main{flex:1;min-width:0;}
+.udg-transaction-title{font-size:.84rem;font-weight:800;color:var(--ink);}
+.udg-transaction-meta{margin-top:.22rem;color:var(--muted);font-size:.7rem;line-height:1.5;overflow-wrap:anywhere;}
+.udg-transaction-amount{font-size:.82rem;font-weight:800;text-align:right;white-space:nowrap;}
+.udg-transaction-amount.up{color:var(--green);}
+.udg-transaction-amount.down{color:var(--red);}
+.udg-transaction-status{display:inline-flex;margin-top:.25rem;padding:.15rem .45rem;border-radius:999px;font-size:.62rem;font-weight:800;}
+.udg-transaction-status.success{background:#e9f6ec;color:var(--green);}
+.udg-transaction-status.failed{background:#fbeceb;color:var(--red);}
+.udg-tx-status{min-height:270px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.65rem;}
+.udg-tx-spinner{width:44px;height:44px;border:3px solid var(--field-border);border-top-color:var(--ink);border-radius:50%;animation:spin .8s linear infinite;}
+.udg-tx-result-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:18px;font-size:1.5rem;font-weight:800;}
+.udg-tx-result-icon.success{background:#e9f6ec;color:var(--green);}
+.udg-tx-result-icon.failed{background:#fbeceb;color:var(--red);}
+.udg-tx-title{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--ink);}
+.udg-tx-copy{max-width:350px;color:var(--muted);font-size:.82rem;line-height:1.55;overflow-wrap:anywhere;}
+.udg-tx-id{padding:.45rem .65rem;border:1px solid var(--field-border);border-radius:9px;background:var(--field);font:600 .72rem ui-monospace,monospace;color:var(--muted);user-select:all;}
+.udg-tx-close{min-width:145px;margin-top:.25rem;}
 @media(max-width:480px){
   .udg-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
   .udg-tabs .tab-btn{padding:9px 8px;}
@@ -1090,17 +1117,35 @@ html,body{touch-action:manipulation;}
               <div class="udg-coin-mark" aria-hidden="true">F</div>
             </div>
 
-            <div class="udg-inventory-head">
-              <div>
-                <div class="panel-title" style="font-size:1rem;"><i class="cico cico-cards ic"></i>Инвентарь</div>
-                <div class="panel-sub">Твои UDG-подарки</div>
-              </div>
-              <span class="pill">Скоро</span>
+            <div class="udg-my-tabs" role="tablist" aria-label="Мои UDG-данные">
+              <button type="button" class="udg-my-tab active" data-udg-my-tab="inventory" aria-selected="true">Инвентарь</button>
+              <button type="button" class="udg-my-tab" data-udg-my-tab="transactions" aria-selected="false">Транзакции</button>
             </div>
-            <div class="udg-inventory-state">
-              <div class="udg-inventory-icon"><i class="cico cico-cards"></i></div>
-              <div class="title">Инвентарь в разработке</div>
-              <div class="desc">Скоро здесь появятся твои UDG-подарки.</div>
+
+            <div class="udg-my-panel active" data-udg-my-panel="inventory">
+              <div class="udg-inventory-head">
+                <div>
+                  <div class="panel-title" style="font-size:1rem;"><i class="cico cico-cards ic"></i>Инвентарь</div>
+                  <div class="panel-sub">Твои UDG-подарки</div>
+                </div>
+                <span class="pill">Скоро</span>
+              </div>
+              <div class="udg-inventory-state">
+                <div class="udg-inventory-icon"><i class="cico cico-cards"></i></div>
+                <div class="title">Инвентарь в разработке</div>
+                <div class="desc">Скоро здесь появятся твои UDG-подарки.</div>
+              </div>
+            </div>
+
+            <div class="udg-my-panel" data-udg-my-panel="transactions" hidden>
+              <div class="udg-inventory-head">
+                <div>
+                  <div class="panel-title" style="font-size:1rem;">История операций</div>
+                  <div class="panel-sub">Покупки, продажи FC и операции с подарками</div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm" id="udgTransactionsRefresh">Обновить</button>
+              </div>
+              <div id="udgTransactionsList"><div class="loader">Загрузка транзакций…</div></div>
             </div>
           </div>
         </div>
@@ -1614,6 +1659,23 @@ document.querySelectorAll('#section-udg .tab-btn').forEach(btn => {
   });
 });
 
+document.querySelectorAll('#section-udg [data-udg-my-tab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#section-udg [data-udg-my-tab]').forEach(tab => {
+      const active = tab === btn;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('#section-udg [data-udg-my-panel]').forEach(panel => {
+      const active = panel.dataset.udgMyPanel === btn.dataset.udgMyTab;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+    if(btn.dataset.udgMyTab === 'transactions') loadUdgTransactions();
+  });
+});
+$('udgTransactionsRefresh').addEventListener('click', () => loadUdgTransactions(true));
+
 /* ---------- переключатель СОЦИАЛИЗАЦИЯ: Главная / Общение / Мой профиль ---------- */
 document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1791,27 +1853,48 @@ function updateExchangeTradePreview(side){
 
 async function submitExchangeTrade(side){
   const amount = Number($('exchangeTradeAmount')?.value);
-  const button = $('exchangeTradeSubmit');
   if(!Number.isSafeInteger(amount) || amount <= 0 || amount > 1_000_000_000){
-    showToastSafe('Введите целое количество FC от 1 до 1 000 000 000');
+    const input = $('exchangeTradeAmount');
+    const preview = $('exchangeTradePreview');
+    if(preview) preview.innerHTML = '<span style="color:var(--red);font-weight:700;">Введите целое количество FC от 1 до 1 000 000 000.</span>';
+    input?.focus();
     return;
   }
-  button.disabled = true;
-  button.textContent = 'Обработка…';
+  const transactionId = createTransactionId();
+  showExchangeTransactionProgress(transactionId, side, amount);
   try{
     const res = await fetch(`${API}/api/exchange/trade`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({userId:currentUser.id,side,amount})
+      body:JSON.stringify({userId:currentUser.id,side,amount,transactionId})
     });
     const data = await res.json();
-    if(!res.ok || !data.success) throw new Error(data.error || 'Сделка не выполнена');
-    closeModal();
-    showToastSafe(`${side === 'buy' ? 'Куплено' : 'Продано'} ${Number(data.amount).toLocaleString('ru-RU')} FC · комиссия ${Number(data.fee).toLocaleString('ru-RU')} ферников`);
+    const returnedId = /^[a-f\d]{32}$/i.test(data.transaction_id || '') ? data.transaction_id : transactionId;
+    if(!res.ok || !data.success){
+      showExchangeTransactionResult(returnedId, false, data.error || 'Недостаточно средств или операция недоступна.');
+      loadUdgTransactions(true);
+      return;
+    }
+    const details = `${side === 'buy' ? 'Куплено' : 'Продано'} ${Number(data.amount).toLocaleString('ru-RU')} FC по курсу ${Number(data.rate).toLocaleString('ru-RU')} ¤. Комиссия: ${Number(data.fee).toLocaleString('ru-RU')} ферников.`;
+    showExchangeTransactionResult(returnedId, true, details);
     loadUdgBalance();
-  } catch(error){
-    showToastSafe(error.message || 'Сделка не выполнена');
-    if(button){ button.disabled = false; button.textContent = side === 'buy' ? 'Купить FC' : 'Продать FC'; }
+    loadUdgTransactions(true);
+  } catch{
+    let operation = null;
+    try{
+      const historyRes = await fetch(`${API}/api/exchange/transactions/${encodeURIComponent(currentUser.id)}`);
+      const history = await historyRes.json();
+      operation = history.transactions?.find(tx => tx.transaction_id === transactionId) || null;
+    } catch{}
+    if(operation?.status === 'success'){
+      showExchangeTransactionResult(transactionId, true, `${side === 'buy' ? 'Покупка' : 'Продажа'} ${Number(operation.fc_amount).toLocaleString('ru-RU')} FC завершена.`);
+      loadUdgBalance();
+    } else if(operation){
+      showExchangeTransactionResult(transactionId, false, operation.details || 'Операция отклонена.');
+    } else {
+      showExchangeTransactionResult(transactionId, false, 'Не удалось получить ответ сервера. Проверьте историю транзакций перед повторной попыткой.');
+    }
+    loadUdgTransactions(true);
   }
 }
 
@@ -2092,6 +2175,88 @@ async function loadUdgBalance(){
   } catch(error){
     balanceEl.textContent = error.message === 'Telegram не привязан' ? 'Привяжите Telegram' : 'Баланс недоступен';
   }
+}
+
+function renderUdgTransactions(transactions){
+  const container = $('udgTransactionsList');
+  if(!transactions.length){
+    container.innerHTML = '<div class="empty-box"><div class="title">Транзакций пока нет</div><div class="desc">Здесь появятся завершённые покупки и продажи FC, а также операции с UDG-подарками.</div></div>';
+    return;
+  }
+  const labels = {
+    buy_fc: ['Покупка FC', '💎'],
+    sell_fc: ['Продажа FC', '↗'],
+    buy_gift: ['Покупка подарка', '🎁'],
+    receive_gift: ['Получение подарка', '🎁']
+  };
+  container.innerHTML = `<div class="udg-transaction-list">${transactions.map(tx => {
+    const [label, symbol] = labels[tx.type] || ['Операция UDG', '•'];
+    const failed = tx.status !== 'success';
+    const isBuy = tx.type === 'buy_fc';
+    const isSell = tx.type === 'sell_fc';
+    const amountLabel = tx.fc_amount ? `${isBuy ? '+' : isSell ? '−' : ''}${Number(tx.fc_amount).toLocaleString('ru-RU')} FC` : escapeHtml(tx.item_name || 'Подарок');
+    const amountClass = failed ? '' : isBuy || tx.type === 'receive_gift' ? 'up' : isSell || tx.type === 'buy_gift' ? 'down' : '';
+    const date = new Date(Number(tx.created_at) * 1000).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    const details = [
+      tx.rate ? `Курс ${Number(tx.rate).toLocaleString('ru-RU')} ¤/FC` : '',
+      !failed && tx.fee ? `Комиссия ${Number(tx.fee).toLocaleString('ru-RU')} ¤` : '',
+      !failed && tx.fernik_amount ? `${isBuy ? 'Списано' : isSell ? 'Получено' : 'Стоимость'} ${Number(tx.fernik_amount + (isBuy ? tx.fee : isSell ? -tx.fee : 0)).toLocaleString('ru-RU')} ¤` : '',
+      tx.details || ''
+    ].filter(Boolean).map(escapeHtml).join(' · ');
+    return `<article class="udg-transaction">
+      <div class="udg-transaction-icon">${symbol}</div>
+      <div class="udg-transaction-main">
+        <div class="udg-transaction-title">${label}</div>
+        <div class="udg-transaction-meta">${escapeHtml(date)}${details ? `<br>${details}` : ''}<br>ID: ${escapeHtml(tx.transaction_id)}</div>
+        <span class="udg-transaction-status ${failed ? 'failed' : 'success'}">${failed ? 'Отказ' : 'Успешно'}</span>
+      </div>
+      <div class="udg-transaction-amount ${amountClass}">${amountLabel}</div>
+    </article>`;
+  }).join('')}</div>`;
+}
+
+async function loadUdgTransactions(showLoading = false){
+  const container = $('udgTransactionsList');
+  if(!container || !currentUser) return;
+  if(showLoading || !container.dataset.loaded) container.innerHTML = '<div class="loader">Загрузка транзакций…</div>';
+  try{
+    const res = await fetch(`${API}/api/exchange/transactions/${encodeURIComponent(currentUser.id)}`);
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить историю');
+    container.dataset.loaded = 'true';
+    renderUdgTransactions(Array.isArray(data.transactions) ? data.transactions : []);
+  } catch(error){
+    container.innerHTML = `<div class="empty-box"><div class="title">История недоступна</div><div class="desc">${escapeHtml(error.message || 'Ошибка загрузки')}</div></div>`;
+  }
+}
+
+function createTransactionId(){
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+}
+
+function showExchangeTransactionProgress(transactionId, side, amount){
+  openModal(`
+    <div class="udg-tx-status">
+      <div class="udg-tx-spinner" aria-hidden="true"></div>
+      <div class="udg-tx-title">Выполнение транзакции…</div>
+      <div class="udg-tx-copy">${side === 'buy' ? 'Покупка' : 'Продажа'} ${Number(amount).toLocaleString('ru-RU')} FC. Не закрывайте окно до завершения.</div>
+      <div class="udg-tx-id">ID: ${transactionId}</div>
+    </div>`);
+}
+
+function showExchangeTransactionResult(transactionId, success, message){
+  const safeId = escapeHtml(transactionId);
+  $('genericModalBox').innerHTML = `
+    <div class="udg-tx-status udg-tx-result">
+      <div class="udg-tx-result-icon ${success ? 'success' : 'failed'}">${success ? '✓' : '×'}</div>
+      <div class="udg-tx-title">${success ? 'Транзакция прошла успешно' : 'Транзакция отклонена'}</div>
+      <div class="udg-tx-copy">${escapeHtml(message)}</div>
+      <div class="udg-tx-id">ID: ${safeId}</div>
+      <button type="button" class="btn ${success ? 'btn-exchange-buy' : 'btn-exchange-sell'} udg-tx-close" id="udgTxClose">Закрыть</button>
+    </div>`;
+  $('udgTxClose').addEventListener('click', closeModal);
 }
 
 /* ═══════════════ ПОДПИСКИ: красивые карточки Fernie+ / Fernie+ Pro ═══════════════ */
