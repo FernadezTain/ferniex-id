@@ -449,7 +449,8 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-my-panel.active{display:block;animation:fadeUp .2s ease both;}
 .udg-my-panel[hidden]{display:none;}
 .udg-transaction-list{display:flex;flex-direction:column;gap:.65rem;}
-.udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);}
+.udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;}
+.udg-transaction:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 8px 18px -14px rgba(0,0,0,.35);}
 .udg-transaction-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:var(--card);font-size:1rem;}
 .udg-transaction-main{flex:1;min-width:0;}
 .udg-transaction-title{font-size:.84rem;font-weight:800;color:var(--ink);}
@@ -460,6 +461,18 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-transaction-status{display:inline-flex;margin-top:.25rem;padding:.15rem .45rem;border-radius:999px;font-size:.62rem;font-weight:800;}
 .udg-transaction-status.success{background:#e9f6ec;color:var(--green);}
 .udg-transaction-status.failed{background:#fbeceb;color:var(--red);}
+.udg-transaction-id{display:inline-flex;align-items:center;gap:.25rem;margin-top:.16rem;padding:0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:inherit;text-align:left;cursor:pointer;}
+.udg-transaction-id:hover{color:var(--ink);text-decoration:underline;}
+.udg-transaction-detail{display:flex;flex-direction:column;gap:.8rem;}
+.udg-transaction-detail-hero{display:flex;align-items:center;gap:.8rem;padding:.9rem;border:1px solid var(--field-border);border-radius:16px;background:var(--field);}
+.udg-transaction-detail-hero .udg-transaction-icon{width:46px;height:46px;flex-basis:46px;}
+.udg-transaction-detail-rows{display:flex;flex-direction:column;}
+.udg-transaction-detail-row{display:flex;justify-content:space-between;gap:1rem;padding:.7rem 0;border-bottom:1px solid var(--line);font-size:.82rem;}
+.udg-transaction-detail-row:last-child{border-bottom:0;}
+.udg-transaction-detail-label{color:var(--muted);}
+.udg-transaction-detail-value{font-weight:700;text-align:right;overflow-wrap:anywhere;}
+.udg-transaction-detail-id{display:flex;flex-direction:column;align-items:flex-start;gap:.45rem;padding:.85rem;border:1px solid var(--field-border);border-radius:14px;background:var(--field);}
+.udg-transaction-detail-id .udg-transaction-id{font-family:ui-monospace,monospace;font-size:.77rem;overflow-wrap:anywhere;}
 .udg-tx-status{min-height:270px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.65rem;}
 .udg-tx-spinner{width:44px;height:44px;border:3px solid var(--field-border);border-top-color:var(--ink);border-radius:50%;animation:spin .8s linear infinite;}
 .udg-tx-result-icon{display:grid;place-items:center;width:54px;height:54px;border-radius:18px;font-size:1.5rem;font-weight:800;}
@@ -1735,7 +1748,7 @@ async function loadExchangeMarket(refresh = false){
     $('udgExchangePill').style.color = rising ? 'var(--success)' : 'var(--danger)';
     $('udgExchangeLow').textContent = `min ${Number(data.low).toLocaleString('ru-RU')} ¤`;
     $('udgExchangeHigh').textContent = `max ${Number(data.high).toLocaleString('ru-RU')} ¤`;
-    $('udgExchangeVolume').textContent = `Объём ${Number(data.volume).toLocaleString('ru-RU')} FC · ${Number(data.history_hours || 0)}/24 ч`;
+    $('udgExchangeVolume').textContent = `Объём ${Number(data.volume).toLocaleString('ru-RU')} FC · ${Number(data.history_points || 0)}/288 обновлений`;
     $('udgExchangeVersion').textContent = `Автообновление каждые 5 минут · комиссия ${String(data.fee_percent).replace('.', ',')}% · курс #${data.version}`;
 
     if(!candles.length){
@@ -1758,9 +1771,10 @@ async function loadExchangeMarket(refresh = false){
     const ceiling = max + padding;
     const range = ceiling - floor;
     const y = value => top + ((ceiling - Number(value)) / range) * plotHeight;
-    const step = plotWidth / candles.length;
-    const bodyWidth = Math.min(18, step * 0.54);
-    const linePoints = candles.map((item, index) => `${left + step * (index + 0.5)},${y(item.close)}`).join(' ');
+    const step = plotWidth / Math.max(candles.length - 1, 1);
+    const bodyWidth = Math.min(18, Math.max(2, step * 0.54));
+    const xAt = index => candles.length === 1 ? left + plotWidth / 2 : left + step * index;
+    const linePoints = candles.map((item, index) => `${xAt(index)},${y(item.close)}`).join(' ');
     const areaPoints = `${linePoints} ${left + plotWidth},${height - bottom} ${left},${height - bottom}`;
     const grid = Array.from({ length: 5 }, (_, index) => {
       const value = ceiling - (range * index / 4);
@@ -1768,7 +1782,7 @@ async function loadExchangeMarket(refresh = false){
       return `<g><line x1="${left}" y1="${gridY}" x2="${left + plotWidth}" y2="${gridY}" /><text class="udg-chart-label" x="${left - 9}" y="${gridY + 3}" text-anchor="end">${Math.round(value).toLocaleString('ru-RU')}</text></g>`;
     }).join('');
     const candlesSvg = candles.map((item, index) => {
-      const x = left + step * (index + 0.5);
+      const x = xAt(index);
       const openY = y(item.open);
       const closeY = y(item.close);
       const highY = y(item.high);
@@ -1786,7 +1800,7 @@ async function loadExchangeMarket(refresh = false){
     const color = rising ? '#42bd76' : '#ef5264';
 
     chartEl.innerHTML = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Почасовой график FernieCoins за последние 24 часа">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="График FernieCoins: каждая свеча соответствует пятиминутному обновлению курса">
         <defs><linearGradient id="udgChartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.32" /><stop offset="100%" stop-color="${color}" stop-opacity="0.02" /></linearGradient></defs>
         <g class="udg-chart-grid">${grid}</g>
         <polygon class="udg-chart-fill" points="${areaPoints}" />
@@ -2207,12 +2221,112 @@ function renderUdgTransactions(transactions){
       <div class="udg-transaction-icon">${symbol}</div>
       <div class="udg-transaction-main">
         <div class="udg-transaction-title">${label}</div>
-        <div class="udg-transaction-meta">${escapeHtml(date)}${details ? `<br>${details}` : ''}<br>ID: ${escapeHtml(tx.transaction_id)}</div>
+        <div class="udg-transaction-meta">${escapeHtml(date)}${details ? `<br>${details}` : ''}</div>
+        <button type="button" class="udg-transaction-id" data-copy-transaction-id="${escapeHtml(tx.transaction_id)}" aria-label="Скопировать ID транзакции">ID: ${escapeHtml(tx.transaction_id)}</button>
         <span class="udg-transaction-status ${failed ? 'failed' : 'success'}">${failed ? 'Отказ' : 'Успешно'}</span>
       </div>
       <div class="udg-transaction-amount ${amountClass}">${amountLabel}</div>
     </article>`;
   }).join('')}</div>`;
+
+  container.querySelectorAll('.udg-transaction').forEach((card, index) => {
+    card.addEventListener('click', () => openUdgTransactionDetails(transactions[index]));
+  });
+  container.querySelectorAll('[data-copy-transaction-id]').forEach(button => {
+    button.addEventListener('click', async event => {
+      event.stopPropagation();
+      const copied = await copyUdgTransactionId(button.dataset.copyTransactionId);
+      button.textContent = copied ? 'ID скопирован' : `ID: ${button.dataset.copyTransactionId}`;
+      if(copied) setTimeout(() => {
+        if(button.isConnected) button.textContent = `ID: ${button.dataset.copyTransactionId}`;
+      }, 1400);
+    });
+  });
+}
+
+function transactionTypeLabel(type){
+  return ({
+    buy_fc:'Покупка FC', sell_fc:'Продажа FC',
+    buy_gift:'Покупка подарка', receive_gift:'Получение подарка'
+  })[type] || 'Операция UDG';
+}
+
+function transactionAmountText(tx){
+  if(tx.fc_amount){
+    if(tx.type === 'buy_fc') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    if(tx.type === 'sell_fc') return `−${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    return `${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+  }
+  return tx.item_name || 'Подарок';
+}
+
+function openUdgTransactionDetails(tx){
+  const failed = tx.status !== 'success';
+  const date = new Date(Number(tx.created_at) * 1000).toLocaleString('ru-RU', {
+    day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+  const rows = [
+    ['Тип операции', transactionTypeLabel(tx.type)],
+    ['Количество', transactionAmountText(tx)],
+    tx.rate ? ['Курс', `${Number(tx.rate).toLocaleString('ru-RU')} ферников за FC`] : null,
+    tx.fernik_amount ? ['Сумма до комиссии', `${Number(tx.fernik_amount).toLocaleString('ru-RU')} ферников`] : null,
+    tx.fee ? ['Комиссия', `${Number(tx.fee).toLocaleString('ru-RU')} ферников`] : null,
+    tx.type === 'buy_fc' && tx.fernik_amount ? ['Итого списано', `${Number(tx.fernik_amount + tx.fee).toLocaleString('ru-RU')} ферников`] : null,
+    tx.type === 'sell_fc' && tx.fernik_amount ? ['Итого получено', `${Number(Math.max(0, tx.fernik_amount - tx.fee)).toLocaleString('ru-RU')} ферников`] : null,
+    ['Дата', date],
+    tx.details ? ['Комментарий', tx.details] : null
+  ].filter(Boolean);
+  const icon = tx.type === 'buy_fc' ? '💎' : tx.type.endsWith('_gift') ? '🎁' : '↗';
+
+  openModal(`
+    <div class="modal-title">Информация о транзакции</div>
+    <div class="udg-transaction-detail">
+      <div class="udg-transaction-detail-hero">
+        <div class="udg-transaction-icon">${icon}</div>
+        <div class="udg-transaction-main">
+          <div class="udg-transaction-title">${escapeHtml(transactionTypeLabel(tx.type))}</div>
+          <span class="udg-transaction-status ${failed ? 'failed' : 'success'}">${failed ? 'Отказ' : 'Успешно'}</span>
+        </div>
+      </div>
+      <div class="udg-transaction-detail-rows">${rows.map(([label, value]) => `
+        <div class="udg-transaction-detail-row">
+          <span class="udg-transaction-detail-label">${escapeHtml(label)}</span>
+          <span class="udg-transaction-detail-value">${escapeHtml(value)}</span>
+        </div>`).join('')}
+      </div>
+      <div class="udg-transaction-detail-id">
+        <span class="field-label" style="margin:0;">ID транзакции · нажмите, чтобы скопировать</span>
+        <button type="button" class="udg-transaction-id" data-copy-transaction-id="${escapeHtml(tx.transaction_id)}">${escapeHtml(tx.transaction_id)} · Копировать</button>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn btn-dark" onclick="closeModal()">Закрыть</button></div>
+    </div>`);
+  $('genericModalBox').querySelectorAll('[data-copy-transaction-id]').forEach(button => {
+    button.addEventListener('click', async () => {
+      const copied = await copyUdgTransactionId(button.dataset.copyTransactionId);
+      button.textContent = copied ? `${button.dataset.copyTransactionId} · Скопировано` : `${button.dataset.copyTransactionId} · Не удалось скопировать`;
+    });
+  });
+}
+
+async function copyUdgTransactionId(transactionId){
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(transactionId);
+      return true;
+    }
+    const input = document.createElement('textarea');
+    input.value = transactionId;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    const copied = document.execCommand('copy');
+    input.remove();
+    return copied;
+  } catch{
+    return false;
+  }
 }
 
 async function loadUdgTransactions(showLoading = false){
