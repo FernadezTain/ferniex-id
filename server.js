@@ -3,13 +3,11 @@ import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 
 dotenv.config();
 
 const app = express();
-const UDG_GIFT_PAGE_PATH = fileURLToPath(new URL('./udggift.html', import.meta.url));
+const UDG_GIFT_TEMPLATE_URL = process.env.UDG_GIFT_TEMPLATE_URL || 'https://www.ferniex.ru/udggift.html';
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ limit: '15mb', extended: true }));
 app.use(express.static("public"));
@@ -2330,7 +2328,9 @@ app.get(['/udggift/:uid', '/api/udg/gift-page/:uid'], async (req, res) => {
     }
   }
   try {
-    const template = await readFile(UDG_GIFT_PAGE_PATH, 'utf8');
+    const templateResponse = await fetch(UDG_GIFT_TEMPLATE_URL);
+    if (!templateResponse.ok) throw new Error(`UDG template returned HTTP ${templateResponse.status}`);
+    const template = await templateResponse.text();
     const gift = payload.gift;
     const pageTitle = gift ? `${gift.model_name} · подарок UDG | FernieID` : 'Подарок UDG | FernieID';
     const pageDescription = gift
