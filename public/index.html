@@ -452,6 +452,20 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-transaction{display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border:1px solid var(--field-border);border-radius:15px;background:var(--field);cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s;}
 .udg-transaction:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 8px 18px -14px rgba(0,0,0,.35);}
 .udg-transaction-icon{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:12px;background:var(--card);font-size:1rem;}
+.udg-transaction-icon.udg-icon{position:relative;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;pointer-events:none;}
+.udg-icon::before,.udg-icon::after,.udg-icon i::before,.udg-icon i::after{content:'';position:absolute;box-sizing:border-box;}
+.udg-icon-fc{color:#32bfe9;background:color-mix(in srgb,#32bfe9 13%,var(--card));}
+.udg-icon-fc::before{width:17px;height:19px;background:linear-gradient(145deg,#72e2ff,#168bd4);clip-path:polygon(50% 0,100% 27%,78% 100%,22% 100%,0 27%);filter:drop-shadow(0 2px 3px rgba(17,128,190,.25));}
+.udg-icon-fc::after{width:7px;height:7px;background:#e8fbff;clip-path:polygon(50% 0,61% 37%,100% 50%,61% 63%,50% 100%,39% 63%,0 50%,39% 37%);}
+.udg-icon-sale{color:#e9b46b;background:color-mix(in srgb,#e9b46b 12%,var(--card));}
+.udg-icon-sale::before{width:17px;height:2px;left:11px;top:18px;border-radius:2px;background:currentColor;transform:rotate(-45deg);}
+.udg-icon-sale::after{width:8px;height:8px;right:10px;top:10px;border-top:2px solid currentColor;border-right:2px solid currentColor;}
+.udg-icon-gift{color:#b78af2;background:color-mix(in srgb,#b78af2 14%,var(--card));}
+.udg-icon-gift::before{left:11px;bottom:9px;width:16px;height:13px;border-radius:2px;background:linear-gradient(90deg,transparent 43%,#f6e9ff 43% 57%,transparent 57%),linear-gradient(135deg,#d2a9ff,#9b67df);}
+.udg-icon-gift::after{left:9px;top:13px;width:20px;height:5px;border-radius:2px;background:linear-gradient(90deg,transparent 44%,#f6e9ff 44% 56%,transparent 56%),linear-gradient(135deg,#ddbaff,#ae80ec);}
+.udg-icon-gift i::before,.udg-icon-gift i::after{top:7px;width:7px;height:6px;border:2px solid #9b67df;border-radius:7px 7px 2px 7px;}
+.udg-icon-gift i::before{left:13px;transform:rotate(20deg);}
+.udg-icon-gift i::after{right:12px;transform:scaleX(-1) rotate(20deg);}
 .udg-transaction-main{flex:1;min-width:0;}
 .udg-transaction-title{font-size:.84rem;font-weight:800;color:var(--ink);}
 .udg-transaction-meta{margin-top:.22rem;color:var(--muted);font-size:.7rem;line-height:1.5;overflow-wrap:anywhere;}
@@ -2198,13 +2212,13 @@ function renderUdgTransactions(transactions){
     return;
   }
   const labels = {
-    buy_fc: ['Покупка FC', '💎'],
-    sell_fc: ['Продажа FC', '↗'],
-    buy_gift: ['Покупка подарка', '🎁'],
-    receive_gift: ['Получение подарка', '🎁']
+    buy_fc: ['Покупка FC', 'fc'],
+    sell_fc: ['Продажа FC', 'sale'],
+    buy_gift: ['Покупка подарка', 'gift'],
+    receive_gift: ['Получение подарка', 'gift']
   };
   container.innerHTML = `<div class="udg-transaction-list">${transactions.map(tx => {
-    const [label, symbol] = labels[tx.type] || ['Операция UDG', '•'];
+    const [label, iconName] = labels[tx.type] || ['Операция UDG', 'sale'];
     const failed = tx.status !== 'success';
     const isBuy = tx.type === 'buy_fc';
     const isSell = tx.type === 'sell_fc';
@@ -2218,7 +2232,7 @@ function renderUdgTransactions(transactions){
       tx.details || ''
     ].filter(Boolean).map(escapeHtml).join(' · ');
     return `<article class="udg-transaction">
-      <div class="udg-transaction-icon">${symbol}</div>
+      <span class="udg-transaction-icon udg-icon udg-icon-${iconName}" aria-hidden="true"><i></i></span>
       <div class="udg-transaction-main">
         <div class="udg-transaction-title">${label}</div>
         <div class="udg-transaction-meta">${escapeHtml(date)}${details ? `<br>${details}` : ''}</div>
@@ -2276,13 +2290,13 @@ function openUdgTransactionDetails(tx){
     ['Дата', date],
     tx.details ? ['Комментарий', tx.details] : null
   ].filter(Boolean);
-  const icon = tx.type === 'buy_fc' ? '💎' : tx.type.endsWith('_gift') ? '🎁' : '↗';
+  const iconName = tx.type === 'buy_fc' ? 'fc' : tx.type.endsWith('_gift') ? 'gift' : 'sale';
 
   openModal(`
     <div class="modal-title">Информация о транзакции</div>
     <div class="udg-transaction-detail">
       <div class="udg-transaction-detail-hero">
-        <div class="udg-transaction-icon">${icon}</div>
+        <span class="udg-transaction-icon udg-icon udg-icon-${iconName}" aria-hidden="true"><i></i></span>
         <div class="udg-transaction-main">
           <div class="udg-transaction-title">${escapeHtml(transactionTypeLabel(tx.type))}</div>
           <span class="udg-transaction-status ${failed ? 'failed' : 'success'}">${failed ? 'Отказ' : 'Успешно'}</span>
