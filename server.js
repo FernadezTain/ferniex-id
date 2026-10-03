@@ -2123,9 +2123,19 @@ app.get('/api/dc/:userId', async (req, res) => {
       `${BOT_URL}/api/dc?telegram_id=${encodeURIComponent(users[0].telegram_id)}`,
       { headers: { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY }, signal: controller.signal }
     ).finally(() => clearTimeout(timeout));
-    const botData = await botRes.json();
-    if (!botRes.ok || !botData.success || !Number.isFinite(Number(botData.dc)))
-      return res.status(502).json({ success: false, dc: 0, error: botData.error || 'Сервис баланса бота недоступен' });
+
+    const rawText = await botRes.text();
+    let botData = { success: false, error: 'Сервис баланса бота недоступен' };
+    if (rawText) {
+      try {
+        botData = JSON.parse(rawText);
+      } catch {
+        botData = { success: false, error: rawText.trim() || 'Сервис баланса бота недоступен' };
+      }
+    }
+
+    if (!botRes.ok || !botData?.success || !Number.isFinite(Number(botData.dc)))
+      return res.status(botRes.ok ? 502 : botRes.status || 502).json({ success: false, dc: 0, error: botData?.error || 'Сервис баланса бота недоступен' });
     res.json({ success: true, dc: Number(botData.dc) });
   } catch (e) {
     console.error('dc error:', e);
