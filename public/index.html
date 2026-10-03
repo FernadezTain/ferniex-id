@@ -1853,7 +1853,7 @@ async function loadExchangeMarket(refresh = false){
     const changeClass = rising ? 'up' : 'down';
     const priceText = price.toLocaleString('ru-RU');
 
-    $('udgExchangePrice').textContent = `${priceText} ферников за 1 FC`;
+    $('udgExchangePrice').textContent = `${priceText}¤ за 1 FC`;
     $('udgExchangeMeta').innerHTML = `<span class="${changeClass}">${sign}${pct.toFixed(2)}%</span> · ${sign}${delta.toLocaleString('ru-RU')} ферников за период`;
     $('udgExchangePill').textContent = `Версия #${data.version}`;
     $('udgExchangePill').style.color = rising ? 'var(--success)' : 'var(--danger)';
