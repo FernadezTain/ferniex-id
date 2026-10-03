@@ -397,6 +397,22 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-workspace-state .udg-state-kicker{margin-bottom:.55rem;}
 .udg-workspace-state .title,.udg-inventory-state .title{font-weight:800;color:var(--ink);font-size:.98rem;}
 .udg-workspace-state .desc,.udg-inventory-state .desc{max-width:380px;margin-top:.35rem;font-size:.84rem;line-height:1.55;color:var(--muted);}
+.udg-exchange-shell{padding:1.1rem 0 .2rem;}
+.udg-exchange-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+.udg-exchange-brand{display:flex;align-items:center;gap:.9rem;}
+.udg-exchange-name{margin-top:.3rem;font-size:1.05rem;font-weight:700;color:var(--ink);}
+.udg-exchange-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.32rem .75rem;border-radius:999px;background:color-mix(in srgb,var(--sage) 20%,var(--card));color:var(--success);font-weight:700;font-size:.72rem;border:1px solid color-mix(in srgb,var(--sage) 45%,var(--line));}
+.udg-exchange-price{margin-top:1.1rem;font-family:'Syne',sans-serif;font-size:clamp(2rem,4vw,3.1rem);font-weight:800;letter-spacing:-1.6px;line-height:1.15;color:var(--ink);}
+.udg-exchange-meta{margin-top:.4rem;color:var(--muted);font-size:.95rem;}
+.udg-exchange-meta .up{color:var(--success);}
+.udg-exchange-meta .down{color:var(--danger);}
+.udg-chart-panel{margin-top:1.25rem;border:1px solid var(--field-border);border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--card) 92%,transparent),color-mix(in srgb,var(--field) 82%,transparent));overflow:hidden;}
+.udg-chart{height:280px;padding:.75rem .1rem .2rem;}
+.udg-chart svg{display:block;width:100%;height:100%;}
+.udg-chart-grid line{stroke:color-mix(in srgb,var(--line) 90%,transparent);stroke-width:1;}
+.udg-chart-fill{fill:url(#udgChartFill);opacity:.24;}
+.udg-chart-line{fill:none;stroke:var(--danger);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;}
+.udg-exchange-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.78rem;letter-spacing:.02em;}
 @media(max-width:480px){
   .udg-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));}
   .udg-tabs .tab-btn{padding:9px 8px;}
@@ -993,11 +1009,30 @@ html,body{touch-action:manipulation;}
           </div>
 
           <div class="udgtab-panel" data-udgtab-panel="exchange" role="tabpanel" hidden>
-            <div class="udg-workspace-state">
-              <div class="udg-state-mark">↗</div>
-              <span class="udg-state-kicker">UDG · БИРЖА</span>
-              <div class="title">Биржа в разработке</div>
-              <div class="desc">Здесь появится обмен и управление цифровыми активами.</div>
+            <div class="udg-exchange-shell">
+              <div class="udg-exchange-head">
+                <div class="udg-exchange-brand">
+                  <div class="udg-state-mark">◆</div>
+                  <div>
+                    <span class="udg-state-kicker">UDG · БИРЖА</span>
+                    <div class="udg-exchange-name">Gram (бывш. Toncoin)</div>
+                  </div>
+                </div>
+                <span class="udg-exchange-pill" id="udgExchangePill">…</span>
+              </div>
+
+              <div class="udg-exchange-price" id="udgExchangePrice">Загрузка…</div>
+              <div class="udg-exchange-meta" id="udgExchangeMeta">Синхронизация данных…</div>
+
+              <div class="udg-chart-panel">
+                <div class="udg-chart" id="udgExchangeChart" aria-label="График биржи"></div>
+              </div>
+
+              <div class="udg-exchange-footer">
+                <span id="udgExchangeLow">min —</span>
+                <span id="udgExchangeHigh">max —</span>
+                <span id="udgExchangeVolume">vol —</span>
+              </div>
             </div>
           </div>
 
@@ -1538,6 +1573,7 @@ document.querySelectorAll('#section-udg .tab-btn').forEach(btn => {
       panel.hidden = !active;
     });
     if(btn.dataset.udgtab === 'my') loadUdgBalance();
+    if(btn.dataset.udgtab === 'exchange') loadExchangeMarket();
     requestAnimationFrame(() => positionTabSlider(btn.closest('.tabs')));
   });
 });
@@ -1570,6 +1606,89 @@ function switchSection(name){
   const backBtn = $('mobileContentBack');
   if(backBtn) backBtn.style.display = (name === 'overview') ? 'none' : '';
   window.scrollTo(0, 0);
+}
+
+async function loadExchangeMarket(){
+  const chartEl = document.getElementById('udgExchangeChart');
+  const priceEl = document.getElementById('udgExchangePrice');
+  const metaEl = document.getElementById('udgExchangeMeta');
+  const pillEl = document.getElementById('udgExchangePill');
+  const lowEl = document.getElementById('udgExchangeLow');
+  const highEl = document.getElementById('udgExchangeHigh');
+  const volumeEl = document.getElementById('udgExchangeVolume');
+  if(!chartEl || !priceEl || !metaEl) return;
+
+  try{
+    priceEl.textContent = 'Загрузка…';
+    metaEl.textContent = 'Синхронизация данных…';
+    const res = await fetch(`${API}/api/exchange/summary`);
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Биржа недоступна');
+
+    const candles = Array.isArray(data.candles) ? data.candles : [];
+    const price = Number(data.price ?? candles.at(-1)?.close ?? 0);
+    const delta = Number(data.day_change ?? 0);
+    const pct = Number(data.change_percent ?? 0);
+    const label = delta >= 0 ? 'up' : 'down';
+    const sign = delta >= 0 ? '+' : '';
+    priceEl.textContent = `${price.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽`;
+    metaEl.innerHTML = `<span class="${label}">${sign}${pct.toFixed(2)}%</span> · ${sign}${delta.toFixed(2)} ₽ · сегодня`;
+    pillEl.textContent = `${sign}${pct.toFixed(2)}%`;
+    pillEl.style.color = delta >= 0 ? 'var(--success)' : 'var(--danger)';
+    pillEl.style.borderColor = delta >= 0 ? 'color-mix(in srgb,var(--sage) 45%,var(--line))' : 'color-mix(in srgb,var(--danger) 35%,var(--line))';
+    pillEl.style.background = delta >= 0 ? 'color-mix(in srgb,var(--sage) 20%,var(--card))' : 'color-mix(in srgb,var(--danger) 14%,var(--card))';
+    lowEl.textContent = `min ${Number(data.low ?? 0).toFixed(2)}`;
+    highEl.textContent = `max ${Number(data.high ?? 0).toFixed(2)}`;
+    volumeEl.textContent = `vol ${(Number(data.volume ?? 0) / 1000000).toFixed(2)}M`;
+
+    if(!candles.length) {
+      chartEl.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);">Нет данных по графику</div>';
+      return;
+    }
+
+    const values = candles.map(item => Number(item.close));
+    const min = Math.min(...values) * 0.98;
+    const max = Math.max(...values) * 1.02;
+    const width = 760;
+    const height = 240;
+    const left = 14;
+    const right = 10;
+    const top = 18;
+    const bottom = 18;
+    const innerWidth = width - left - right;
+    const innerHeight = height - top - bottom;
+
+    const linePoints = candles.map((item, index) => {
+      const x = left + (index / (candles.length - 1)) * innerWidth;
+      const y = top + ((max - Number(item.close)) / (max - min || 1)) * innerHeight;
+      return `${x},${y}`;
+    }).join(' ');
+
+    const areaPoints = `${linePoints} ${left + innerWidth},${height - bottom} ${left},${height - bottom}`;
+    const grid = Array.from({ length: 4 }, (_, idx) => {
+      const y = top + (idx / 3) * innerHeight;
+      return `<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" />`;
+    }).join('');
+
+    chartEl.innerHTML = `
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Диаграмма курса Gram">
+        <defs>
+          <linearGradient id="udgChartFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="var(--danger)" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="var(--danger)" stop-opacity="0.05" />
+          </linearGradient>
+        </defs>
+        <g class="udg-chart-grid">${grid}</g>
+        <polygon class="udg-chart-fill" points="${areaPoints}" />
+        <polyline class="udg-chart-line" points="${linePoints}" />
+      </svg>
+    `;
+  } catch(error){
+    priceEl.textContent = 'Биржа недоступна';
+    metaEl.textContent = error.message || 'Ошибка загрузки';
+    pillEl.textContent = '—';
+    chartEl.innerHTML = '<div style="display:grid;place-items:center;height:100%;color:var(--muted);">Данные недоступны</div>';
+  }
 }
 
 /* ---------- цепочка: боковые блоки сдвигаются "стрелкой" к активному/наведённому пункту ---------- */
@@ -1810,7 +1929,11 @@ function showToastSafe(msg){
 const loaded = {};
 async function loadSectionData(name){
   if(!currentUser) return;
-  if(name === 'udg') return loadUdgBalance();
+  if(name === 'udg') {
+    loadUdgBalance();
+    loadExchangeMarket();
+    return;
+  }
   if(name === 'subscription') return loadSubscription();
   if(name === 'social') return loadSocial();
   if(name === 'security') return loadSecurity();
