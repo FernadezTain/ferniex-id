@@ -2468,7 +2468,7 @@ function openUdgGiftDetails(uid, inventory = false){
   $('udgGiftShare').addEventListener('click', async () => {
     const title = udgGiftTitle(item);
     const shareOrigin = ['http:', 'https:'].includes(location.protocol) ? location.origin : API;
-    const shareUrl = new URL(`/udggift/${encodeURIComponent(item.uid)}`, shareOrigin).toString();
+    const shareUrl = new URL(`/udggift.html?uid=${encodeURIComponent(item.uid)}`, shareOrigin).toString();
     const previewArt = item.image_url
       ? `<img src="${escapeHtml(item.image_url)}" alt="">`
       : `<span>${escapeHtml((title[0] || 'G').toUpperCase())}</span>`;
