@@ -137,6 +137,16 @@ function genLinkCode() {
 }
 const LINK_TTL_MS = 5 * 60 * 1000;
 
+async function supabaseFailureDetails(response, label) {
+  const body = await response.text();
+  console.error(`${label} (${response.status}):`, body);
+  let payload = {};
+  try { payload = JSON.parse(body); } catch {}
+  const code = typeof payload.code === 'string' ? payload.code : '';
+  const message = typeof payload.message === 'string' ? payload.message : 'Supabase отклонил запись';
+  return `${response.status}${code ? ` · ${code}` : ''}: ${message}`.slice(0, 240);
+}
+
 async function resolveTelegramId(userId) {
   const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
   const users = await userRes.json();
@@ -581,8 +591,8 @@ app.post("/api/telegram/link", async (req, res) => {
       { headers: sbHeaders }
     );
     if (!findRes.ok) {
-      console.error("telegram link lookup error:", await findRes.text());
-      return res.json({ success: false, error: "Не удалось проверить код привязки" });
+      const details = await supabaseFailureDetails(findRes, "telegram link lookup error");
+      return res.json({ success: false, error: "Не удалось проверить код привязки", details });
     }
     const users = await findRes.json();
     if (!users.length) return res.json({ success: false, error: "Код/ссылка не найдены или уже использованы" });
@@ -601,8 +611,8 @@ app.post("/api/telegram/link", async (req, res) => {
       body: JSON.stringify({ telegram_id: telegram_id, link_token: null, link_token_created_at: null })
     });
     if (!linkRes.ok) {
-      console.error("telegram link update error:", await linkRes.text());
-      return res.json({ success: false, error: "Не удалось сохранить привязку" });
+      const details = await supabaseFailureDetails(linkRes, "telegram link update error");
+      return res.json({ success: false, error: "Не удалось сохранить привязку", details });
     }
     const linkedUsers = await linkRes.json();
     if (!linkedUsers.length || String(linkedUsers[0].telegram_id) !== String(telegram_id)) {
@@ -648,8 +658,8 @@ app.post("/api/telegram/request-confirm", async (req, res) => {
   try {
     const ur = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username`, { headers: sbHeaders });
     if (!ur.ok) {
-      console.error("telegram confirmation user lookup error:", await ur.text());
-      return res.json({ success: false, error: "Не удалось найти аккаунт FernieID" });
+      const details = await supabaseFailureDetails(ur, "telegram confirmation user lookup error");
+      return res.json({ success: false, error: "Не удалось найти аккаунт FernieID", details });
     }
     const users = await ur.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
@@ -661,8 +671,8 @@ app.post("/api/telegram/request-confirm", async (req, res) => {
       body: JSON.stringify({ pending_telegram_id: String(telegramId), pending_link_created_at: now.toISOString(), link_flow_status: "pending" })
     });
     if (!pendingRes.ok) {
-      console.error("telegram confirmation request update error:", await pendingRes.text());
-      return res.json({ success: false, error: "Не удалось сохранить запрос привязки" });
+      const details = await supabaseFailureDetails(pendingRes, "telegram confirmation request update error");
+      return res.json({ success: false, error: "Не удалось сохранить запрос привязки", details });
     }
     if (!(await pendingRes.json()).length) return res.json({ success: false, error: "Аккаунт FernieID не найден" });
     const sent = await sendTgMessageButtons(telegramId,
@@ -721,8 +731,8 @@ app.post("/api/telegram/confirm-decision", async (req, res) => {
   try {
     const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,pending_telegram_id`, { headers: sbHeaders });
     if (!r.ok) {
-      console.error("telegram confirmation decision lookup error:", await r.text());
-      return res.json({ success: false, error: "Не удалось проверить заявку" });
+      const details = await supabaseFailureDetails(r, "telegram confirmation decision lookup error");
+      return res.json({ success: false, error: "Не удалось проверить заявку", details });
     }
     const users = await r.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
@@ -735,8 +745,8 @@ app.post("/api/telegram/confirm-decision", async (req, res) => {
         body: JSON.stringify({ telegram_id: telegram_id, pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
       });
       if (!acceptRes.ok) {
-        console.error("telegram confirmation accept update error:", await acceptRes.text());
-        return res.json({ success: false, error: "Не удалось сохранить привязку" });
+        const details = await supabaseFailureDetails(acceptRes, "telegram confirmation accept update error");
+        return res.json({ success: false, error: "Не удалось сохранить привязку", details });
       }
       const acceptedUsers = await acceptRes.json();
       if (!acceptedUsers.length || String(acceptedUsers[0].telegram_id) !== String(telegram_id)) {
@@ -749,8 +759,8 @@ app.post("/api/telegram/confirm-decision", async (req, res) => {
         body: JSON.stringify({ pending_telegram_id: null, pending_link_created_at: null, link_flow_status: "declined" })
       });
       if (!declineRes.ok) {
-        console.error("telegram confirmation decline update error:", await declineRes.text());
-        return res.json({ success: false, error: "Не удалось отклонить заявку" });
+        const details = await supabaseFailureDetails(declineRes, "telegram confirmation decline update error");
+        return res.json({ success: false, error: "Не удалось отклонить заявку", details });
       }
       if (!(await declineRes.json()).length) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
       res.json({ success: true, decision: "decline", username: user.username, time });
