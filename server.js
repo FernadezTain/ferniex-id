@@ -574,26 +574,40 @@ app.post("/api/telegram/generate-token", async (req, res) => {
 app.post("/api/telegram/link", async (req, res) => {
   const { token, telegram_id } = req.body;
   if (!token || !telegram_id) return res.json({ success: false, error: "Нет данных" });
+  if (!/^\d{5,15}$/.test(String(telegram_id))) return res.json({ success: false, error: "Некорректный Telegram ID" });
   try {
     const findRes = await fetch(
       `${SB_URL}/rest/v1/users?link_token=eq.${token}&select=id,username,link_token_created_at`,
       { headers: sbHeaders }
     );
+    if (!findRes.ok) {
+      console.error("telegram link lookup error:", await findRes.text());
+      return res.json({ success: false, error: "Не удалось проверить код привязки" });
+    }
     const users = await findRes.json();
     if (!users.length) return res.json({ success: false, error: "Код/ссылка не найдены или уже использованы" });
     const user = users[0];
     if (user.link_token_created_at && (Date.now() - new Date(user.link_token_created_at).getTime()) > LINK_TTL_MS) {
-      await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
+      const expireRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
         method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
         body: JSON.stringify({ link_token: null, link_token_created_at: null })
       });
+      if (!expireRes.ok) console.error("telegram link expiry update error:", await expireRes.text());
       return res.json({ success: false, error: "Код/ссылка устарели. Сгенерируй новые на сайте." });
     }
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}`, {
+    const linkRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${user.id}&link_token=eq.${token}`, {
       method: "PATCH",
-      headers: sbHeaders,
+      headers: { ...sbHeaders, Prefer: "return=representation" },
       body: JSON.stringify({ telegram_id: telegram_id, link_token: null, link_token_created_at: null })
     });
+    if (!linkRes.ok) {
+      console.error("telegram link update error:", await linkRes.text());
+      return res.json({ success: false, error: "Не удалось сохранить привязку" });
+    }
+    const linkedUsers = await linkRes.json();
+    if (!linkedUsers.length || String(linkedUsers[0].telegram_id) !== String(telegram_id)) {
+      return res.json({ success: false, error: "Привязка не сохранилась. Сгенерируй новый код и попробуй ещё раз." });
+    }
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     res.json({ success: true, username: user.username, time });
   } catch (e) {
@@ -633,22 +647,38 @@ app.post("/api/telegram/request-confirm", async (req, res) => {
   if (!/^\d{5,15}$/.test(String(telegramId))) return res.json({ success: false, error: "Некорректный Telegram ID" });
   try {
     const ur = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username`, { headers: sbHeaders });
+    if (!ur.ok) {
+      console.error("telegram confirmation user lookup error:", await ur.text());
+      return res.json({ success: false, error: "Не удалось найти аккаунт FernieID" });
+    }
     const users = await ur.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = users[0];
     const now = new Date();
     const nowStr = now.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
-      method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+    const pendingRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+      method: "PATCH", headers: { ...sbHeaders, Prefer: "return=representation" },
       body: JSON.stringify({ pending_telegram_id: String(telegramId), pending_link_created_at: now.toISOString(), link_flow_status: "pending" })
     });
+    if (!pendingRes.ok) {
+      console.error("telegram confirmation request update error:", await pendingRes.text());
+      return res.json({ success: false, error: "Не удалось сохранить запрос привязки" });
+    }
+    if (!(await pendingRes.json()).length) return res.json({ success: false, error: "Аккаунт FernieID не найден" });
     const sent = await sendTgMessageButtons(telegramId,
       `🛡 <b>Привязка TelegramID к аккаунту FernieID</b>\n\n` +
       `<blockquote>👤 Логин: <b>${user.username}</b>\n🕒 Дата и время: <b>${nowStr} МСК</b></blockquote>\n\n` +
       `Подтвердите или отклоните привязку.`,
       [[ { text: "✅ Принять", callback_data: `tgconfirm_accept_${userId}` }, { text: "❌ Отклонить", callback_data: `tgconfirm_decline_${userId}` } ]]
     );
-    if (!sent) return res.json({ success: false, error: "Не удалось отправить сообщение. Убедись, что ты писал боту." });
+    if (!sent) {
+      const clearRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+        body: JSON.stringify({ pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
+      });
+      if (!clearRes.ok) console.error("telegram confirmation rollback error:", await clearRes.text());
+      return res.json({ success: false, error: "Не удалось отправить сообщение. Сначала напиши боту в Telegram." });
+    }
     res.json({ success: true });
   } catch (e) {
     console.error(e);
@@ -685,24 +715,44 @@ app.post("/api/telegram/confirm-status", async (req, res) => {
 app.post("/api/telegram/confirm-decision", async (req, res) => {
   const { userId, telegram_id, decision } = req.body;
   if (!userId || !telegram_id || !decision) return res.json({ success: false, error: "Нет данных" });
+  if (!/^\d{5,15}$/.test(String(telegram_id)) || !["accept", "decline"].includes(decision)) {
+    return res.json({ success: false, error: "Некорректное подтверждение" });
+  }
   try {
     const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,pending_telegram_id`, { headers: sbHeaders });
+    if (!r.ok) {
+      console.error("telegram confirmation decision lookup error:", await r.text());
+      return res.json({ success: false, error: "Не удалось проверить заявку" });
+    }
     const users = await r.json();
     if (!users.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = users[0];
     if (String(user.pending_telegram_id) !== String(telegram_id)) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
     const time = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
     if (decision === "accept") {
-      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
-        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
+      const acceptRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&pending_telegram_id=eq.${telegram_id}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=representation" },
         body: JSON.stringify({ telegram_id: telegram_id, pending_telegram_id: null, pending_link_created_at: null, link_flow_status: null })
       });
+      if (!acceptRes.ok) {
+        console.error("telegram confirmation accept update error:", await acceptRes.text());
+        return res.json({ success: false, error: "Не удалось сохранить привязку" });
+      }
+      const acceptedUsers = await acceptRes.json();
+      if (!acceptedUsers.length || String(acceptedUsers[0].telegram_id) !== String(telegram_id)) {
+        return res.json({ success: false, error: "Заявка устарела или уже обработана" });
+      }
       res.json({ success: true, decision: "accept", username: user.username, time });
     } else {
-      await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
-        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=minimal" },
-        body: JSON.stringify({ link_flow_status: "declined" })
+      const declineRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&pending_telegram_id=eq.${telegram_id}`, {
+        method: "PATCH", headers: { ...sbHeaders, Prefer: "return=representation" },
+        body: JSON.stringify({ pending_telegram_id: null, pending_link_created_at: null, link_flow_status: "declined" })
       });
+      if (!declineRes.ok) {
+        console.error("telegram confirmation decline update error:", await declineRes.text());
+        return res.json({ success: false, error: "Не удалось отклонить заявку" });
+      }
+      if (!(await declineRes.json()).length) return res.json({ success: false, error: "Заявка устарела или уже обработана" });
       res.json({ success: true, decision: "decline", username: user.username, time });
     }
   } catch (e) {
@@ -1864,7 +1914,7 @@ app.post('/api/rob-bank', async (req, res) => {
       `🏦 <b>Ограбление Федерального Банка</b>\n\n` +
       `<blockquote>` +
       `💰 Ты успешно ограбил Федеральный Банк!\n` +
-      `💵 Сумма: <b>${Number(amount).toLocaleString('ru-RU')} ₽</b>\n` +
+      `💵 Сумма: <b>${Number(amount).toLocaleString('ru-RU')} ¤</b>\n` +
       `</blockquote>\n\n` +
       `⏳ <i>Следующее ограбление доступно через 6 часов.</i>`
     );
