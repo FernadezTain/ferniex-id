@@ -5124,6 +5124,26 @@ app.post('/api/fernieplus/pro/check-payment', async (req, res) => {
   }
 });
 
+app.post('/api/fernieplus/pro/create-stars-invoice', async (req, res) => {
+  const { userId, plan_key } = req.body || {};
+  if (!userId || !['1d', '7d', '30d', '6m', '1y'].includes(plan_key)) {
+    return res.status(400).json({ success: false, error: 'Выбранный срок не поддерживает оплату Stars' });
+  }
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId || !/^\d{5,15}$/.test(String(telegramId))) {
+      return res.status(400).json({ success: false, error: 'Сначала привяжите Telegram к FernieID' });
+    }
+    const result = await exchangeBotRequest('/api/fernieplus/pro/create-stars-invoice', 'POST', {
+      telegram_id: String(telegramId),
+      plan_key
+    });
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    return res.status(502).json({ success: false, error: e.message || 'Не удалось создать счёт Telegram Stars' });
+  }
+});
+
 // ══════════════════════════════════════════
 //  Сброс пароля — шаг 1: отправить код
 // ══════════════════════════════════════════
