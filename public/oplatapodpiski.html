@@ -1209,10 +1209,16 @@
       }
     };
 
+    const checkoutParams = new URLSearchParams(window.location.search);
+    const requestedPlan = checkoutParams.get('plan');
+    const initialPlan = PLAN_DEFS[requestedPlan] ? PLAN_DEFS[requestedPlan] : PLAN_DEFS.fp;
+    const requestedDuration = initialPlan.options.find(option => option.key === checkoutParams.get('duration'));
+    const requestedMethod = initialPlan.methods.find(method => method.id === checkoutParams.get('method'));
+
     const state = {
-      selectedPlan: 'fp',
-      selectedDuration: null,
-      selectedMethod: null,
+      selectedPlan: initialPlan.key,
+      selectedDuration: requestedDuration || null,
+      selectedMethod: requestedMethod?.id || null,
       displayMethods: { fp: 'seeds', pro: 'stars' },
       carouselIndex: 0,
       currentStep: 0,
@@ -1222,9 +1228,9 @@
     };
 
     const userData = {
-      id: null,
+      id: checkoutParams.get('userId'),
       telegram_id: null,
-      username: 'user'
+      username: checkoutParams.get('username') || 'user'
     };
 
     function escapeHtml(value) {
@@ -1238,6 +1244,7 @@
     }
 
     function getUserFromState() {
+      if (userData.id) return userData;
       for (const key of ['fernieid_user', 'fid_session']) {
         try {
           const data = JSON.parse(localStorage.getItem(key) || '{}');
@@ -1549,7 +1556,8 @@
         state.paymentInProgress = false;
         button.disabled = false;
         button.classList.remove('is-loading');
-        showInlineStatus('error', 'Войдите в FernieID, чтобы оформить подписку.');
+        button.textContent = `Оплатить ${formatPriceDisplay(price, method)}`;
+        showInlineStatus('error', 'Аккаунт не передан. Откройте оплату через раздел «Подписка» в личном кабинете FernieID.');
         return;
       }
       try {
