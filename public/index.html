@@ -3404,13 +3404,27 @@ function renderSubscriptionCards(fpActive, proActive){
 
   body.querySelectorAll('.plan-cta').forEach(btn => {
     btn.addEventListener('click', () => {
-      window.location.href = 'https://www.ferniex.ru/oplatapodpiski.html';
+      const checkoutUrl = new URL('https://www.ferniex.ru/oplatapodpiski.html');
+      checkoutUrl.searchParams.set('userId', currentUser.id);
+      checkoutUrl.searchParams.set('username', currentUser.username);
+      checkoutUrl.searchParams.set('plan', btn.dataset.plan || 'fp');
+      const planKey = btn.dataset.plan || 'fp';
+      checkoutUrl.searchParams.set('duration', planSelectionState[planKey].durationKey);
+      checkoutUrl.searchParams.set('method', planSelectionState[planKey].methodId);
+      window.location.href = checkoutUrl.toString();
     });
   });
 
   body.querySelectorAll('[data-subscription-primary]').forEach(btn => {
     btn.addEventListener('click', () => {
-      window.location.href = 'https://www.ferniex.ru/oplatapodpiski.html';
+      const checkoutUrl = new URL('https://www.ferniex.ru/oplatapodpiski.html');
+      checkoutUrl.searchParams.set('userId', currentUser.id);
+      checkoutUrl.searchParams.set('username', currentUser.username);
+      const planKey = proActive || fpActive ? 'pro' : 'fp';
+      checkoutUrl.searchParams.set('plan', planKey);
+      checkoutUrl.searchParams.set('duration', planSelectionState[planKey].durationKey);
+      checkoutUrl.searchParams.set('method', planSelectionState[planKey].methodId);
+      window.location.href = checkoutUrl.toString();
     });
   });
 
