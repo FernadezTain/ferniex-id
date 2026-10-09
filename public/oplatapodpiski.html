@@ -1173,15 +1173,15 @@
           { id: 'yookassa', name: 'ЮKassa', subtitle: 'Карта / банкинг' }
         ],
         options: [
-          { key: '1m', label: '5 минут', price: 5, period: '5 минут' },
-          { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
-          { key: '24h', label: '24 часа', price: 49, period: '24 часа' },
-          { key: '3d', label: '3 дня', price: 89, period: '3 дня' },
-          { key: '7d', label: '7 дней', price: 169, period: '7 дней' },
-          { key: '15d', label: '15 дней', price: 299, period: '15 дней' },
-          { key: '30d', label: '30 дней', price: 349, period: '30 дней', default: true },
-          { key: '6m', label: '6 месяцев', price: 449, period: '6 месяцев' },
-          { key: '1y', label: '1 год', price: 799, period: '1 год' }
+          { key: '1m', label: '5 минут', price: 5, seeds: 50, dc: 10, period: '5 минут' },
+          { key: '12h', label: '12 часов', price: 29, seeds: 750, dc: 100, period: '12 часов' },
+          { key: '24h', label: '24 часа', price: 49, seeds: 1500, dc: 150, period: '24 часа' },
+          { key: '3d', label: '3 дня', price: 89, seeds: 3000, dc: 300, period: '3 дня' },
+          { key: '7d', label: '7 дней', price: 169, seeds: 7500, dc: 800, period: '7 дней' },
+          { key: '15d', label: '15 дней', price: 299, seeds: 20000, dc: 2100, period: '15 дней' },
+          { key: '30d', label: '30 дней', price: 349, seeds: 37500, dc: 4000, period: '30 дней', default: true },
+          { key: '6m', label: '6 месяцев', price: 449, seeds: 200000, dc: 20500, period: '6 месяцев' },
+          { key: '1y', label: '1 год', price: 799, seeds: 400000, dc: 40500, period: '1 год' }
         ]
       },
       pro: {
@@ -1196,7 +1196,7 @@
           { id: 'yookassa', name: 'ЮKassa', subtitle: 'Карта / банкинг' }
         ],
         options: [
-          { key: '1m', label: '1 минута', price: 1, period: '1 минута' },
+          { key: '1d', label: '1 день', price: 1, period: '1 день' },
           { key: '12h', label: '12 часов', price: 29, period: '12 часов' },
           { key: '24h', label: '24 часа', price: 49, period: '24 часа' },
           { key: '3d', label: '3 дня', price: 89, period: '3 дня' },
@@ -1217,7 +1217,8 @@
       carouselIndex: 0,
       currentStep: 0,
       paymentInProgress: false,
-      pendingPaymentId: null
+      pendingPaymentId: null,
+      pendingPurchaseId: null
     };
 
     const userData = {
@@ -1237,14 +1238,18 @@
     }
 
     function getUserFromState() {
-      try {
-        const data = JSON.parse(localStorage.getItem('fernieid_user') || '{}');
-        if (data && data.id) {
-          userData.id = data.id;
-          userData.telegram_id = data.telegram_id || data.telegramId || null;
-          userData.username = data.username || 'user';
-        }
-      } catch (error) {}
+      for (const key of ['fernieid_user', 'fid_session']) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}');
+          const id = data.id || data.userId;
+          if (id) {
+            userData.id = id;
+            userData.telegram_id = data.telegram_id || data.telegramId || null;
+            userData.username = data.username || 'user';
+            return userData;
+          }
+        } catch (error) {}
+      }
       return userData;
     }
 
@@ -1260,11 +1265,14 @@
     }
 
     function getStarsAmount(duration) {
-      return ({ '1m': 1, '7d': 7, '30d': 20, '6m': 100, '1y': 150 })[duration.key] || null;
+      return ({ '1d': 1, '7d': 7, '30d': 20, '6m': 100, '1y': 150 })[duration.key] || null;
     }
 
     function getPriceAmount(duration, method) {
-      return method === 'stars' ? getStarsAmount(duration) : duration.price;
+      if (method === 'stars') return getStarsAmount(duration);
+      if (method === 'seeds') return duration.seeds;
+      if (method === 'dc') return duration.dc;
+      return duration.price;
     }
 
     function formatPriceDisplay(amount, methodId) {
@@ -1307,6 +1315,7 @@
           state.selectedDuration = getDefaultDuration(planKey);
           state.selectedMethod = getDisplayMethod(planKey);
           state.paymentInProgress = false;
+          state.pendingPurchaseId = null;
           renderPlans();
           renderCheckout();
           showCheckoutStep(1);
@@ -1401,6 +1410,7 @@
       durationGrid.querySelectorAll('[data-duration-key]').forEach(button => {
         button.addEventListener('click', () => {
           state.selectedDuration = plan.options.find(option => option.key === button.dataset.durationKey);
+          state.pendingPurchaseId = null;
           if (state.selectedMethod === 'stars' && getStarsAmount(state.selectedDuration) === null) {
             state.selectedMethod = 'yookassa';
           }
@@ -1411,6 +1421,7 @@
       methodGrid.querySelectorAll('[data-payment-method]').forEach(button => {
         button.addEventListener('click', () => {
           state.selectedMethod = button.dataset.paymentMethod;
+          state.pendingPurchaseId = null;
           renderCheckout();
           showCheckoutStep(2);
         });
@@ -1489,6 +1500,8 @@
             const data = await response.json();
             if (data?.paid) {
               state.pendingStarsPayment = null;
+              sessionStorage.removeItem('fernie_pending_stars');
+              localStorage.removeItem('fernie_pending_stars');
               state.paymentInProgress = false;
               button.classList.remove('is-loading');
               button.textContent = 'Оплачено ✓';
@@ -1516,7 +1529,12 @@
         button.disabled = true;
         button.classList.add('is-loading');
         button.innerHTML = '<span class="checkout-spinner"></span>Ожидаем оплату в Telegram…';
-        openStarsPayment(plan, duration);
+        if (!await openStarsPayment(plan, duration)) {
+          state.paymentInProgress = false;
+          button.disabled = false;
+          button.classList.remove('is-loading');
+          button.textContent = `Оплатить ${formatPriceDisplay(getStarsAmount(duration) ?? duration.price, 'stars')}`;
+        }
         return;
       }
 
@@ -1527,14 +1545,29 @@
       showInlineStatus('pending', 'Ожидаем ответ сервера. Не закрывайте страницу.');
 
       const user = getUserFromState();
+      if (!user.id) {
+        state.paymentInProgress = false;
+        button.disabled = false;
+        button.classList.remove('is-loading');
+        showInlineStatus('error', 'Войдите в FernieID, чтобы оформить подписку.');
+        return;
+      }
       try {
         const response = await fetch('/api/fernieplus/activate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, telegram_id: user.telegram_id || user.id, plan_key: duration.key, method, amount: price, username: user.username })
+          body: JSON.stringify({
+            userId: user.id,
+            plan_key: duration.key,
+            method,
+            amount: price,
+            request_id: state.pendingPurchaseId || (state.pendingPurchaseId = crypto.randomUUID()),
+            username: user.username
+          })
         });
         const data = await response.json();
         if (!data?.success) throw new Error(data?.error || 'Оплату не удалось подтвердить.');
+        state.pendingPurchaseId = null;
         showInlineStatus('success', `Оплата прошла! ${plan.title} активирована на ${duration.label}.`);
         button.classList.remove('is-loading');
         button.textContent = 'Оплачено ✓';
@@ -1665,23 +1698,50 @@
       return `0000030${owner}${suffix}`;
     }
 
-    function openStarsPayment(plan, duration) {
+    async function openStarsPayment(plan, duration) {
       const user = getUserFromState();
-      const telegramId = user.telegram_id || user.id;
-      const daysByKey = { '1m': 1, '7d': 7, '30d': 30, '6m': 180, '1y': 365 };
+      let telegramId = user.telegram_id;
+      const daysByKey = { '1d': 1, '7d': 7, '30d': 30, '6m': 180, '1y': 365 };
       const days = daysByKey[duration.key];
-      if (!telegramId) {
-        showInlineStatus('error', 'Сначала привяжите Telegram к аккаунту FernieID.');
+      if (!user.id) {
+        showInlineStatus('error', 'Войдите в FernieID, чтобы оформить подписку.');
         return false;
       }
       if (!days) {
         showInlineStatus('error', 'Для выбранного срока Telegram Stars недоступны. Выберите YooKassa.');
         return false;
       }
+      let telegramWindow = null;
+      if (!/^\d{5,15}$/.test(String(telegramId || ''))) {
+        telegramWindow = window.open('about:blank', '_blank');
+        if (!telegramWindow) {
+          showInlineStatus('error', 'Разрешите открытие Telegram в браузере и попробуйте снова.');
+          return false;
+        }
+        try {
+          const response = await fetch(`/api/fernieplus/${encodeURIComponent(user.id)}`);
+          const data = await response.json();
+          telegramId = data?.telegram_id;
+          if (!data?.success || !/^\d{5,15}$/.test(String(telegramId || ''))) {
+            telegramWindow.close();
+            showInlineStatus('error', 'Сначала привяжите Telegram к аккаунту FernieID.');
+            return false;
+          }
+          user.telegram_id = telegramId;
+        } catch (error) {
+          telegramWindow.close();
+          showInlineStatus('error', 'Не удалось проверить привязку Telegram. Попробуйте ещё раз.');
+          return false;
+        }
+      }
       const paymentId = createStarsPaymentId(telegramId);
+      const pending = { paymentId, telegramId, planKey: plan.key, durationKey: duration.key };
+      sessionStorage.setItem('fernie_pending_stars', JSON.stringify(pending));
+      localStorage.setItem('fernie_pending_stars', JSON.stringify(pending));
       const starsUrl = `https://t.me/FernieXBot?start=FPro_TS_${days}day_${paymentId}`;
       showInlineStatus('pending', 'Открываем Telegram. Подписка активируется после подтверждения оплаты ботом.');
-      window.open(starsUrl, '_blank', 'noopener');
+      if (telegramWindow) telegramWindow.location.assign(starsUrl);
+      else window.open(starsUrl, '_blank', 'noopener');
       const button = document.getElementById('checkoutPayButton');
       const deadline = Date.now() + 5 * 60 * 1000;
       const poll = setInterval(async () => {
@@ -1706,6 +1766,8 @@
           clearInterval(poll);
           state.paymentInProgress = false;
           state.pendingStarsPayment = null;
+          sessionStorage.removeItem('fernie_pending_stars');
+          localStorage.removeItem('fernie_pending_stars');
           button.classList.remove('is-loading');
           button.textContent = 'Оплачено ✓';
           showInlineStatus('success', `${plan.title} активирована на срок ${duration.label}.`);
@@ -1765,6 +1827,28 @@
       }
     }
 
+    function resumePendingStarsPayment() {
+      let pending;
+      try {
+        pending = JSON.parse(sessionStorage.getItem('fernie_pending_stars') || localStorage.getItem('fernie_pending_stars') || 'null');
+      } catch (error) {
+        return;
+      }
+      if (!pending?.paymentId || !pending?.telegramId) return;
+      const plan = PLAN_DEFS[pending.planKey];
+      const duration = plan?.options.find(option => option.key === pending.durationKey);
+      if (!plan || !duration) return;
+      state.selectedPlan = plan.key;
+      state.selectedDuration = duration;
+      state.selectedMethod = 'stars';
+      state.pendingStarsPayment = { ...pending, plan, duration };
+      state.currentStep = 3;
+      renderPlans();
+      renderCheckout();
+      showInlineStatus('pending', 'Вернулись из Telegram? Нажмите, чтобы проверить оплату Stars.');
+      showCheckoutStep(3);
+    }
+
     window.addEventListener('resize', () => {
       const viewport = document.getElementById('checkoutViewport');
       const track = document.getElementById('checkoutTrack');
@@ -1780,6 +1864,7 @@
     renderPlans();
     renderCheckout();
     getUserFromState();
+    resumePendingStarsPayment();
     resumePendingYookassaStatus();
   </script>
 </body>
