@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     :root {
       --bg: #171710;
@@ -1009,6 +1010,199 @@
       margin: 0;
     }
 
+    .payment-success-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+      background: #101512;
+      isolation: isolate;
+    }
+
+    .payment-success-screen.active { display: flex; }
+
+    body.payment-success-active { overflow: hidden; }
+    body.payment-success-active .page { animation: none; transform: none; }
+
+    .payment-success-screen::before,
+    .payment-success-screen::after {
+      position: absolute;
+      inset: -50%;
+      z-index: -1;
+      content: "";
+      pointer-events: none;
+    }
+
+    .payment-success-screen::before {
+      background: linear-gradient(118deg, transparent 38%, rgba(99, 255, 166, .02) 45%, rgba(99, 255, 166, .34) 50%, rgba(99, 255, 166, .06) 55%, transparent 62%);
+      transform: translateX(-85%) rotate(-12deg);
+      animation: successLightSweep 1.25s .18s cubic-bezier(.2,.7,.2,1) forwards;
+    }
+
+    .payment-success-screen::after {
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 42%, rgba(70, 221, 128, .2), transparent 48%);
+      opacity: 0;
+      animation: successGlowIn .75s .18s ease-out forwards;
+    }
+
+    @keyframes successLightSweep {
+      to { transform: translateX(85%) rotate(-12deg); }
+    }
+
+    @keyframes successGlowIn { to { opacity: 1; } }
+
+    .payment-success-card {
+      position: relative;
+      z-index: 1;
+      width: min(460px, 100%);
+      padding: clamp(28px, 7vw, 48px);
+      border: 1px solid rgba(174, 255, 201, .19);
+      border-radius: 30px;
+      background: linear-gradient(155deg, rgba(28, 40, 32, .94), rgba(18, 24, 20, .96));
+      box-shadow: 0 30px 100px rgba(0,0,0,.48), 0 0 80px rgba(62, 221, 121, .13);
+      text-align: center;
+      animation: successCardIn .65s .1s cubic-bezier(.2,.9,.25,1.2) both;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    @keyframes successCardIn {
+      from { opacity: 0; transform: translateY(22px) scale(.94); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .payment-success-mark {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 92px;
+      height: 92px;
+      margin: 0 auto 24px;
+      border: 1px solid rgba(150,255,186,.38);
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 25%, #a5ffc0, #3cdb79 68%, #1d9a50);
+      box-shadow: 0 0 0 10px rgba(93, 239, 143, .08), 0 0 48px rgba(83, 255, 139, .42);
+      color: #102016;
+      font-size: 2.8rem;
+      font-weight: 800;
+      animation: successMarkPop .6s .32s cubic-bezier(.2,.9,.25,1.5) both;
+    }
+
+    .payment-success-mark::before,
+    .payment-success-mark::after {
+      position: absolute;
+      inset: -13px;
+      border: 1px solid rgba(137, 255, 175, .22);
+      border-radius: inherit;
+      content: "";
+      animation: successRipple 1.8s .55s ease-out infinite;
+    }
+
+    .payment-success-mark::after { animation-delay: 1.15s; }
+
+    @keyframes successMarkPop {
+      from { opacity: 0; transform: scale(.3) rotate(-18deg); }
+      to { opacity: 1; transform: scale(1) rotate(0); }
+    }
+
+    @keyframes successRipple {
+      from { opacity: .7; transform: scale(.78); }
+      to { opacity: 0; transform: scale(1.45); }
+    }
+
+    .payment-success-kicker {
+      margin-bottom: 10px;
+      color: #8ee9aa;
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .payment-success-title {
+      margin: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 8vw, 3rem);
+      letter-spacing: -.065em;
+      line-height: 1;
+    }
+
+    .payment-success-copy {
+      margin: 13px 0 0;
+      color: rgba(242, 249, 244, .68);
+      font-size: .95rem;
+      line-height: 1.6;
+    }
+
+    .payment-success-details {
+      margin: 22px 0 24px;
+      padding: 15px 17px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      background: rgba(255,255,255,.035);
+      color: rgba(242,249,244,.72);
+      font-size: .86rem;
+      line-height: 1.7;
+    }
+
+    .payment-success-details strong { color: #fff; }
+
+    .payment-success-actions { display: grid; gap: 10px; }
+
+    .payment-success-button {
+      display: flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      border-radius: 15px;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .18s ease, filter .18s ease, background .18s ease;
+    }
+
+    .payment-success-button:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .payment-success-button.primary { background: linear-gradient(115deg, #aaffc0, #61e889); color: #102016; box-shadow: 0 12px 28px rgba(64, 231, 120, .2); }
+    .payment-success-button.secondary { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.12); color: #f5f0eb; }
+
+    .success-particle {
+      position: absolute;
+      z-index: 0;
+      width: var(--size);
+      height: var(--size);
+      left: var(--x);
+      top: var(--y);
+      border-radius: 50%;
+      background: #91ffad;
+      box-shadow: 0 0 16px 3px rgba(103, 255, 145, .65);
+      opacity: 0;
+      animation: successParticle var(--duration) var(--delay) ease-out both;
+      pointer-events: none;
+    }
+
+    @keyframes successParticle {
+      0% { opacity: 0; transform: translate3d(0, 18px, 0) scale(.25); }
+      18% { opacity: .9; }
+      100% { opacity: 0; transform: translate3d(var(--drift), -110px, 0) scale(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .payment-success-screen::before,
+      .payment-success-screen::after,
+      .payment-success-card,
+      .payment-success-mark,
+      .payment-success-mark::before,
+      .payment-success-mark::after,
+      .success-particle { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+
     .hidden { display: none !important; }
 
     @media (max-width: 840px) {
@@ -1158,6 +1352,20 @@
     </section>
   </div>
 
+  <section class="payment-success-screen" id="paymentSuccessScreen" aria-hidden="true" aria-live="assertive">
+    <div class="payment-success-card">
+      <div class="payment-success-mark" aria-hidden="true">✓</div>
+      <div class="payment-success-kicker">Оплата подтверждена</div>
+      <h1 class="payment-success-title">Всё успешно!</h1>
+      <p class="payment-success-copy" id="paymentSuccessCopy">Подписка активирована и уже доступна в FernieX.</p>
+      <div class="payment-success-details" id="paymentSuccessDetails"></div>
+      <div class="payment-success-actions">
+        <button class="payment-success-button primary" type="button" id="returnFernieIdButton">Вернуться в FernieID</button>
+        <button class="payment-success-button secondary" type="button" id="openFernieBotButton">Открыть бота (@FernieXBot)</button>
+      </div>
+    </div>
+  </section>
+
   <script>
     const PLAN_DEFS = {
       fp: {
@@ -1210,6 +1418,12 @@
     };
 
     const checkoutParams = new URLSearchParams(window.location.search);
+    const telegramWebApp = window.Telegram?.WebApp || null;
+    const isTelegramMiniApp = Boolean(telegramWebApp?.initData || (telegramWebApp?.platform && telegramWebApp.platform !== 'unknown'));
+    if (isTelegramMiniApp) {
+      telegramWebApp.ready();
+      telegramWebApp.expand();
+    }
     const requestedPlan = checkoutParams.get('plan');
     const initialPlan = PLAN_DEFS[requestedPlan] ? PLAN_DEFS[requestedPlan] : PLAN_DEFS.fp;
     const requestedDuration = initialPlan.options.find(option => option.key === checkoutParams.get('duration'));
@@ -1371,6 +1585,67 @@
       status.textContent = message;
     }
 
+    function showPaymentSuccess(plan, duration, method) {
+      state.paymentInProgress = false;
+      state.pendingPaymentId = null;
+      state.pendingStarsPayment = null;
+      state.pendingPurchaseId = null;
+      sessionStorage.removeItem('fernie_pending_payment');
+      localStorage.removeItem('fernie_pending_payment');
+      sessionStorage.removeItem('fernie_pending_stars');
+      localStorage.removeItem('fernie_pending_stars');
+      document.getElementById('checkoutPanel').classList.add('hidden');
+      document.getElementById('successCard').classList.remove('show');
+      document.getElementById('paymentSuccessCopy').textContent = `${plan.title} подключена на срок ${duration.label}. Подписка уже активна.`;
+      document.getElementById('paymentSuccessDetails').innerHTML =
+        `Тариф: <strong>${escapeHtml(plan.title)}</strong><br>` +
+        `Срок: <strong>${escapeHtml(duration.label)}</strong><br>` +
+        `Оплата: <strong>${escapeHtml(PLAN_DEFS[plan.key].methods.find(item => item.id === method)?.name || method)}</strong>`;
+      const screen = document.getElementById('paymentSuccessScreen');
+      document.body.classList.add('payment-success-active');
+      screen.classList.add('active');
+      screen.setAttribute('aria-hidden', 'false');
+      screen.querySelectorAll('.success-particle').forEach(particle => particle.remove());
+      for (let index = 0; index < 30; index++) {
+        const particle = document.createElement('span');
+        particle.className = 'success-particle';
+        particle.style.setProperty('--x', `${Math.random() * 100}%`);
+        particle.style.setProperty('--y', `${38 + Math.random() * 55}%`);
+        particle.style.setProperty('--size', `${2 + Math.random() * 5}px`);
+        particle.style.setProperty('--drift', `${Math.random() * 140 - 70}px`);
+        particle.style.setProperty('--duration', `${1.2 + Math.random() * 1.3}s`);
+        particle.style.setProperty('--delay', `${Math.random() * .8}s`);
+        screen.appendChild(particle);
+      }
+      telegramWebApp?.HapticFeedback?.notificationOccurred?.('success');
+      telegramWebApp?.expand?.();
+    }
+
+    document.getElementById('returnFernieIdButton').addEventListener('click', () => {
+      if (isTelegramMiniApp && telegramWebApp?.close) {
+        telegramWebApp.close();
+        return;
+      }
+      const previous = document.referrer;
+      try {
+        const previousUrl = new URL(previous);
+        if (previousUrl.hostname === 'ferniex-id.vercel.app' || previousUrl.hostname.endsWith('.ferniex.ru')) {
+          window.location.assign(previous);
+          return;
+        }
+      } catch (error) {}
+      window.location.assign('https://ferniex-id.vercel.app/');
+    });
+
+    document.getElementById('openFernieBotButton').addEventListener('click', () => {
+      const botUrl = 'https://t.me/FernieXBot';
+      if (isTelegramMiniApp && telegramWebApp?.openTelegramLink) {
+        telegramWebApp.openTelegramLink(botUrl);
+        return;
+      }
+      window.open(botUrl, '_blank', 'noopener,noreferrer');
+    });
+
     function renderCheckout() {
       const plan = PLAN_DEFS[state.selectedPlan];
       const duration = state.selectedDuration || getDefaultDuration(state.selectedPlan);
@@ -1506,16 +1781,7 @@
             });
             const data = await response.json();
             if (data?.paid) {
-              state.pendingStarsPayment = null;
-              sessionStorage.removeItem('fernie_pending_stars');
-              localStorage.removeItem('fernie_pending_stars');
-              state.paymentInProgress = false;
-              button.classList.remove('is-loading');
-              button.textContent = 'Оплачено ✓';
-              showInlineStatus('success', `${plan.title} активирована на срок ${duration.label}.`);
-              document.getElementById('successCard').classList.add('show');
-              document.querySelector('#successCard .success-title').textContent = 'Подписка активирована!';
-              document.querySelector('#successCard .success-text').textContent = `${plan.title} подключена на срок ${duration.label}.`;
+              showPaymentSuccess(plan, duration, 'stars');
             } else {
               state.paymentInProgress = false;
               button.disabled = false;
@@ -1575,13 +1841,7 @@
         });
         const data = await response.json();
         if (!data?.success) throw new Error(data?.error || 'Оплату не удалось подтвердить.');
-        state.pendingPurchaseId = null;
-        showInlineStatus('success', `Оплата прошла! ${plan.title} активирована на ${duration.label}.`);
-        button.classList.remove('is-loading');
-        button.textContent = 'Оплачено ✓';
-        document.getElementById('successCard').classList.add('show');
-        document.querySelector('#successCard .success-title').textContent = 'Подписка активирована!';
-        document.querySelector('#successCard .success-text').textContent = `${plan.title} подключена на срок ${duration.label}.`;
+        showPaymentSuccess(plan, duration, method);
       } catch (error) {
         state.paymentInProgress = false;
         showInlineStatus('error', error.message || 'Не удалось выполнить оплату. Попробуйте ещё раз.');
@@ -1628,7 +1888,9 @@
         sessionStorage.setItem('fernie_pending_payment', JSON.stringify(pending));
         localStorage.setItem('fernie_pending_payment', JSON.stringify(pending));
         showInlineStatus('pending', 'Переходим в YooKassa. После оплаты вернитесь на эту страницу.');
-        window.location.assign(data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru');
+        const confirmationUrl = data.confirmationUrl || data.confirmation_url || 'https://yookassa.ru';
+        if (isTelegramMiniApp && telegramWebApp?.openLink) telegramWebApp.openLink(confirmationUrl);
+        else window.location.assign(confirmationUrl);
         return true;
       } catch (error) {
         showInlineStatus('error', error.message || 'Ошибка подключения к YooKassa. Попробуйте ещё раз.');
@@ -1663,10 +1925,7 @@
           showInlineStatus('error', data?.error || 'Не удалось активировать подписку после оплаты.');
           return false;
         }
-        showInlineStatus('success', `${plan.title} активирована на срок ${duration.label}.`);
-        document.getElementById('successCard').classList.add('show');
-        document.querySelector('#successCard .success-title').textContent = 'Подписка активирована!';
-        document.querySelector('#successCard .success-text').textContent = `${plan.title} подключена на срок ${duration.label}.`;
+        showPaymentSuccess(plan, duration, method);
         return true;
       } catch (error) {
         showInlineStatus('error', 'Оплата подтверждена, но не удалось активировать подписку. Повторите проверку или обратитесь в поддержку.');
@@ -1693,96 +1952,95 @@
       }
     }
 
-    function createStarsPaymentId(telegramId) {
-      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-      let value = BigInt(telegramId);
-      let encoded = '';
-      do {
-        encoded = chars[Number(value % 62n)] + encoded;
-        value /= 62n;
-      } while (value > 0n);
-      const owner = encoded.padStart(8, '0').slice(-8);
-      const suffix = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-      return `0000030${owner}${suffix}`;
-    }
-
     async function openStarsPayment(plan, duration) {
       const user = getUserFromState();
-      let telegramId = user.telegram_id;
-      const daysByKey = { '1d': 1, '7d': 7, '30d': 30, '6m': 180, '1y': 365 };
-      const days = daysByKey[duration.key];
       if (!user.id) {
-        showInlineStatus('error', 'Войдите в FernieID, чтобы оформить подписку.');
+        showInlineStatus('error', 'Откройте оформление подписки из своего аккаунта FernieID.');
         return false;
       }
-      if (!days) {
+      if (!getStarsAmount(duration)) {
         showInlineStatus('error', 'Для выбранного срока Telegram Stars недоступны. Выберите YooKassa.');
         return false;
       }
-      let telegramWindow = null;
-      if (!/^\d{5,15}$/.test(String(telegramId || ''))) {
-        telegramWindow = window.open('about:blank', '_blank');
-        if (!telegramWindow) {
-          showInlineStatus('error', 'Разрешите открытие Telegram в браузере и попробуйте снова.');
-          return false;
+      let invoice;
+      try {
+        const response = await fetch('/api/fernieplus/pro/create-stars-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id, plan_key: duration.key })
+        });
+        invoice = await response.json();
+        if (!response.ok || !invoice?.success || !invoice.invoice_url || !invoice.payment_id || !invoice.telegram_id) {
+          throw new Error(invoice?.error || 'Не удалось создать счёт Telegram Stars.');
         }
-        try {
-          const response = await fetch(`/api/fernieplus/${encodeURIComponent(user.id)}`);
-          const data = await response.json();
-          telegramId = data?.telegram_id;
-          if (!data?.success || !/^\d{5,15}$/.test(String(telegramId || ''))) {
-            telegramWindow.close();
-            showInlineStatus('error', 'Сначала привяжите Telegram к аккаунту FernieID.');
-            return false;
-          }
-          user.telegram_id = telegramId;
-        } catch (error) {
-          telegramWindow.close();
-          showInlineStatus('error', 'Не удалось проверить привязку Telegram. Попробуйте ещё раз.');
-          return false;
-        }
+      } catch (error) {
+        showInlineStatus('error', error.message || 'Не удалось создать счёт Telegram Stars.');
+        return false;
       }
-      const paymentId = createStarsPaymentId(telegramId);
+
+      const paymentId = invoice.payment_id;
+      const telegramId = String(invoice.telegram_id);
       const pending = { paymentId, telegramId, planKey: plan.key, durationKey: duration.key };
+      state.pendingStarsPayment = { ...pending, plan, duration };
       sessionStorage.setItem('fernie_pending_stars', JSON.stringify(pending));
       localStorage.setItem('fernie_pending_stars', JSON.stringify(pending));
-      const starsUrl = `https://t.me/FernieXBot?start=FPro_TS_${days}day_${paymentId}`;
-      showInlineStatus('pending', 'Открываем Telegram. Подписка активируется после подтверждения оплаты ботом.');
-      if (telegramWindow) telegramWindow.location.assign(starsUrl);
-      else window.open(starsUrl, '_blank', 'noopener');
+      showInlineStatus('pending', isTelegramMiniApp
+        ? 'Подтвердите оплату в окне Telegram. После подтверждения подписка активируется автоматически.'
+        : 'Открываем защищённый счёт Telegram Stars. После оплаты вернитесь на эту страницу.');
       const button = document.getElementById('checkoutPayButton');
       const deadline = Date.now() + 5 * 60 * 1000;
-      const poll = setInterval(async () => {
-        if (Date.now() >= deadline) {
-          clearInterval(poll);
-          state.paymentInProgress = false;
-          button.disabled = false;
-          button.classList.remove('is-loading');
-          button.textContent = `Проверить оплату ${formatPriceDisplay(getStarsAmount(duration), 'stars')}`;
-          showInlineStatus('pending', 'Не получили подтверждение оплаты. Если вы уже оплатили, нажмите для повторной проверки.');
-          state.pendingStarsPayment = { paymentId, telegramId, plan, duration };
-          return;
-        }
+      let completed = false;
+      let poll;
+      const verifyPayment = async () => {
+        if (completed) return;
         try {
           const response = await fetch('/api/fernieplus/pro/check-payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pay_id: paymentId, telegram_id: telegramId })
           });
-          const data = await response.json();
-          if (!data?.paid) return;
+          const result = await response.json();
+          if (!result?.paid) return;
+          completed = true;
+          if (poll) clearInterval(poll);
+          showPaymentSuccess(plan, duration, 'stars');
+        } catch (error) {}
+      };
+
+      if (telegramWebApp?.openInvoice) {
+        telegramWebApp.openInvoice(invoice.invoice_url, status => {
+          if (status === 'paid') verifyPayment();
+          if (status === 'cancelled' || status === 'failed') {
+            if (poll) clearInterval(poll);
+            state.paymentInProgress = false;
+            state.pendingStarsPayment = null;
+            sessionStorage.removeItem('fernie_pending_stars');
+            localStorage.removeItem('fernie_pending_stars');
+            button.disabled = false;
+            button.classList.remove('is-loading');
+            button.textContent = `Оплатить ${formatPriceDisplay(getStarsAmount(duration), 'stars')}`;
+            showInlineStatus(status === 'cancelled' ? 'pending' : 'error', status === 'cancelled'
+              ? 'Оплата отменена. Вы можете попробовать ещё раз.'
+              : 'Telegram не смог обработать платёж. Попробуйте ещё раз.');
+          }
+        });
+      } else {
+        if (isTelegramMiniApp && telegramWebApp?.openLink) telegramWebApp.openLink(invoice.invoice_url);
+        else window.location.assign(invoice.invoice_url);
+        return true;
+      }
+
+      poll = setInterval(async () => {
+        if (Date.now() >= deadline) {
           clearInterval(poll);
           state.paymentInProgress = false;
-          state.pendingStarsPayment = null;
-          sessionStorage.removeItem('fernie_pending_stars');
-          localStorage.removeItem('fernie_pending_stars');
+          button.disabled = false;
           button.classList.remove('is-loading');
-          button.textContent = 'Оплачено ✓';
-          showInlineStatus('success', `${plan.title} активирована на срок ${duration.label}.`);
-          document.getElementById('successCard').classList.add('show');
-          document.querySelector('#successCard .success-title').textContent = 'Подписка активирована!';
-          document.querySelector('#successCard .success-text').textContent = `${plan.title} подключена на срок ${duration.label}.`;
-        } catch (error) {}
+          button.textContent = `Проверить оплату ${formatPriceDisplay(getStarsAmount(duration), 'stars')}`;
+          showInlineStatus('pending', 'Подтверждение ещё не пришло. Если вы уже оплатили, нажмите кнопку, чтобы проверить статус.');
+          return;
+        }
+        await verifyPayment();
       }, 2500);
       return true;
     }
@@ -1814,25 +2072,12 @@
       button.classList.add('is-loading');
       button.innerHTML = '<span class="checkout-spinner"></span>Проверяем оплату…';
       const result = await pollYookassaStatus(pending.paymentId, plan, duration);
-      if (result) {
-        state.paymentInProgress = false;
-        state.pendingPaymentId = null;
-        sessionStorage.removeItem('fernie_pending_payment');
-        localStorage.removeItem('fernie_pending_payment');
-        showInlineStatus('success', `${plan.title} активирована на срок ${duration.label}.`);
-        button.classList.remove('is-loading');
-        button.textContent = 'Оплачено ✓';
-      } else {
-        state.paymentInProgress = false;
-        button.disabled = false;
-        button.classList.remove('is-loading');
-        if (!state.pendingPaymentId) {
-          button.textContent = `Оплатить ${formatPriceDisplay(duration.price, 'yookassa')}`;
-        } else {
-          button.textContent = `Проверить оплату ${formatPriceDisplay(duration.price, 'yookassa')}`;
-        }
-        if (state.pendingPaymentId) state.pendingPaymentId = pending.paymentId;
-      }
+      if (result) return;
+      state.paymentInProgress = false;
+      button.disabled = false;
+      button.classList.remove('is-loading');
+      state.pendingPaymentId = pending.paymentId;
+      button.textContent = `Проверить оплату ${formatPriceDisplay(duration.price, 'yookassa')}`;
     }
 
     function resumePendingStarsPayment() {
