@@ -6226,5 +6226,67 @@ app.patch('/api/social/chats/:conversationId/read', async (req, res) => {
   }
 });
 
+app.post('/api/social/chats/:conversationId/presence', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_chat_presence?on_conflict=user_id`, {
+      method:'POST',
+      headers:{ ...sbHeaders, Prefer:'resolution=merge-duplicates,return=minimal' },
+      body:JSON.stringify({ user_id:user.id, conversation_id:conversationId, last_seen_at:new Date().toISOString() })
+    });
+    if(!response.ok) throw new Error('Не удалось обновить статус');
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось обновить статус' });
+  }
+});
+
+app.delete('/api/social/chats/:conversationId/presence', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_chat_presence?user_id=eq.${user.id}&conversation_id=eq.${conversationId}`, {
+      method:'DELETE', headers:sbHeaders
+    });
+    if(!response.ok) throw new Error('Не удалось обновить статус');
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось обновить статус' });
+  }
+});
+
+app.get('/api/social/chats/:conversationId/presence', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const partnerId = String(conversation.participant_one) === String(user.id) ? conversation.participant_two : conversation.participant_one;
+    const cutoff = new Date(Date.now() - 30000).toISOString();
+    const query = new URLSearchParams({
+      user_id:`eq.${partnerId}`,
+      conversation_id:`eq.${conversationId}`,
+      last_seen_at:`gte.${cutoff}`,
+      select:'user_id',
+      limit:'1'
+    });
+    const response = await fetch(`${SB_URL}/rest/v1/social_chat_presence?${query}`, { headers:sbHeaders });
+    const presence = await response.json();
+    if(!response.ok || !Array.isArray(presence)) throw new Error('Не удалось проверить статус');
+    res.json({ success:true, inChat:presence.length > 0 });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось проверить статус' });
+  }
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
