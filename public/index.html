@@ -476,6 +476,21 @@ body{
 .admin-table th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);padding:.6rem .5rem;border-bottom:1px solid var(--line);}
 .admin-table td{padding:.65rem .5rem;border-bottom:1px solid var(--line);}
 .admin-table tr:last-child td{border-bottom:none;}
+.admin-user-row{cursor:pointer;transition:background .15s;}
+.admin-user-row:hover{background:color-mix(in srgb,var(--field) 65%,transparent);}
+.admin-user-id{color:var(--muted);font-size:.72rem;}
+.admin-user-edit{display:flex;align-items:center;gap:.45rem;}
+.admin-user-edit .field-input{min-width:0;}
+.admin-user-pencil{display:grid;place-items:center;width:31px;height:31px;flex:0 0 31px;border:1px solid var(--field-border);border-radius:9px;background:var(--field);color:var(--ink);cursor:pointer;}
+.admin-user-telegram-pill{display:inline-flex;align-items:center;gap:.4rem;max-width:100%;padding:.35rem .55rem;border:1px solid var(--field-border);border-radius:999px;background:var(--field);font-size:.75rem;font-weight:700;}
+.admin-user-telegram-remove{display:grid;place-items:center;width:19px;height:19px;border:0;border-radius:50%;background:color-mix(in srgb,var(--red) 12%,var(--field));color:var(--red);font-size:.9rem;line-height:1;cursor:pointer;}
+.admin-user-modal-fields{display:flex;flex-direction:column;gap:1rem;}
+.admin-user-modal-field{display:flex;flex-direction:column;gap:.4rem;}
+.admin-user-modal-label{color:var(--muted);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+.admin-user-modal-id{font-size:.92rem;font-weight:700;}
+.admin-user-select{width:100%;min-height:44px;padding:.65rem .8rem;border:1px solid var(--field-border);border-radius:12px;background:var(--field);color:var(--ink);font:600 .85rem Inter,sans-serif;}
+.admin-user-modal-actions{display:flex;gap:.6rem;margin-top:1.25rem;}
+.admin-user-modal-actions .btn{flex:1;}
 
 /* --- красивый тонкий скроллбар вместо системного --- */
 .scroll-area{overflow-y:auto;overflow-x:hidden;}
@@ -766,6 +781,12 @@ body:hover::-webkit-scrollbar-thumb{
 /* карточка автора / поиска */
 .author-modal{text-align:center;}
 .author-modal-avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.6rem;background-size:cover;background-position:center;margin:0 auto .9rem;}
+.author-modal-banner,.admin-user-profile-banner{position:relative;height:112px;margin:-1.9rem -1.8rem 0;overflow:hidden;border-radius:24px 24px 0 0;background:linear-gradient(135deg,var(--blob-pink),var(--blob-sage));background-position:center;background-size:cover;}
+.author-modal-banner img,.admin-user-profile-banner img{width:100%;height:100%;object-fit:cover;}
+.author-modal-avatar.has-photo,.admin-user-profile-avatar.has-photo{padding:0;overflow:hidden;}
+.author-modal-avatar img,.admin-user-profile-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
+.admin-user-profile-banner{margin:0 0 -36px;border-radius:15px;}
+.admin-user-profile-avatar{position:relative;display:grid;place-items:center;width:76px;height:76px;margin-left:1rem;border:4px solid var(--card);border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);color:#fff;font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;}
 .author-modal-name{font-weight:700;font-size:1.05rem;margin-bottom:1.3rem;}
 .author-modal-actions{display:flex;flex-direction:column;gap:.6rem;}
 
@@ -814,11 +835,11 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-avatar{position:relative;display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,var(--blob-pink),var(--blob-sage));color:#fff;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;}
 .chat-avatar img{width:100%;height:100%;object-fit:cover;}
 .chat-avatar.large{width:42px;height:42px;flex-basis:42px;}
-.chat-row-main{min-width:0;flex:1;}
-.chat-row-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;}
-.chat-row-name{overflow:hidden;font-size:.84rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.chat-row-main{display:block;min-width:0;flex:1;overflow:hidden;}
+.chat-row-top{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:.5rem;}
+.chat-row-name{min-width:0;flex:1;overflow:hidden;font-size:.84rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
 .chat-row-time{flex:0 0 auto;color:var(--muted);font-size:.62rem;}
-.chat-row-preview{overflow:hidden;margin-top:.23rem;color:var(--muted);font-size:.73rem;text-overflow:ellipsis;white-space:nowrap;}
+.chat-row-preview{display:block;width:100%;min-width:0;overflow:hidden;margin-top:.23rem;color:var(--muted);font-size:.73rem;text-overflow:ellipsis;white-space:nowrap;}
 .chat-unread{display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:.62rem;font-weight:800;}
 .chat-conversation{display:flex;min-height:390px;max-height:min(68vh,720px);flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:17px;background:color-mix(in srgb,var(--field) 38%,var(--card));}
 .chat-conversation-head{display:flex;align-items:center;gap:.7rem;padding:.7rem .8rem;border-bottom:1px solid var(--line);background:var(--card);}
@@ -5499,8 +5520,10 @@ function startTgConfirmFlow(){
   };
 }
 
-async function loadAdmin(){
-  if(loaded.admin) return; loaded.admin = true;
+let adminUsersCache = [];
+
+async function loadAdmin(refresh = false){
+  if(loaded.admin && !refresh) return; loaded.admin = true;
   try{
     const [statsRes, usersRes] = await Promise.all([
       fetch(`${API}/api/admin/stats?adminId=${currentUser.id}`),
@@ -5523,21 +5546,145 @@ async function loadAdmin(){
     }
 
     if(users.success){
-      $('adminUsersBody').innerHTML = `<div class="panel-sub" style="margin-bottom:.6rem;">Всего: ${users.users.length}</div>
-        <div class="scroll-area" style="max-height:520px;"><table class="admin-table"><thead><tr>
-        <th>Логин</th><th>Роль</th><th>Баланс</th><th>Telegram</th></tr></thead><tbody>` +
-        users.users.map(u => `<tr>
-          <td>${escapeHtml(u.username)}</td>
-          <td>${u.role}</td>
-          <td>${u.balance ?? '—'}</td>
-          <td>${u.telegram_id ? icon('check') : '—'}</td>
-        </tr>`).join('') + `</tbody></table></div>`;
+      adminUsersCache = users.users || [];
+      renderAdminUsers();
     } else {
       $('adminUsersBody').innerHTML = `<div class="empty-box"><div class="title">Нет доступа</div><div class="desc">${users.error||''}</div></div>`;
     }
   } catch(e){
     $('adminStatsBody').innerHTML = $('adminUsersBody').innerHTML = `<div class="empty-box"><div class="title">Ошибка загрузки</div></div>`;
   }
+}
+
+function renderAdminUsers(){
+  $('adminUsersBody').innerHTML = `<div class="panel-sub" style="margin-bottom:.6rem;">Всего: ${adminUsersCache.length} · выберите пользователя для редактирования</div>
+    <div class="scroll-area" style="max-height:520px;"><table class="admin-table"><thead><tr>
+    <th>Логин</th><th>Роль</th><th>Баланс</th><th>Telegram</th></tr></thead><tbody>` +
+    adminUsersCache.map(user => `<tr class="admin-user-row" data-admin-user="${escapeHtml(user.id)}" tabindex="0">
+      <td>${escapeHtml(user.username || '—')}<div class="admin-user-id">ID: ${escapeHtml(user.id)}</div></td>
+      <td>${user.role === 'admin' ? 'Администратор' : 'Пользователь'}</td>
+      <td>${user.balance ?? '—'}</td>
+      <td>${user.telegram_id ? icon('check') : '—'}</td>
+    </tr>`).join('') + `</tbody></table></div>`;
+  $('adminUsersBody').querySelectorAll('[data-admin-user]').forEach(row => {
+    const open = () => {
+      const user = adminUsersCache.find(candidate => String(candidate.id) === row.dataset.adminUser);
+      if(user) openAdminUserModal(user);
+    };
+    row.addEventListener('click', open);
+    row.addEventListener('keydown', event => {
+      if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); open(); }
+    });
+  });
+}
+
+function openAdminUserModal(user, baseline){
+  const original = baseline || {
+    username:String(user.username || ''),
+    role:user.role === 'admin' ? 'admin' : 'user',
+    telegramId:user.telegram_id ? String(user.telegram_id) : ''
+  };
+  const currentRole = user.role === 'admin' ? 'admin' : 'user';
+  let telegramDetached = !user.telegram_id;
+  openModal(`<div class="modal-title">Пользователь</div>
+    <div class="admin-user-modal-fields">
+      <div class="admin-user-modal-field">
+        <span class="admin-user-modal-label">ID аккаунта</span>
+        <span class="admin-user-modal-id">${escapeHtml(user.id)}</span>
+      </div>
+      <div class="admin-user-modal-field">
+        <label class="admin-user-modal-label" for="adminUserNameInput">Ник</label>
+        <div class="admin-user-edit">
+          <input class="field-input" id="adminUserNameInput" value="${escapeHtml(user.username || '')}" maxlength="20" readonly>
+          <button type="button" class="admin-user-pencil" id="adminUserNameEdit" aria-label="Редактировать ник">✎</button>
+        </div>
+      </div>
+      <div class="admin-user-modal-field">
+        <span class="admin-user-modal-label">Telegram ID</span>
+        <div id="adminUserTelegramPillWrap" ${telegramDetached ? 'hidden' : ''}>
+          <span class="admin-user-telegram-pill"><span>${escapeHtml(user.telegram_id || '')}</span><button type="button" class="admin-user-telegram-remove" id="adminUserTelegramRemove" aria-label="Отвязать Telegram">×</button></span>
+        </div>
+        <input class="field-input" id="adminUserTelegramInput" inputmode="numeric" maxlength="15" placeholder="Введите Telegram ID" value="${telegramDetached ? '' : escapeHtml(user.telegram_id)}" ${telegramDetached ? '' : 'hidden'}>
+      </div>
+      <div class="admin-user-modal-field">
+        <label class="admin-user-modal-label" for="adminUserRole">Статус</label>
+        <select class="admin-user-select" id="adminUserRole">
+          <option value="user" ${currentRole === 'user' ? 'selected' : ''}>Пользователь</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>Администратор</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-msg" id="adminUserEditMessage"></div>
+    <div class="admin-user-modal-actions">
+      <button type="button" class="btn btn-outline" id="adminUserEditClose">Закрыть</button>
+      <button type="button" class="btn btn-dark" id="adminUserEditSave" disabled>Сохранить</button>
+    </div>`);
+
+  const nameInput = $('adminUserNameInput');
+  const roleSelect = $('adminUserRole');
+  const telegramInput = $('adminUserTelegramInput');
+  const saveButton = $('adminUserEditSave');
+  const message = $('adminUserEditMessage');
+  const hasChanges = () => nameInput.value.trim() !== original.username
+    || roleSelect.value !== original.role
+    || telegramInput.value.trim() !== original.telegramId;
+  const updateSaveState = () => { saveButton.disabled = !hasChanges(); };
+
+  $('adminUserNameEdit').addEventListener('click', () => {
+    nameInput.readOnly = false;
+    nameInput.focus();
+    nameInput.select();
+    $('adminUserNameEdit').hidden = true;
+  });
+  nameInput.addEventListener('input', updateSaveState);
+  roleSelect.addEventListener('change', updateSaveState);
+  telegramInput.addEventListener('input', () => {
+    telegramInput.value = telegramInput.value.replace(/\D/g, '').slice(0, 15);
+    updateSaveState();
+  });
+  $('adminUserTelegramRemove')?.addEventListener('click', async () => {
+    const draft = {
+      ...user,
+      username:nameInput.value,
+      role:roleSelect.value,
+      telegram_id:''
+    };
+    const detached = await confirmModal('Отвязать Telegram от этого аккаунта?', { title:'Отвязать Telegram?', okLabel:'Отвязать', danger:true, icon:'link' });
+    if(!detached) draft.telegram_id = user.telegram_id;
+    openAdminUserModal(draft, original);
+    if(detached){
+      $('adminUserNameInput').readOnly = nameInput.readOnly;
+      $('adminUserNameEdit').hidden = !nameInput.readOnly;
+      $('adminUserTelegramInput').focus();
+    }
+  });
+  $('adminUserEditClose').addEventListener('click', closeModal);
+  saveButton.addEventListener('click', async () => {
+    if(!hasChanges()) return;
+    const payload = { adminId:currentUser.id, userId:user.id };
+    const username = nameInput.value.trim();
+    const telegramId = telegramInput.value.trim();
+    if(username !== original.username) payload.username = username;
+    if(roleSelect.value !== original.role) payload.role = roleSelect.value;
+    if(telegramId !== original.telegramId) payload.telegramId = telegramId;
+    saveButton.disabled = true;
+    saveButton.textContent = 'Сохраняем…';
+    message.textContent = '';
+    try{
+      const response = await fetch(`${API}/api/admin/update-user`, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if(!response.ok || !data.success) throw new Error(data.error || 'Не удалось сохранить изменения');
+      closeModal();
+      await loadAdmin(true);
+      showToastSafe('Данные пользователя обновлены');
+    } catch(error){
+      message.textContent = error.message || 'Ошибка соединения';
+      saveButton.disabled = false;
+      saveButton.textContent = 'Сохранить';
+    }
+  });
 }
 
 /* ══════════════════════════════════════════
