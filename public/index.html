@@ -2,12 +2,17 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FernieID</title>
+<script src="https://telegram.org/js/telegram-web-app.js?64"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
+  --app-safe-top:max(env(safe-area-inset-top, 0px),var(--tg-safe-area-inset-top, 0px),var(--tg-content-safe-area-inset-top, 0px));
+  --app-safe-right:max(env(safe-area-inset-right, 0px),var(--tg-safe-area-inset-right, 0px),var(--tg-content-safe-area-inset-right, 0px));
+  --app-safe-bottom:max(env(safe-area-inset-bottom, 0px),var(--tg-safe-area-inset-bottom, 0px),var(--tg-content-safe-area-inset-bottom, 0px));
+  --app-safe-left:max(env(safe-area-inset-left, 0px),var(--tg-safe-area-inset-left, 0px),var(--tg-content-safe-area-inset-left, 0px));
   --bg:#fbf1e8;
   --card:#ffffff;
   --ink:#181410;
@@ -29,6 +34,8 @@
 html{height:100%;}
 body{
   min-height:100%;
+  min-height:100dvh;
+  min-height:var(--tg-viewport-stable-height,100dvh);
   font-family:'Inter',sans-serif;
   background:var(--bg);
   color:var(--ink);
@@ -60,7 +67,7 @@ body{
 .page.active{display:flex;}
 
 /* ============ AUTH ============ */
-#auth-page{min-height:100vh;align-items:center;justify-content:center;padding:2rem 1.25rem;width:100%;}
+#auth-page{min-height:100vh;min-height:var(--tg-viewport-stable-height,100dvh);align-items:center;justify-content:center;padding:2rem 1.25rem;width:100%;}
 .auth-wrap{width:100%;max-width:420px;}
 .auth-card{background:var(--card);border-radius:var(--radius-card);padding:2.75rem 2.5rem;box-shadow:0 30px 60px -20px rgba(60,40,20,0.18);animation:fadeUp .45s ease both;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
@@ -94,7 +101,7 @@ body{
 @media(max-width:420px){.auth-card{padding:2.1rem 1.5rem;border-radius:22px;}.auth-title{font-size:1.6rem;}}
 
 /* ============ DASHBOARD ============ */
-#dash-page{min-height:100vh;width:100%;align-items:flex-start;justify-content:center;padding:1.75rem 1.5rem;gap:1.5rem;}
+#dash-page{min-height:100vh;min-height:var(--tg-viewport-stable-height,100dvh);width:100%;align-items:flex-start;justify-content:center;padding:1.75rem 1.5rem;gap:1.5rem;}
 .dash-shell{width:100%;max-width:1180px;display:flex;gap:1.5rem;align-items:flex-start;}
 
 /* --- sidebar --- */
@@ -282,9 +289,28 @@ body{
 .type-option.active .cico,.type-option.active .type-option-label{color:var(--ink-contrast);}
 
 /* --- модалка подтверждения (замена window.confirm) --- */
-.confirm-ico{width:46px;height:46px;border-radius:14px;background:#fbeceb;color:var(--red);display:flex;align-items:center;justify-content:center;margin:0 auto .9rem;}
-.confirm-ico .cico{width:20px;height:20px;}
+.modal-overlay.confirm-active{isolation:isolate;overflow:hidden;}
+.modal-overlay.confirm-active::before{content:'';position:absolute;inset:-35%;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 22% 34%,rgba(226,86,79,.28),transparent 38%),radial-gradient(ellipse at 76% 63%,rgba(233,164,158,.3),transparent 40%),radial-gradient(ellipse at 55% 12%,rgba(201,138,43,.17),transparent 34%);filter:blur(24px);animation:confirmAurora 9s ease-in-out infinite alternate;}
+.modal-overlay.confirm-active::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 28%,rgba(24,20,16,.17) 100%);animation:confirmBackdropPulse 4.8s ease-in-out infinite;}
+.modal-overlay.confirm-active .modal-box{animation:confirmCardIn .42s cubic-bezier(.2,1.25,.4,1) both;}
+.confirm-ico{position:relative;isolation:isolate;width:58px;height:58px;border-radius:19px;background:linear-gradient(135deg,#fff3f1,#fbeceb,#fff5e8);background-size:200% 200%;color:var(--red);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;box-shadow:0 12px 26px -15px rgba(226,86,79,.62);animation:confirmIconGlow 5s ease-in-out infinite;}
+.confirm-ico::before{content:'';position:absolute;inset:-7px;z-index:-1;border:1px solid rgba(226,86,79,.34);border-radius:24px;animation:confirmRing 2.3s cubic-bezier(.2,.7,.3,1) infinite;}
+.confirm-ico::after{content:'';position:absolute;inset:-15px;z-index:-2;border:1px solid rgba(226,86,79,.16);border-radius:30px;animation:confirmRing 2.3s .55s cubic-bezier(.2,.7,.3,1) infinite;}
+.confirm-ico .cico{width:25px;height:25px;filter:drop-shadow(0 4px 5px rgba(175,48,42,.24));animation:confirmWarning 2.7s ease-in-out infinite;}
+.confirm-ico .cico-warn{clip-path:polygon(50% 3%,98% 94%,2% 94%);}
+.confirm-ico .cico-warn::before{left:47%;top:38%;width:2px;height:6px;background:#fff;}
+.confirm-ico .cico-warn::after{left:47%;top:72%;width:2px;height:2px;background:#fff;}
 .confirm-desc{text-align:center;color:var(--muted);font-size:.86rem;line-height:1.55;margin:.4rem 0 1.4rem;}
+.confirm-active .modal-title{animation:confirmTextIn .34s .08s both;}
+.confirm-active .confirm-desc{animation:confirmTextIn .34s .14s both;}
+.confirm-active .modal-actions{animation:confirmTextIn .34s .2s both;}
+@keyframes confirmAurora{0%{transform:translate3d(-3%,1%,0) rotate(0deg) scale(.96);}50%{transform:translate3d(3%,-2%,0) rotate(8deg) scale(1.04);}100%{transform:translate3d(-1%,3%,0) rotate(-6deg) scale(1.08);}}
+@keyframes confirmBackdropPulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+@keyframes confirmCardIn{from{opacity:0;transform:translateY(20px) scale(.94);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes confirmIconGlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes confirmRing{0%{opacity:.7;transform:scale(.84);}80%,100%{opacity:0;transform:scale(1.32);}}
+@keyframes confirmWarning{0%,100%{transform:translateY(0) rotate(0) scale(1);}18%{transform:translateY(-2px) rotate(-5deg) scale(1.08);}36%{transform:translateY(0) rotate(5deg) scale(1.08);}54%{transform:translateY(-1px) rotate(-3deg) scale(1.04);}72%{transform:translateY(0) rotate(0) scale(1);}}
+@keyframes confirmTextIn{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
 
 /* --- анимация появления строк лога --- */
 @keyframes logRowIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -341,6 +367,7 @@ body{
 .profile-bg-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%);}
 .profile-bg-file-picker{display:flex;align-items:center;gap:.8rem;width:100%;padding:.8rem;border:1px dashed var(--field-border);border-radius:14px;background:var(--field);cursor:pointer;transition:border-color .18s,background .18s,transform .18s;}
 .profile-bg-file-picker:hover,.profile-bg-file-picker:focus-within{border-color:color-mix(in srgb,var(--ink) 38%,var(--field-border));background:color-mix(in srgb,var(--field) 65%,var(--card));}
+.profile-bg-file-picker.is-dragging{border-color:var(--ink);border-style:solid;background:color-mix(in srgb,var(--field) 45%,var(--card));box-shadow:0 0 0 4px color-mix(in srgb,var(--ink) 9%,transparent);}
 .profile-bg-file-picker:active{transform:scale(.995);}
 .profile-bg-file-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--field-border);border-radius:12px;background:var(--card);color:var(--ink);font-size:1.1rem;}
 .profile-bg-file-copy{min-width:0;flex:1;}
@@ -365,6 +392,7 @@ body{
 @keyframes subscriptionEmojiPop{0%{opacity:0;transform:scale(.25) rotate(-24deg);}65%{opacity:1;transform:scale(1.22) rotate(7deg);}100%{transform:scale(1) rotate(0);}}
 @media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-status-card{padding:1.15rem;border-radius:17px;}.subscription-status-head{gap:.7rem;}.subscription-status-mark{width:42px;height:42px;flex-basis:42px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
 @media(prefers-reduced-motion:reduce){.subscription-status-card.active,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
+@media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions{animation:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
 .plus-action.secondary{background:var(--field);border:1px solid var(--field-border);color:var(--ink);box-shadow:none;}
@@ -772,9 +800,9 @@ body:hover::-webkit-scrollbar-thumb{
 .key-actions{display:flex;gap:.5rem;flex-wrap:wrap;}
 
 /* --- modal --- */
-.modal-overlay{position:fixed;inset:0;background:rgba(24,20,16,0.42);z-index:50;display:none;align-items:center;justify-content:center;padding:1.25rem;}
+.modal-overlay{position:fixed;inset:0;background:rgba(24,20,16,0.42);z-index:50;display:none;align-items:center;justify-content:center;padding:max(1rem,var(--app-safe-top)) max(1rem,var(--app-safe-right)) max(1rem,var(--app-safe-bottom)) max(1rem,var(--app-safe-left));}
 .modal-overlay.active{display:flex;}
-.modal-box{background:var(--card);border-radius:24px;padding:1.9rem 1.8rem;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 30px 60px -20px rgba(60,40,20,0.3);animation:fadeUp .25s ease both;}
+.modal-box{position:relative;z-index:1;background:var(--card);border-radius:24px;padding:1.9rem 1.8rem;max-width:440px;width:100%;max-height:min(88vh,calc(var(--tg-viewport-stable-height,100dvh) - var(--app-safe-top) - var(--app-safe-bottom) - 2rem));overflow-y:auto;overscroll-behavior:contain;box-shadow:0 30px 60px -20px rgba(60,40,20,0.3);animation:fadeUp .25s ease both;}
 .modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;margin-bottom:1.1rem;}
 .modal-actions{display:flex;gap:.6rem;margin-top:1.1rem;}
 .modal-actions .btn{flex:1;}
@@ -868,7 +896,7 @@ body:hover::-webkit-scrollbar-thumb{
   display:none;
   position:fixed;
   left:50%;
-  bottom:calc(14px + env(safe-area-inset-bottom));
+  bottom:calc(14px + var(--app-safe-bottom));
   transform:translateX(-50%);
   z-index:46;
   background:#181410;
@@ -911,7 +939,7 @@ body:hover::-webkit-scrollbar-thumb{
     width:100%;
     z-index:45;
     background:var(--bg);
-    padding:1.4rem 1.1rem calc(104px + env(safe-area-inset-bottom));
+    padding:calc(1.4rem + var(--app-safe-top)) calc(1.1rem + var(--app-safe-right)) calc(104px + var(--app-safe-bottom)) calc(1.1rem + var(--app-safe-left));
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
     animation:mobileMenuIn .22s ease both;
@@ -927,11 +955,11 @@ body:hover::-webkit-scrollbar-thumb{
   }
 
   /* разделы — на весь экран, без "плавающей карточки": убираем внешние отступы страницы и скругления панелей */
-  #dash-page{padding:max(.75rem, env(safe-area-inset-top)) 0 0 0;gap:0;}
+  #dash-page{min-height:var(--tg-viewport-stable-height,100dvh);padding:max(.75rem,var(--app-safe-top)) var(--app-safe-right) 0 var(--app-safe-left);gap:0;}
   .panel{border-radius:0;}
 
   /* место под нижнюю панель, чтобы контент не перекрывался */
-  .content{padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+  .content{padding-bottom:calc(96px + var(--app-safe-bottom));}
   .mobile-content-back{display:flex;align-items:center;gap:6px;width:fit-content;font-size:.78rem;font-weight:700;color:var(--ink);cursor:pointer;padding:8px 14px 8px 10px;margin:.9rem 1rem .2rem;background:var(--field);border:1px solid var(--field-border);border-radius:100px;transition:border-color .15s, transform .15s;}
   .mobile-content-back:active{transform:scale(.97);}
   body.mobile-menu-open .content{display:none;}
@@ -1557,6 +1585,12 @@ html,body{touch-action:manipulation;}
 </div>
 
 <script>
+const telegramWebApp = window.Telegram?.WebApp || null;
+if(telegramWebApp){
+  telegramWebApp.ready();
+  if(!telegramWebApp.isExpanded) telegramWebApp.expand();
+}
+
 /* ---------- полный запрет зума страницы (пинч + двойной тап) ---------- */
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('gesturechange', e => e.preventDefault());
@@ -1642,9 +1676,11 @@ function escapeHtml(s){
 }
 function closeModal(){
   $('genericModal').classList.remove('active');
+  $('genericModal').classList.remove('confirm-active');
   $('genericModalBox').innerHTML = '';
 }
 function openModal(html){
+  $('genericModal').classList.remove('confirm-active');
   $('genericModalBox').innerHTML = html;
   $('genericModal').classList.add('active');
 }
@@ -1654,13 +1690,14 @@ function confirmModal(message, opts){
   opts = opts || {};
   return new Promise(resolve => {
     openModal(`
-      <div class="confirm-ico">${icon(opts.icon || 'warn')}</div>
+      <div class="confirm-ico">${icon(opts.danger ? 'warn' : opts.icon || 'warn')}</div>
       <div class="modal-title" style="text-align:center;">${escapeHtml(opts.title || 'Подтвердите действие')}</div>
       <div class="confirm-desc">${escapeHtml(message)}</div>
       <div class="modal-actions">
         <button class="btn btn-outline" id="confirmNoBtn">${escapeHtml(opts.cancelLabel || 'Отмена')}</button>
         <button class="btn ${opts.danger ? 'btn-danger-solid' : 'btn-dark'}" id="confirmYesBtn">${escapeHtml(opts.okLabel || 'Да')}</button>
       </div>`);
+    $('genericModal').classList.add('confirm-active');
     const cleanup = (result) => { closeModal(); resolve(result); };
     $('confirmNoBtn').onclick = () => cleanup(false);
     $('confirmYesBtn').onclick = () => cleanup(true);
@@ -3655,7 +3692,32 @@ function openProfileBackgroundCreate(){
     <div class="field"><label class="field-label" for="profileBgDescription">Описание (необязательно)</label><input class="field-input" id="profileBgDescription" maxlength="120" placeholder="Короткое описание"></div>
     <div class="form-msg" id="profileBgCreateMessage"></div>
     <div class="modal-actions"><button type="button" class="btn btn-outline" id="profileBgCreateCancel">Назад</button><button type="button" class="btn btn-dark" id="profileBgCreateSubmit">Создать</button></div>`);
-  $('profileBgFile').addEventListener('change', async event => {
+  const fileInput = $('profileBgFile');
+  const picker = document.querySelector('.profile-bg-file-picker');
+  picker.addEventListener('dragenter', event => {
+    event.preventDefault();
+    picker.classList.add('is-dragging');
+  });
+  picker.addEventListener('dragover', event => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    picker.classList.add('is-dragging');
+  });
+  picker.addEventListener('dragleave', event => {
+    if(!picker.contains(event.relatedTarget)) picker.classList.remove('is-dragging');
+  });
+  picker.addEventListener('drop', event => {
+    event.preventDefault();
+    picker.classList.remove('is-dragging');
+    const file = [...(event.dataTransfer?.files || [])].find(item => /^image\/(png|jpeg|webp)$/.test(item.type));
+    if(!file){ $('profileBgCreateMessage').textContent = 'Перетащи PNG, JPG или WEBP изображение'; return; }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    fileInput.files = transfer.files;
+    fileInput.dispatchEvent(new Event('change', { bubbles:true }));
+  });
+  fileInput.addEventListener('change', async event => {
+    $('profileBgCreateMessage').textContent = '';
     const file = event.currentTarget.files[0];
     $('profileBgFileName').textContent = file
       ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} МБ`
