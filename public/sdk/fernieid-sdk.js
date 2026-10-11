@@ -171,7 +171,7 @@
 
         <div id="fid-s2" style="display:none">
           <div id="fid-s2-hint">Код отправлен в Telegram.<br>Введи его ниже.</div>
-          <div class="fid-input-wrap"><input id="fid-c" placeholder="000000" maxlength="6"></div>
+          <div class="fid-input-wrap"><input id="fid-c" placeholder="00000000" maxlength="8"></div>
           <button id="fid-verify-btn">Подтвердить →</button>
         </div>
 
@@ -218,7 +218,7 @@
     if (!d.success) return setErr(d.error);
 
     if (d.require2fa) {
-      uid = d.userId;
+      uid = d.challengeId;
       document.getElementById('fid-s1').style.display = 'none';
       document.getElementById('fid-s2').style.display = 'block';
       document.getElementById('fid-err').textContent = '';
@@ -233,7 +233,7 @@
     if (!code) return setErr('Введи код');
     setInfo('Проверка...');
 
-    const d = await post('/api/auth/verify-2fa', { apiKey: KEY, userId: uid, code });
+    const d = await post('/api/auth/verify-2fa', { apiKey: KEY, challengeId: uid, code });
     if (!d.success) return setErr(d.error);
     done(d);
   }
@@ -262,7 +262,7 @@
     const d2 = await post('/api/auth/login', { apiKey: KEY, username: u, password: p });
     if (!d2.success) return setErr(d2.error);
     if (d2.require2fa) {
-      uid = d2.userId;
+      uid = d2.challengeId;
       document.getElementById('fid-s-reg').style.display = 'none';
       document.getElementById('fid-s2').style.display = 'block';
       document.getElementById('fid-err').textContent = '';
