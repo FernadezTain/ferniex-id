@@ -5089,23 +5089,17 @@ app.post('/api/fernieplus/pro/activate', async (req, res) => {
 });
 
 app.post('/api/fernieplus/cancel-subscription', async (req, res) => {
-  const userId = req.body?.userId || req.body?.telegramId || req.body?.telegram_id || null;
-  if (!userId) return res.json({ success: false, error: 'Нет userId' });
-
+  const userId = String(req.body?.userId || '').trim();
+  if (!userId) return res.status(400).json({ success: false, error: 'Нет userId' });
   try {
-    const botRes = await fetch(`${BOT_URL}/api/fernieplus/cancel-subscription`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId,
-        telegramId: req.body?.telegramId || req.body?.telegram_id || null,
-        username: req.body?.username || 'user'
-      })
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.status(400).json({ success: false, error: 'Telegram не привязан' });
+    const result = await exchangeBotRequest('/api/fernieplus/cancel-subscription', 'POST', {
+      telegram_id: String(telegramId)
     });
-    const data = await botRes.json();
-    return res.json(data && data.success !== undefined ? data : { success: true, userId });
+    return res.status(result.status).json(result.data);
   } catch (e) {
-    return res.json({ success: false, error: e.message || 'Ошибка сервера' });
+    return res.status(502).json({ success: false, error: e.message || 'Ошибка сервера' });
   }
 });
 
