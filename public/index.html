@@ -388,6 +388,10 @@ body{
 .subscription-bg-meta{margin-top:.25rem;overflow:hidden;color:var(--muted);font-size:.7rem;text-overflow:ellipsis;white-space:nowrap;}
 .subscription-bg-actions{display:flex;gap:.4rem;margin-top:.65rem;}
 .subscription-bg-actions .btn{min-width:0;flex:1;padding:8px 9px;font-size:.72rem;white-space:normal;}
+.subscription-bg-moderate{width:100%;margin-top:.55rem;padding:8px 10px;border:1px solid #f0deb6;border-radius:10px;background:#fbf1e0;color:#8a5b17;font:800 .72rem Inter,sans-serif;cursor:pointer;}
+.subscription-bg-moderate:hover{background:#f7e7c7;}
+.profile-bg-mod-preview{display:block;width:100%;max-height:240px;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--field-border);border-radius:14px;background:var(--field);margin-bottom:.9rem;}
+.profile-bg-mod-meta{margin:-.55rem 0 .85rem;color:var(--muted);font-size:.75rem;line-height:1.5;}
 .subscription-bg-toolbar{display:flex;justify-content:flex-end;margin:-.15rem 0 .75rem;}
 .subscription-bg-add{display:inline-flex;align-items:center;gap:.45rem;padding:.65rem .95rem;border:1px solid color-mix(in srgb,var(--ink) 16%,var(--line));border-radius:12px;background:var(--ink);color:var(--ink-contrast);font:700 .78rem Inter,sans-serif;cursor:pointer;box-shadow:0 8px 18px -13px rgba(0,0,0,.45);transition:transform .18s,opacity .18s,box-shadow .18s;}
 .subscription-bg-add:hover{opacity:.92;transform:translateY(-1px);box-shadow:0 11px 20px -13px rgba(0,0,0,.48);}
@@ -3720,6 +3724,7 @@ function renderProfileBackgroundItems(items, tab){
             ? `<button type="button" class="btn btn-danger" data-delete-profile-bg="${safeId}">Удалить</button>`
             : `<button type="button" class="btn btn-outline" data-like-profile-bg="${safeId}" data-liked="${liked}">${liked ? '♥ В избранном' : '♡ В избранное'}</button>`}
         </div>
+        ${currentUser?.role === 'admin' ? `<button type="button" class="subscription-bg-moderate" data-moderate-profile-bg="${safeId}">Управление фоном</button>` : ''}
       </div>
     </article>`;
   }).join('')}</div>`;
@@ -3727,6 +3732,48 @@ function renderProfileBackgroundItems(items, tab){
   body.querySelectorAll('[data-set-profile-bg]').forEach(button => button.addEventListener('click', () => setProfileBackground(button.dataset.setProfileBg)));
   body.querySelectorAll('[data-like-profile-bg]').forEach(button => button.addEventListener('click', () => toggleProfileBackgroundLike(button.dataset.likeProfileBg)));
   body.querySelectorAll('[data-delete-profile-bg]').forEach(button => button.addEventListener('click', () => deleteProfileBackground(button.dataset.deleteProfileBg)));
+  body.querySelectorAll('[data-moderate-profile-bg]').forEach(button => button.addEventListener('click', () => {
+    const item = items.find(background => String(background.id) === button.dataset.moderateProfileBg);
+    if(item) openProfileBackgroundModeration(item);
+  }));
+}
+
+function openProfileBackgroundModeration(background){
+  if(currentUser?.role !== 'admin') return;
+  openModal(`<div class="modal-title">Управление фоном</div>
+    <img class="profile-bg-mod-preview" src="${escapeHtml(background.image_url || '')}" alt="Предпросмотр фона">
+    <div style="font-weight:800;font-size:.95rem;">${escapeHtml(background.name || 'Фон без названия')}</div>
+    <div class="profile-bg-mod-meta">Автор: ${escapeHtml(background.author || '—')} · ${background.created_at ? new Date(background.created_at).toLocaleString('ru-RU') : '—'}${background.description ? `<br>${escapeHtml(background.description)}` : ''}</div>
+    <div class="field"><label class="field-label" for="profileBgModerationReason">Причина удаления</label><textarea class="field-input" id="profileBgModerationReason" rows="3" maxlength="300" placeholder="Укажите причину"></textarea></div>
+    <div class="form-msg" id="profileBgModerationMessage"></div>
+    <div class="modal-actions"><button type="button" class="btn btn-outline" id="profileBgModerationCancel">Отмена</button><button type="button" class="btn btn-danger-solid" id="profileBgModerationDelete">Удалить фон</button></div>`);
+  $('profileBgModerationCancel').addEventListener('click', closeModal);
+  $('profileBgModerationDelete').addEventListener('click', () => moderateProfileBackground(background));
+}
+
+async function moderateProfileBackground(background){
+  const reasonInput = $('profileBgModerationReason');
+  const message = $('profileBgModerationMessage');
+  const reason = reasonInput.value.trim();
+  if(!reason){ message.textContent = 'Укажите причину удаления'; reasonInput.focus(); return; }
+  const button = $('profileBgModerationDelete');
+  setBtnLoading(button, true, 'Удалить фон');
+  try{
+    const res = await fetch(`${API}/api/admin/backgrounds/${encodeURIComponent(background.id)}`, {
+      method:'DELETE', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ adminId:currentUser.id, reason })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось удалить фон');
+    if(String(activeProfileBackgroundId) === String(background.id)) activeProfileBackgroundId = null;
+    likedProfileBackgroundIds.delete(String(background.id));
+    closeModal();
+    showToastSafe(data.notificationSent === false ? 'Фон удалён, но уведомление автору не отправлено' : 'Фон удалён');
+    await loadProfileBackgroundTab(activeProfileBackgroundTab);
+  } catch(error){
+    message.textContent = error.message || 'Ошибка соединения';
+    setBtnLoading(button, false, 'Удалить фон');
+  }
 }
 
 async function loadProfileBackgroundTab(tab){
