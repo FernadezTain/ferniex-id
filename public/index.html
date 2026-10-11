@@ -823,7 +823,12 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-conversation{display:flex;min-height:390px;max-height:min(68vh,720px);flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:17px;background:color-mix(in srgb,var(--field) 38%,var(--card));}
 .chat-conversation-head{display:flex;align-items:center;gap:.7rem;padding:.7rem .8rem;border-bottom:1px solid var(--line);background:var(--card);}
 .chat-back{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border:1px solid var(--line);border-radius:50%;background:var(--field);color:var(--ink);font-size:1.15rem;cursor:pointer;}
-.chat-head-name{min-width:0;overflow:hidden;font-size:.86rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.chat-profile-trigger{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;padding:0;overflow:hidden;border:0;border-radius:50%;background:transparent;cursor:pointer;}
+.chat-head-copy.chat-profile-trigger{display:block;width:auto;height:auto;flex:1;overflow:hidden;border-radius:0;text-align:left;}
+.chat-head-copy{min-width:0;flex:1;}
+.chat-head-name{overflow:hidden;font-size:.86rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.chat-presence{margin-top:.13rem;color:var(--muted);font-size:.67rem;line-height:1.2;}
+.chat-presence.active{color:var(--green);}
 .chat-thread{display:flex;min-height:0;flex:1;flex-direction:column;gap:.55rem;overflow-y:auto;padding:1rem .8rem;overscroll-behavior:contain;}
 .chat-thread>.loader{display:grid;place-items:center;align-content:center;gap:.8rem;width:100%;min-height:210px;flex:1;margin:auto;padding:1.5rem;color:var(--muted);font-size:.8rem;text-align:center;}
 .chat-thread>.loader::before{width:34px;height:34px;border:2px solid var(--field-border);border-top-color:var(--red);border-right-color:var(--blob-pink);border-radius:50%;content:'';animation:chatLoaderSpin .8s linear infinite,chatLoaderGlow 1.8s ease-in-out infinite;}
@@ -836,7 +841,7 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-start-prompt .chat-empty-icon .cico{transform:scale(1.2);}
 .chat-message{position:relative;max-width:min(82%,420px);padding:.62rem .78rem .42rem;border:1px solid var(--line);border-radius:15px 15px 15px 4px;background:var(--card);color:var(--ink);font-size:.82rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;box-shadow:0 5px 15px -13px rgba(0,0,0,.45);animation:chatMessageIn .22s cubic-bezier(.2,.8,.2,1) both;touch-action:pan-y;}
 .chat-message.mine{align-self:flex-end;border-color:color-mix(in srgb,var(--blob-sage) 45%,var(--line));border-radius:15px 15px 4px 15px;background:color-mix(in srgb,var(--blob-sage) 23%,var(--card));}
-.chat-message-image{display:block;width:min(100%,320px);max-height:360px;margin:0 0 .35rem;border-radius:10px;object-fit:contain;background:color-mix(in srgb,var(--field) 72%,transparent);cursor:pointer;}
+.chat-message-image{display:block;width:min(100%,320px);height:auto;aspect-ratio:4/3;max-height:360px;margin:0 0 .35rem;border-radius:10px;object-fit:contain;background:color-mix(in srgb,var(--field) 72%,transparent);cursor:pointer;}
 .chat-message-image:only-child{margin-bottom:.1rem;}
 .chat-reply-quote{display:block;margin-bottom:.4rem;padding:.36rem .5rem;border-left:3px solid var(--blob-pink);border-radius:4px 8px 8px 4px;background:color-mix(in srgb,var(--field) 72%,transparent);color:var(--muted);font-size:.71rem;line-height:1.4;cursor:pointer;}
 .chat-reply-quote strong{display:block;margin-bottom:.1rem;color:var(--ink);font-size:.66rem;}
@@ -870,12 +875,15 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-reply-copy strong{font-size:.68rem;}
 .chat-reply-copy span{margin-top:.12rem;color:var(--muted);font-size:.69rem;}
 .chat-reply-cancel{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:1.15rem;cursor:pointer;}
-.chat-context-menu{position:fixed;z-index:70;min-width:205px;padding:6px;border:1px solid color-mix(in srgb,var(--ink) 12%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--card) 93%,transparent);box-shadow:0 16px 42px -18px rgba(0,0,0,.58);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:chatMenuIn .14s ease both;}
+.chat-context-menu{position:fixed;z-index:70;width:min(330px,calc(100vw - 24px));padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:rgba(38,39,41,.96);color:#f5f5f6;box-shadow:0 22px 56px -18px rgba(0,0,0,.72);-webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px);animation:chatMenuIn .16s cubic-bezier(.2,.8,.2,1) both;}
 .chat-context-menu[hidden]{display:none;}
-.chat-context-read{padding:7px 9px 8px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.64rem;line-height:1.4;}
-.chat-context-action{display:flex;align-items:center;width:100%;gap:.55rem;padding:9px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:600 .75rem Inter,sans-serif;text-align:left;cursor:pointer;}
-.chat-context-action:hover{background:var(--field);}
-.chat-context-action.danger{color:var(--red);}
+.chat-context-read{display:flex;align-items:center;gap:22px;min-height:70px;padding:11px 15px 13px;border-bottom:1px solid rgba(255,255,255,.13);color:#f2f2f3;font-size:1rem;font-weight:500;letter-spacing:.01em;}
+.chat-context-read svg{width:36px;height:30px;flex:0 0 36px;fill:none;stroke:#f4f5f6;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
+.chat-context-action{display:flex;align-items:center;width:100%;min-height:72px;gap:22px;padding:10px 15px;border:0;border-radius:12px;background:transparent;color:#f5f5f6;font:500 1rem Inter,sans-serif;text-align:left;cursor:pointer;}
+.chat-context-action:hover{background:rgba(255,255,255,.08);}
+.chat-context-action svg{width:36px;height:36px;flex:0 0 36px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.chat-context-action.danger{color:#ff7777;}
+.chat-context-action:disabled{display:none;}
 @keyframes chatMenuIn{from{opacity:0;transform:translateY(4px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 .chat-search-results{display:flex;max-height:390px;flex-direction:column;gap:.5rem;overflow-y:auto;}
 .chat-search-row{display:flex;align-items:center;gap:.7rem;padding:.55rem .6rem;border:1px solid var(--line);border-radius:13px;background:var(--field);}
@@ -883,7 +891,8 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-search-empty{padding:1rem .3rem;color:var(--muted);font-size:.8rem;text-align:center;}
 .chat-modal-search{margin-bottom:.75rem;}
 @media(max-width:900px){.chat-fab{right:18px;bottom:calc(102px + var(--app-safe-bottom));}}
-@media(max-width:560px){.chat-workspace{min-height:300px;}.chat-empty{min-height:270px;}.chat-conversation{min-height:calc(100dvh - 300px);max-height:calc(100dvh - 260px);border-radius:0;border-right:0;border-left:0;}.chat-fab{width:54px;height:54px;right:18px;}}
+@media(max-width:900px){#section-social>.panel{padding:1rem;}.chat-workspace{min-height:0;padding-bottom:.5rem;}.chat-conversation{height:clamp(320px,66dvh,640px);min-height:0;max-height:calc(var(--tg-viewport-stable-height,100dvh) - 320px);border-radius:16px;}.chat-thread{min-height:0;}.chat-context-menu{width:min(286px,calc(100vw - 24px));max-height:calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 24px);overflow-y:auto;padding:7px;border-radius:18px;}.chat-context-read{min-height:54px;gap:14px;padding:8px 12px;font-size:.86rem;}.chat-context-read svg{width:28px;height:24px;flex-basis:28px;}.chat-context-action{min-height:52px;gap:14px;padding:8px 12px;font-size:.87rem;}.chat-context-action svg{width:28px;height:28px;flex-basis:28px;}}
+@media(max-width:560px){.chat-workspace{min-height:0;}.chat-empty{min-height:270px;}.chat-conversation{height:clamp(300px,61dvh,560px);min-height:0;max-height:calc(var(--tg-viewport-stable-height,100dvh) - 340px);border-radius:15px;}.chat-message-image{width:min(100%,260px);max-height:280px;}.chat-fab{width:54px;height:54px;right:18px;}}
 @media(prefers-reduced-motion:reduce){.chat-fab,.chat-row,.chat-message,.chat-context-menu,.chat-read-receipt{transition:none;animation:none;}.chat-thread>.loader::before,.chat-thread>.loader::after{animation:none;}}
 
 /* --- ticket list card --- */
@@ -939,6 +948,21 @@ body:hover::-webkit-scrollbar-thumb{
 .modal-overlay{position:fixed;inset:0;background:rgba(24,20,16,0.42);z-index:50;display:none;align-items:center;justify-content:center;padding:max(1rem,var(--app-safe-top)) max(1rem,var(--app-safe-right)) max(1rem,var(--app-safe-bottom)) max(1rem,var(--app-safe-left));}
 .modal-overlay.active{display:flex;}
 .modal-box{position:relative;z-index:1;background:var(--card);border-radius:24px;padding:1.9rem 1.8rem;max-width:440px;width:100%;max-height:min(88vh,calc(var(--tg-viewport-stable-height,100dvh) - var(--app-safe-top) - var(--app-safe-bottom) - 2rem));overflow-y:auto;overscroll-behavior:contain;box-shadow:0 30px 60px -20px rgba(60,40,20,0.3);animation:fadeUp .25s ease both;}
+.toast-stack{position:fixed;right:max(18px,var(--app-safe-right));bottom:calc(24px + var(--app-safe-bottom));z-index:120;display:flex;width:min(360px,calc(100vw - 32px));flex-direction:column;align-items:stretch;gap:.55rem;pointer-events:none;}
+.toast-card{position:relative;display:flex;align-items:center;gap:.7rem;overflow:hidden;padding:.72rem .85rem;border:1px solid color-mix(in srgb,var(--ink) 10%,var(--line));border-radius:15px;background:color-mix(in srgb,var(--card) 91%,transparent);color:var(--ink);box-shadow:0 14px 36px -18px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);pointer-events:auto;animation:toastIn .28s cubic-bezier(.2,.9,.25,1.15) both;}
+.toast-card.error{border-color:color-mix(in srgb,var(--red) 28%,var(--line));}
+.toast-mark{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:color-mix(in srgb,var(--blob-sage) 42%,var(--card));color:var(--green);font-size:.9rem;font-weight:900;}
+.toast-card.error .toast-mark{background:color-mix(in srgb,var(--red) 12%,var(--card));color:var(--red);}
+.toast-copy{min-width:0;flex:1;font-size:.76rem;font-weight:650;line-height:1.4;overflow-wrap:anywhere;}
+.toast-close{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:1.05rem;cursor:pointer;}
+.toast-close:hover{background:var(--field);color:var(--ink);}
+.toast-progress{position:absolute;right:0;bottom:0;left:0;height:2px;background:color-mix(in srgb,var(--blob-sage) 80%,var(--green));transform-origin:left;animation:toastProgress var(--toast-duration,3.4s) linear forwards;}
+.toast-card.error .toast-progress{background:var(--red);}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes toastOut{to{opacity:0;transform:translateY(8px) scale(.97);}}
+@keyframes toastProgress{to{transform:scaleX(0);}}
+@media(max-width:560px){.toast-stack{right:12px;bottom:calc(94px + var(--app-safe-bottom));width:min(350px,calc(100vw - 24px));}}
+@media(prefers-reduced-motion:reduce){.toast-card,.toast-progress{animation:none;}}
 .modal-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;margin-bottom:1.1rem;}
 .modal-actions{display:flex;gap:.6rem;margin-top:1.1rem;}
 .modal-actions .btn{flex:1;}
@@ -1416,8 +1440,8 @@ html,body{touch-action:manipulation;}
                 <div class="chat-conversation">
                   <div class="chat-conversation-head">
                     <button type="button" class="chat-back" id="socialChatBack" aria-label="Назад к чатам">‹</button>
-                    <div class="chat-avatar large" id="socialChatAvatar"></div>
-                    <div class="chat-head-name" id="socialChatName"></div>
+                    <button type="button" class="chat-profile-trigger" id="socialChatProfileAvatar" aria-label="Открыть профиль собеседника"><span class="chat-avatar large" id="socialChatAvatar"></span></button>
+                    <button type="button" class="chat-head-copy chat-profile-trigger" id="socialChatProfileName" aria-label="Открыть профиль собеседника"><span class="chat-head-name" id="socialChatName"></span><span class="chat-presence" id="socialChatPresence">Оффлайн</span></button>
                   </div>
                   <div class="chat-thread" id="socialChatThread" aria-live="polite"></div>
                   <div class="chat-attachment-preview" id="socialChatAttachmentPreview" hidden></div>
@@ -1768,6 +1792,7 @@ html,body{touch-action:manipulation;}
 <div class="modal-overlay" id="genericModal">
   <div class="modal-box" id="genericModalBox"></div>
 </div>
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 const telegramWebApp = window.Telegram?.WebApp || null;
@@ -2217,6 +2242,7 @@ document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
       loadSocialChats();
     } else {
       stopSocialChatPolling();
+      stopSocialChatPresence();
     }
   });
 });
@@ -2224,6 +2250,8 @@ document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
 let activeSocialChat = null;
 let socialChatPolling = null;
 let socialChatLoading = false;
+let socialChatPresencePolling = null;
+let socialChatPresenceStopPromise = Promise.resolve();
 let socialChatSearchTimer = null;
 let socialChatSearchSequence = 0;
 let socialChatAttachments = [];
@@ -2291,6 +2319,7 @@ async function loadSocialChats(showLoading = true){
 
 function showSocialChatList(){
   stopSocialChatPolling();
+  stopSocialChatPresence();
   activeSocialChat = null;
   $('chatConversationView').hidden = true;
   $('chatListView').hidden = false;
@@ -2299,6 +2328,44 @@ function showSocialChatList(){
 
 function stopSocialChatPolling(){
   if(socialChatPolling){ clearInterval(socialChatPolling); socialChatPolling = null; }
+}
+
+function updateSocialChatPresenceLabel(inChat){
+  const label = $('socialChatPresence');
+  if(!label) return;
+  label.textContent = inChat ? 'В чате с вами' : 'Оффлайн';
+  label.classList.toggle('active', inChat);
+}
+
+async function refreshSocialChatPresence(conversationId){
+  if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
+  try{
+    const data = await socialChatRequest(`/api/social/chats/${encodeURIComponent(conversationId)}/presence`);
+    if(activeSocialChat?.id === conversationId) updateSocialChatPresenceLabel(Boolean(data.inChat));
+  } catch{}
+}
+
+function startSocialChatPresence(conversationId){
+  updateSocialChatPresenceLabel(false);
+  const heartbeat = async () => {
+    if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
+    try{ await socialChatRequest(`/api/social/chats/${encodeURIComponent(conversationId)}/presence`, { method:'POST' }); } catch{}
+    refreshSocialChatPresence(conversationId);
+  };
+  heartbeat();
+  socialChatPresencePolling = setInterval(heartbeat, 10000);
+}
+
+async function stopSocialChatPresence(){
+  if(socialChatPresencePolling){ clearInterval(socialChatPresencePolling); socialChatPresencePolling = null; }
+  const conversationId = activeSocialChat?.id;
+  if(conversationId){
+    socialChatPresenceStopPromise = socialChatPresenceStopPromise.then(async () => {
+      try{ await socialChatRequest(`/api/social/chats/${encodeURIComponent(conversationId)}/presence`, { method:'DELETE' }); } catch{}
+    });
+  }
+  await socialChatPresenceStopPromise;
+  updateSocialChatPresenceLabel(false);
 }
 
 async function openOrCreateSocialChat(user){
@@ -2314,7 +2381,8 @@ async function openOrCreateSocialChat(user){
 
 async function openSocialChat(conversationId, partner){
   stopSocialChatPolling();
-  activeSocialChat = { id:conversationId, partner };
+  await stopSocialChatPresence();
+  activeSocialChat = { id:conversationId, partner, renderedSignature:null };
   socialChatAttachments = [];
   socialChatReplyTo = null;
   $('chatListView').hidden = true;
@@ -2326,10 +2394,12 @@ async function openSocialChat(conversationId, partner){
     ? `<img src="${escapeHtml(partner.avatar_url)}" alt="" loading="lazy">`
     : escapeHtml((partner?.username || '?')[0].toUpperCase());
   $('socialChatName').textContent = partner.username || 'Пользователь';
+  updateSocialChatPresenceLabel(false);
   $('socialChatThread').innerHTML = '<div class="loader"></div>';
   $('socialChatInput').value = '';
   await loadSocialMessages(true);
   socialChatPolling = setInterval(() => loadSocialMessages(false), 4500);
+  startSocialChatPresence(conversationId);
 }
 
 async function loadSocialMessages(showLoading){
@@ -2338,7 +2408,8 @@ async function loadSocialMessages(showLoading){
   const conversationId = activeSocialChat.id;
   const thread = $('socialChatThread');
   const wasNearBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 100;
-  if(showLoading) thread.innerHTML = '<div class="loader"></div>';
+  const oldScrollTop = thread.scrollTop;
+  if(showLoading && !thread.querySelector('.chat-message,.chat-start-prompt')) thread.innerHTML = '<div class="loader"></div>';
   try{
     const data = await socialChatRequest(`/api/social/chats/${encodeURIComponent(conversationId)}/messages`);
     if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
@@ -2351,6 +2422,12 @@ async function loadSocialMessages(showLoading){
       });
       loadSocialChats(false);
     }
+    const signature = JSON.stringify(messages.map(message => [
+      message.id, message.body, message.image_url, message.reply_to_message_id,
+      message.read_at, message.deleted_at
+    ]));
+    if(signature === activeSocialChat.renderedSignature) return;
+    activeSocialChat.renderedSignature = signature;
     if(!messages.length){
       thread.innerHTML = `<div class="chat-start-prompt"><div class="chat-empty-icon"><i class="cico" aria-hidden="true"></i></div><span>Отправьте любое первое сообщение с пользователем «${escapeHtml(activeSocialChat.partner.username || 'Пользователь')}»</span></div>`;
       return;
@@ -2367,9 +2444,15 @@ async function loadSocialMessages(showLoading){
       return `<div class="chat-message${mine ? ' mine' : ''}${message.deleted_at ? ' deleted' : ''}" data-chat-message="${escapeHtml(message.id)}" data-message-mine="${mine}" data-message-read="${escapeHtml(message.read_at || '')}" data-message-time="${escapeHtml(message.created_at)}">${replyHtml}${photo}${body}<div class="chat-message-meta"><time>${chatTime(message.created_at)}</time>${status}</div></div>${readable}`;
     }).join('');
     bindSocialChatMessageInteractions(messages);
-    if(showLoading || wasNearBottom) thread.scrollTop = thread.scrollHeight;
+    requestAnimationFrame(() => {
+      if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
+      thread.scrollTop = showLoading || wasNearBottom ? thread.scrollHeight : oldScrollTop;
+    });
   } catch(error){
-    if(activeSocialChat?.id === conversationId) thread.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить сообщения</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
+    if(activeSocialChat?.id === conversationId){
+      activeSocialChat.renderedSignature = null;
+      if(!thread.querySelector('.chat-message,.chat-start-prompt')) thread.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить сообщения</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
+    }
   } finally{
     socialChatLoading = false;
   }
@@ -2405,7 +2488,7 @@ async function sendSocialMessage(event){
     input.style.height = '';
     clearSocialChatAttachments();
     clearSocialChatReply();
-    await loadSocialMessages(true);
+    await loadSocialMessages(false);
     loadSocialChats(false);
   } catch(error){
     showToastSafe(error.message || 'Не удалось отправить сообщение');
@@ -2475,12 +2558,14 @@ function openSocialChatContextMenu(message, anchor, point){
   closeSocialChatContextMenu();
   const menu = document.createElement('div');
   menu.className = 'chat-context-menu';
-  const readAt = message.read_at ? `Прочитано: ${new Date(message.read_at).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}` : '';
+  const readAt = message.read_at ? new Date(message.read_at) : null;
+  const readLabel = readAt ? `${readAt.toLocaleDateString('ru-RU') === new Date().toLocaleDateString('ru-RU') ? 'сегодня' : readAt.toLocaleDateString('ru-RU', { day:'2-digit', month:'long' })} в ${readAt.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })}` : '';
   const own = String(message.sender_id) === String(currentUser.id);
-  menu.innerHTML = `${readAt ? `<div class="chat-context-read">${escapeHtml(readAt)}</div>` : ''}
-    <button type="button" class="chat-context-action" data-chat-action="copy">▣ <span>Скопировать сообщение</span></button>
-    <button type="button" class="chat-context-action" data-chat-action="reply">↩ <span>Ответить</span></button>
-    <button type="button" class="chat-context-action danger" data-chat-action="delete" ${own && !message.deleted_at ? '' : 'disabled'}>⌫ <span>Удалить</span></button>`;
+  const receipt = readAt ? `<div class="chat-context-read"><svg viewBox="0 0 40 32" aria-hidden="true"><path d="m3 16 8 8L29 5M15 16l8 8L39 5"/></svg><span>${escapeHtml(readLabel)}</span></div>` : '';
+  menu.innerHTML = `${receipt}
+    <button type="button" class="chat-context-action" data-chat-action="reply"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M14 8 4 18l10 10v-6c10-1 15 3 18 9-1-12-6-18-18-19V8Z"/></svg><span>Ответить</span></button>
+    <button type="button" class="chat-context-action" data-chat-action="copy"><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M13 11V5h14l6 6v19H13zM27 5v7h6M8 11H5v20h19v-3M13 18h12M13 23h12"/></svg><span>Скопировать сообщение</span></button>
+    <button type="button" class="chat-context-action danger" data-chat-action="delete" ${own && !message.deleted_at ? '' : 'disabled'}><svg viewBox="0 0 36 36" aria-hidden="true"><path d="M7 10h22M14 10V6h8v4m4 0-1 20H11l-1-20m6 5v10m6-10v10"/></svg><span>Удалить</span></button>`;
   document.body.appendChild(menu);
   menu.querySelector('[data-chat-action="copy"]').addEventListener('click', async () => {
     const text = [message.body, message.image_url ? message.image_url : ''].filter(Boolean).join('\n');
@@ -2499,11 +2584,18 @@ function openSocialChatContextMenu(message, anchor, point){
       loadSocialChats(false);
     } catch(error){ showToastSafe(error.message || 'Не удалось удалить сообщение'); }
   });
+  menu.style.visibility = 'hidden';
+  menu.style.left = '0px';
+  menu.style.top = '0px';
+  menu.style.maxHeight = `calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 24px)`;
   const bounds = menu.getBoundingClientRect();
   const x = point?.clientX ?? anchor.getBoundingClientRect().left;
   const y = point?.clientY ?? anchor.getBoundingClientRect().bottom;
-  menu.style.left = `${Math.max(8, Math.min(x, innerWidth - bounds.width - 8))}px`;
-  menu.style.top = `${Math.max(8, Math.min(y, innerHeight - bounds.height - 8))}px`;
+  const left = Math.max(8, Math.min(x, innerWidth - bounds.width - 8));
+  const top = Math.max(8, Math.min(y, innerHeight - bounds.height - 8));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+  menu.style.visibility = '';
 }
 
 function bindSocialChatMessageInteractions(messages){
@@ -2634,12 +2726,27 @@ $('socialChatBack').addEventListener('click', () => {
   showSocialChatList();
   loadSocialChats();
 });
+$('socialChatProfileAvatar').addEventListener('click', () => {
+  if(activeSocialChat?.partner?.id) openAuthorModal(activeSocialChat.partner.id);
+});
+$('socialChatProfileName').addEventListener('click', () => {
+  if(activeSocialChat?.partner?.id) openAuthorModal(activeSocialChat.partner.id);
+});
 $('socialChatCompose').addEventListener('submit', sendSocialMessage);
 $('socialChatAttach').addEventListener('click', () => $('socialChatFiles').click());
 $('socialChatFiles').addEventListener('change', async event => {
   const files = [...(event.currentTarget.files || [])];
   event.currentTarget.value = '';
   await addSocialChatAttachments(files);
+});
+$('socialChatInput').addEventListener('paste', async event => {
+  const items = [...(event.clipboardData?.items || [])];
+  const images = items.filter(item => item.kind === 'file' && /^image\/(jpeg|png|webp)$/.test(item.type))
+    .map(item => item.getAsFile())
+    .filter(Boolean);
+  if(!images.length) return;
+  event.preventDefault();
+  await addSocialChatAttachments(images);
 });
 $('socialChatInput').addEventListener('input', event => {
   event.currentTarget.style.height = 'auto';
@@ -3222,10 +3329,41 @@ $('pfBannerInput').addEventListener('change', async (e) => {
   } catch(err){ showToastSafe('Ошибка соединения'); }
 });
 
-// маленький, ненавязчивый тост об ошибке — если в файле уже есть showToast, используем его
 function showToastSafe(msg){
-  if(typeof showToast === 'function') return showToast(msg);
-  alert(msg);
+  const stack = $('toastStack');
+  if(!stack) return;
+  const text = String(msg || '').trim();
+  if(!text) return;
+  const isError = /ошиб|не удалось|недоступ|отказ|слишком|некоррект|нет доступа/i.test(text);
+  const toast = document.createElement('div');
+  toast.className = `toast-card${isError ? ' error' : ''}`;
+  toast.setAttribute('role', isError ? 'alert' : 'status');
+  toast.style.setProperty('--toast-duration', '3.4s');
+  const mark = document.createElement('span');
+  mark.className = 'toast-mark';
+  mark.textContent = isError ? '!' : '✓';
+  const copy = document.createElement('span');
+  copy.className = 'toast-copy';
+  copy.textContent = text;
+  const close = document.createElement('button');
+  close.className = 'toast-close';
+  close.type = 'button';
+  close.setAttribute('aria-label', 'Закрыть уведомление');
+  close.textContent = '×';
+  const progress = document.createElement('span');
+  progress.className = 'toast-progress';
+  toast.append(mark, copy, close, progress);
+  stack.appendChild(toast);
+
+  const dismiss = () => {
+    if(!toast.isConnected) return;
+    toast.style.animation = 'toastOut .18s ease both';
+    toast.addEventListener('animationend', () => toast.remove(), { once:true });
+    setTimeout(() => toast.remove(), 220);
+  };
+  close.addEventListener('click', dismiss);
+  setTimeout(dismiss, 3400);
+  while(stack.children.length > 4) stack.firstElementChild.remove();
 }
 
 /* ---------- section data loaders ---------- */
