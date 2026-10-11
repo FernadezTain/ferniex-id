@@ -279,7 +279,7 @@ body{
 .overview-account-value .cico{width:14px;height:14px;}
 @keyframes overviewSubscriptionFlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 @keyframes heroGlow{0%{transform:translate3d(-10px,5px,0) scale(.94);}100%{transform:translate3d(18px,-12px,0) scale(1.08);}}
-@media(max-width:560px){.hero-top>div:nth-child(2){flex:1;min-width:0;}.hero-panel #ovRolePill{max-width:38%;overflow:hidden;padding:5px 7px;font-size:.56rem;letter-spacing:.35px;text-overflow:ellipsis;white-space:nowrap;}.overview-subscription{align-items:flex-start;padding:1rem;border-radius:17px;}.overview-subscription-action{width:38px;height:38px;flex-basis:38px;}.overview-account-grid{gap:.45rem;padding:.5rem;border-radius:14px;}.overview-account-item{padding:.7rem .65rem;}.overview-account-value{font-size:.85rem;}}
+@media(max-width:560px){.hero-top{display:grid;grid-template-columns:54px minmax(0,1fr);column-gap:.9rem;row-gap:.45rem;}.hero-top>div:nth-child(2){min-width:0;}.hero-panel #ovRolePill{grid-column:2;justify-self:start;max-width:100%;margin-left:0!important;overflow:hidden;padding:5px 8px;font-size:.56rem;letter-spacing:.35px;text-overflow:ellipsis;white-space:nowrap;}.overview-subscription{align-items:flex-start;padding:1rem;border-radius:17px;}.overview-subscription-action{width:38px;height:38px;flex-basis:38px;}.overview-subscription-action .cico{width:15px;height:15px;color:currentColor;}.overview-account-grid{gap:.45rem;padding:.5rem;border-radius:14px;}.overview-account-item{padding:.7rem .65rem;}.overview-account-value{font-size:.85rem;}}
 @media(prefers-reduced-motion:reduce){.hero-accent::before,.hero-accent::after,.overview-subscription{animation:none;}}
 
 /* --- красивая CTA-кнопка на переход по внешней ссылке --- */
@@ -1229,7 +1229,7 @@ html,body{touch-action:manipulation;}
               <div class="overview-subscription-title" id="overviewSubscriptionTitle">Проверяем подписку…</div>
               <div class="overview-subscription-desc" id="overviewSubscriptionDesc">Получаем актуальный статус аккаунта</div>
             </div>
-            <div class="overview-subscription-action" aria-hidden="true">↗</div>
+            <div class="overview-subscription-action" aria-hidden="true"><i class="cico cico-spark"></i></div>
           </div>
           <div class="overview-account-grid">
             <div class="overview-account-item"><div class="overview-account-label"><i class="cico cico-user"></i> ID аккаунта</div><div class="overview-account-value" id="ovId">—</div></div>
