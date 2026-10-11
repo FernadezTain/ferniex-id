@@ -2272,7 +2272,9 @@ async function openSocialChat(conversationId, partner){
   $('chatListView').hidden = true;
   $('chatConversationView').hidden = false;
   $('socialNewChatBtn').hidden = true;
-  $('socialChatAvatar').innerHTML = socialChatAvatar(partner).replace(/^<div class="chat-avatar">|<\/div>$/g, '');
+  $('socialChatAvatar').innerHTML = partner?.avatar_url
+    ? `<img src="${escapeHtml(partner.avatar_url)}" alt="" loading="lazy">`
+    : escapeHtml((partner?.username || '?')[0].toUpperCase());
   $('socialChatName').textContent = partner.username || 'Пользователь';
   $('socialChatThread').innerHTML = '<div class="loader">Загружаем сообщения…</div>';
   $('socialChatInput').value = '';
@@ -2385,6 +2387,19 @@ function goToSocialChatTab(user){
   const chatBtn = document.querySelector('#section-social .tab-btn[data-soctab="chat"]');
   if(chatBtn) chatBtn.click();
   if(user) openOrCreateSocialChat(user);
+}
+
+function openSocialChatFromLink(userId){
+  if(!/^\d+$/.test(userId)) return;
+  const url = new URL(location.href);
+  url.searchParams.delete('section');
+  url.searchParams.delete('socialTab');
+  url.searchParams.delete('chatWith');
+  history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+  switchSection('social');
+  const chatButton = document.querySelector('#section-social .tab-btn[data-soctab="chat"]');
+  chatButton?.click();
+  openOrCreateSocialChat({ id:userId, username:'Пользователь' });
 }
 
 $('socialNewChatBtn').addEventListener('click', openSocialChatSearch);
@@ -2844,7 +2859,9 @@ async function bootDashboard(){
     renderProfile();
     $('auth-page').classList.remove('active');
     $('dash-page').classList.add('active');
-    switchSection('overview');
+    const chatWith = new URL(location.href).searchParams.get('chatWith');
+    if(chatWith && /^\d+$/.test(chatWith)) openSocialChatFromLink(chatWith);
+    else switchSection('overview');
   } catch(e){
     logout();
   }
