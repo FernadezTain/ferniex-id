@@ -6133,6 +6133,26 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
     });
     const result = await response.json();
     if(!response.ok || !Array.isArray(result) || !result[0]) throw new Error('Не удалось отправить сообщение');
+    const message = result[0];
+    try{
+      const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(message.recipient_id)}&select=username,telegram_id`, { headers:sbHeaders });
+      const recipients = await recipientResponse.json();
+      const recipient = recipients[0];
+      if(recipientResponse.ok && recipient?.telegram_id){
+        const escapeTelegramHtml = value => String(value ?? '').replace(/[&<>]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[character]);
+        const url = new URL(process.env.FERNIE_WEB_URL || 'https://ferniex-id.vercel.app/');
+        url.searchParams.set('section', 'social');
+        url.searchParams.set('socialTab', 'chat');
+        url.searchParams.set('chatWith', String(user.id));
+        await sendTgMessageButtons(
+          recipient.telegram_id,
+          `💬 <b>У вас новое сообщение от ${escapeTelegramHtml(user.username)}</b>`,
+          [[{ text:'Прочитать', url:url.toString() }]]
+        );
+      }
+    } catch(error){
+      console.error('[social chat] Telegram notification failed:', error.message);
+    }
     res.json({ success:true, message:result[0] });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось отправить сообщение' });
