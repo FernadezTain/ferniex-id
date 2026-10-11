@@ -31,17 +31,23 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 *{transition:background-color .45s cubic-bezier(.4,0,.2,1), border-color .45s cubic-bezier(.4,0,.2,1), color .45s cubic-bezier(.4,0,.2,1);}
-html{height:100%;background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 12%,var(--ink) 100%) fixed;}
+html{height:100%;background:var(--bg);}
 body{
   min-height:100%;
   min-height:100dvh;
   min-height:var(--tg-viewport-stable-height,100dvh);
   font-family:'Inter',sans-serif;
   position:relative;
-  background:transparent;
+  background:var(--bg);
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
+}
+@media(min-width:901px){
+  body.overview-gradient-active{background:linear-gradient(180deg,var(--bg) 0,var(--bg) var(--overview-gradient-start,260px),var(--ink) calc(var(--overview-gradient-start,260px) + 30vh),var(--ink) 100%) fixed;}
+}
+@media(max-width:900px){
+  body{background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 38%,var(--ink) 86%) fixed;}
 }
 
 /* декоративные пятна фона */
@@ -2091,6 +2097,8 @@ function switchSection(name){
   document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));
   const target = $('section-'+name);
   if(target) target.classList.add('active');
+  document.body.classList.toggle('overview-gradient-active', name === 'overview');
+  requestAnimationFrame(updateOverviewGradient);
   activeNavSection = name;
   updateNavCascade(name);
   loadSectionData(name);
@@ -2102,6 +2110,13 @@ function switchSection(name){
   if(backBtn) backBtn.style.display = (name === 'overview') ? 'none' : '';
   window.scrollTo(0, 0);
 }
+
+function updateOverviewGradient(){
+  if(!document.body.classList.contains('overview-gradient-active') || window.matchMedia('(max-width:900px)').matches) return;
+  const panel = document.querySelector('#section-overview .hero-panel');
+  if(panel) document.documentElement.style.setProperty('--overview-gradient-start', `${Math.ceil(panel.getBoundingClientRect().bottom)}px`);
+}
+window.addEventListener('resize', updateOverviewGradient);
 
 async function loadExchangeMarket(refresh = false, redraw = false){
   const chartEl = $('udgExchangeChart');
@@ -2704,6 +2719,8 @@ async function loadOverviewSubscription(){
     card.dataset.tier = 'unknown';
     title.textContent = 'Статус подписки недоступен';
     description.textContent = 'Нажми, чтобы открыть управление подпиской.';
+  } finally {
+    requestAnimationFrame(updateOverviewGradient);
   }
 }
 
