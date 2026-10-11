@@ -333,6 +333,25 @@ body{
 .subscription-bg-meta{margin-top:.25rem;overflow:hidden;color:var(--muted);font-size:.7rem;text-overflow:ellipsis;white-space:nowrap;}
 .subscription-bg-actions{display:flex;gap:.4rem;margin-top:.65rem;}
 .subscription-bg-actions .btn{min-width:0;flex:1;padding:8px 9px;font-size:.72rem;white-space:normal;}
+.subscription-bg-toolbar{display:flex;justify-content:flex-end;margin:-.15rem 0 .75rem;}
+.subscription-bg-add{display:inline-flex;align-items:center;gap:.45rem;padding:.65rem .95rem;border:1px solid color-mix(in srgb,var(--ink) 16%,var(--line));border-radius:12px;background:var(--ink);color:var(--ink-contrast);font:700 .78rem Inter,sans-serif;cursor:pointer;box-shadow:0 8px 18px -13px rgba(0,0,0,.45);transition:transform .18s,opacity .18s,box-shadow .18s;}
+.subscription-bg-add:hover{opacity:.92;transform:translateY(-1px);box-shadow:0 11px 20px -13px rgba(0,0,0,.48);}
+.subscription-bg-add:active{transform:scale(.98);}
+.subscription-bg-add[hidden]{display:none;}
+.profile-bg-file-input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%);}
+.profile-bg-file-picker{display:flex;align-items:center;gap:.8rem;width:100%;padding:.8rem;border:1px dashed var(--field-border);border-radius:14px;background:var(--field);cursor:pointer;transition:border-color .18s,background .18s,transform .18s;}
+.profile-bg-file-picker:hover,.profile-bg-file-picker:focus-within{border-color:color-mix(in srgb,var(--ink) 38%,var(--field-border));background:color-mix(in srgb,var(--field) 65%,var(--card));}
+.profile-bg-file-picker:active{transform:scale(.995);}
+.profile-bg-file-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--field-border);border-radius:12px;background:var(--card);color:var(--ink);font-size:1.1rem;}
+.profile-bg-file-copy{min-width:0;flex:1;}
+.profile-bg-file-title{font-size:.8rem;font-weight:800;color:var(--ink);}
+.profile-bg-file-name{display:block;overflow:hidden;margin-top:.2rem;color:var(--muted);font-size:.7rem;text-overflow:ellipsis;white-space:nowrap;}
+.profile-bg-file-choose{flex:0 0 auto;padding:.5rem .65rem;border:1px solid var(--field-border);border-radius:9px;background:var(--card);color:var(--ink);font-size:.68rem;font-weight:800;}
+.profile-bg-file-input:focus-visible+.profile-bg-file-picker{outline:3px solid color-mix(in srgb,var(--ink) 22%,transparent);outline-offset:2px;}
+.profile-bg-preview{display:none;position:relative;overflow:hidden;margin-top:.65rem;border:1px solid var(--field-border);border-radius:14px;background:var(--field);animation:subscriptionViewIn .24s ease both;}
+.profile-bg-preview.visible{display:block;}
+.profile-bg-preview img{display:block;width:100%;max-height:220px;aspect-ratio:16/7;object-fit:cover;}
+.profile-bg-preview-label{position:absolute;right:.55rem;bottom:.55rem;padding:.35rem .55rem;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(20,18,16,.68);color:#fff;font-size:.62rem;font-weight:800;backdrop-filter:blur(8px);}
 .subscription-bg-skeleton{min-height:228px;overflow:hidden;border:1px solid var(--field-border);border-radius:16px;background:linear-gradient(100deg,var(--field) 20%,color-mix(in srgb,var(--card) 72%,var(--field)) 42%,var(--field) 64%);background-size:220% 100%;animation:subscriptionShimmer 1.35s ease-in-out infinite;}
 .subscription-bg-loading{display:flex;align-items:center;justify-content:center;gap:.65rem;padding:1.1rem;color:var(--muted);font-size:.8rem;}
 .subscription-bg-spinner{width:18px;height:18px;border:2px solid var(--field-border);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite;}
@@ -1132,6 +1151,9 @@ html,body{touch-action:manipulation;}
           <div class="panel" style="padding:1.25rem;">
             <button type="button" class="subscription-back" id="subscriptionBackgroundBack">← Назад к подписке</button>
             <div class="panel-head" style="margin-bottom:.9rem;"><div><div class="panel-title"><i class="cico cico-pencil ic"></i>Фон профиля в боте</div><div class="panel-sub">Выбери фон для своего Telegram-профиля</div></div></div>
+            <div class="subscription-bg-toolbar">
+              <button type="button" class="subscription-bg-add" id="profileBackgroundCreate" hidden><span aria-hidden="true">＋</span> Добавить фон</button>
+            </div>
             <div class="subscription-bg-tabs" id="subscriptionBackgroundTabs">
               <div class="subscription-bg-slider" id="subscriptionBackgroundSlider"></div>
               <button type="button" class="subscription-bg-tab active" data-profile-bg-tab="feed">Лента</button>
@@ -1139,7 +1161,6 @@ html,body{touch-action:manipulation;}
               <button type="button" class="subscription-bg-tab" data-profile-bg-tab="liked">Избранное</button>
             </div>
             <div class="subscription-bg-body" id="profileBackgroundBody" aria-live="polite"></div>
-            <button type="button" class="btn btn-dark" id="profileBackgroundCreate" style="display:none;width:100%;margin-top:.8rem;">＋ Добавить фон</button>
           </div>
         </div>
       </div>
@@ -3522,7 +3543,7 @@ async function switchProfileBackgroundTab(tab){
   document.querySelectorAll('#subscriptionBackgroundTabs [data-profile-bg-tab]').forEach(button => {
     button.classList.toggle('active', button.dataset.profileBgTab === tab);
   });
-  $('profileBackgroundCreate').style.display = tab === 'mine' ? '' : 'none';
+  $('profileBackgroundCreate').hidden = tab !== 'mine';
   requestAnimationFrame(positionProfileBackgroundSlider);
   await loadProfileBackgroundTab(tab);
 }
@@ -3629,11 +3650,32 @@ function compressProfileBackground(file){
 
 function openProfileBackgroundCreate(){
   openModal(`<div class="modal-title">Добавить фон профиля</div>
-    <div class="field"><label class="field-label" for="profileBgFile">Изображение PNG, JPG или WEBP</label><input class="field-input" id="profileBgFile" type="file" accept="image/png,image/jpeg,image/webp"></div>
+    <div class="field"><span class="field-label">Изображение PNG, JPG или WEBP</span><input class="profile-bg-file-input" id="profileBgFile" type="file" accept="image/png,image/jpeg,image/webp"><label class="profile-bg-file-picker" for="profileBgFile"><span class="profile-bg-file-icon" aria-hidden="true">↥</span><span class="profile-bg-file-copy"><span class="profile-bg-file-title">Выбери изображение</span><span class="profile-bg-file-name" id="profileBgFileName">PNG, JPG или WEBP · до 15 МБ</span></span><span class="profile-bg-file-choose">Обзор</span></label><div class="profile-bg-preview" id="profileBgPreview"><img id="profileBgPreviewImage" alt="Предпросмотр фона"><span class="profile-bg-preview-label">Предпросмотр</span></div></div>
     <div class="field"><label class="field-label" for="profileBgName">Название фона</label><input class="field-input" id="profileBgName" maxlength="60" placeholder="Например: Закат над горами"></div>
     <div class="field"><label class="field-label" for="profileBgDescription">Описание (необязательно)</label><input class="field-input" id="profileBgDescription" maxlength="120" placeholder="Короткое описание"></div>
     <div class="form-msg" id="profileBgCreateMessage"></div>
     <div class="modal-actions"><button type="button" class="btn btn-outline" id="profileBgCreateCancel">Назад</button><button type="button" class="btn btn-dark" id="profileBgCreateSubmit">Создать</button></div>`);
+  $('profileBgFile').addEventListener('change', async event => {
+    const file = event.currentTarget.files[0];
+    $('profileBgFileName').textContent = file
+      ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(1)} МБ`
+      : 'PNG, JPG или WEBP · до 15 МБ';
+    const preview = $('profileBgPreview');
+    if(!file){
+      preview.classList.remove('visible');
+      $('profileBgPreviewImage').removeAttribute('src');
+      return;
+    }
+    try{
+      const previewUrl = await fileToDataUrl(file);
+      if($('profileBgFile').files[0] !== file) return;
+      $('profileBgPreviewImage').src = previewUrl;
+      preview.classList.add('visible');
+    } catch{
+      preview.classList.remove('visible');
+      $('profileBgCreateMessage').textContent = 'Не удалось открыть предпросмотр изображения';
+    }
+  });
   $('profileBgCreateCancel').addEventListener('click', () => closeModal());
   $('profileBgCreateSubmit').addEventListener('click', submitProfileBackgroundCreate);
 }
