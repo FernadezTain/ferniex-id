@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import cors from "cors";
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 dotenv.config();
 
@@ -33,7 +34,8 @@ app.use((req, res, next) => {
   res.json = (data) => {
     const ms = Date.now() - start;
     const status = data?.success === false ? '❌' : '✅';
-    console.log(`📤 [${req.method} ${req.path}] ${status} ${ms}ms → ${JSON.stringify(data).slice(0, 200)}`);
+    const logged = data && typeof data === 'object' && !Array.isArray(data) ? sanitizeLog(data) : data;
+    console.log(`📤 [${req.method} ${req.path}] ${status} ${ms}ms → ${JSON.stringify(logged).slice(0, 200)}`);
     return origJson(data);
   };
 
@@ -44,6 +46,9 @@ app.use((req, res, next) => {
 function sanitizeLog(body) {
   const safe = { ...body };
   if (safe.password) safe.password = '***';
+  if (safe.code) safe.code = '***';
+  if (safe.sessionToken) safe.sessionToken = '***';
+  if (safe.challengeId) safe.challengeId = '***';
   if (safe.key) safe.key = safe.key.slice(0, 12) + '...';
   if (safe.apiKey) safe.apiKey = safe.apiKey.slice(0, 12) + '...';
   if (safe.imageBase64) safe.imageBase64 = `[image, ${Math.round(safe.imageBase64.length / 1024)}kb]`;
@@ -126,6 +131,93 @@ async function sendTgMessageButtons(chatId, text, keyboard) {
     console.error("TG btn exception:", e.message);
     return null;
   }
+}
+
+const LOGIN_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const LOGIN_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+const LOGIN_CHALLENGE_TABLE = 'fernieid_login_challenges';
+
+function sessionSecret(){
+  return process.env.FERNIE_SESSION_SECRET || SB_SERVICE_KEY;
+}
+
+function createSessionToken(userId){
+  const secret = sessionSecret();
+  if(!secret) throw new Error('FernieID session signing key is not configured');
+  const payload = Buffer.from(JSON.stringify({ sub:String(userId), exp:Math.floor(Date.now() / 1000) + LOGIN_SESSION_TTL_SECONDS })).toString('base64url');
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function verifySessionToken(token){
+  const secret = sessionSecret();
+  if(!secret || typeof token !== 'string') return null;
+  const [payload, signature, ...extra] = token.split('.');
+  if(!payload || !signature || extra.length) return null;
+  const expected = createHmac('sha256', secret).update(payload).digest();
+  let received;
+  try { received = Buffer.from(signature, 'base64url'); } catch { return null; }
+  if(received.length !== expected.length || !timingSafeEqual(received, expected)) return null;
+  try {
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return typeof claims.sub === 'string' && Number.isInteger(claims.exp) && claims.exp > Math.floor(Date.now() / 1000)
+      ? claims
+      : null;
+  } catch { return null; }
+}
+
+function hashLoginCode(challengeId, code){
+  return createHmac('sha256', sessionSecret()).update(`${challengeId}:${code}`).digest('hex');
+}
+
+function equalHex(left, right){
+  if(typeof left !== 'string' || typeof right !== 'string' || !/^[a-f\d]{64}$/i.test(left) || !/^[a-f\d]{64}$/i.test(right)) return false;
+  return timingSafeEqual(Buffer.from(left, 'hex'), Buffer.from(right, 'hex'));
+}
+
+async function verifyLoginChallenge(challengeId, code, apiKeyId = null){
+  const apiKeyFilter = apiKeyId === null ? 'api_key_id=is.null' : `api_key_id=eq.${encodeURIComponent(apiKeyId)}`;
+  const query = `challenge_id=eq.${challengeId}&${apiKeyFilter}`;
+  const lookup = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?${query}&select=challenge_id,user_id,code_hash,expires_at,attempts`, {headers:sbHeaders});
+  if(!lookup.ok){
+    await supabaseFailureDetails(lookup, 'FernieID login challenge lookup failed');
+    return {error:'Проверка кода временно недоступна',status:503};
+  }
+  const challenge = (await lookup.json())[0];
+  if(!challenge) return {error:'Код истёк или уже использован',status:401};
+  if(new Date(challenge.expires_at).getTime() <= Date.now() || Number(challenge.attempts) >= 5){
+    await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?${query}`, {method:'DELETE',headers:sbHeaders});
+    return {error:'Код истёк. Запроси новый код',status:401};
+  }
+  if(!equalHex(challenge.code_hash, hashLoginCode(challengeId, code))){
+    const attempts = Number(challenge.attempts) + 1;
+    if(attempts >= 5){
+      await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?${query}`, {method:'DELETE',headers:sbHeaders});
+      return {error:'Слишком много попыток. Начни вход заново',status:401};
+    }
+    const updated = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?${query}&attempts=eq.${Number(challenge.attempts)}`, {
+      method:'PATCH',headers:{...sbHeaders,Prefer:'return=representation'},body:JSON.stringify({attempts})
+    });
+    if(!updated.ok){
+      await supabaseFailureDetails(updated, 'FernieID login attempt update failed');
+      return {error:'Не удалось проверить код, попробуй ещё раз',status:503};
+    }
+    if(!(await updated.json()).length) return {error:'Код уже проверяется. Попробуй ещё раз',status:401};
+    return {error:`Неверный код. Осталось попыток: ${5 - attempts}`,status:401};
+  }
+  const consumed = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?${query}&user_id=eq.${encodeURIComponent(challenge.user_id)}&attempts=lt.5`, {
+    method:'DELETE',headers:{...sbHeaders,Prefer:'return=representation'}
+  });
+  if(!consumed.ok){
+    await supabaseFailureDetails(consumed, 'FernieID login challenge consume failed');
+    return {error:'Не удалось завершить вход',status:503};
+  }
+  if(!(await consumed.json()).length) return {error:'Код уже использован. Начни вход заново',status:401};
+  const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.user_id)}&select=id,username,role,telegram_id`, {headers:sbHeaders});
+  if(!userRes.ok) return {error:'Не удалось проверить аккаунт',status:503};
+  const user = (await userRes.json())[0];
+  if(!user?.telegram_id) return {error:'Telegram больше не привязан к аккаунту',status:401};
+  return {user};
 }
 
 // ====== Хелпер: генерация кода привязки (пример: RTXW-23NKS) ======
@@ -233,10 +325,11 @@ app.post("/api/register", async (req, res) => {
 
 // ====== Вход ======
 app.post("/api/login", async (req, res) => {
-  const { username, password, clientIp, userAgent } = req.body;
+  const username = String(req.body?.username || '').trim();
+  const password = req.body?.password;
   if (!username || !password) return res.json({ success: false, error: "Все поля обязательны" });
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${username}`, { headers: sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,password_hash,role,telegram_id`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
@@ -244,68 +337,70 @@ app.post("/api/login", async (req, res) => {
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
 
     if (user.telegram_id) {
-      // Если Telegram привязан — требуем 2FA, не пускаем сразу
-      return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
-    }
-
-    if (false) { // старый блок уведомлений — отключён
-      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-      let device = 'неизвестно';
-      if (userAgent) {
-        if (/Android/.test(userAgent)) {
-          const model = userAgent.match(/;\s*([^;)]+)\s*Build/)?.[1] || 'Android';
-          const ver = userAgent.match(/Android\s*([\d.]+)/)?.[1] || '';
-          device = `📱 ${model} (Android ${ver})`;
-        } else if (/iPhone/.test(userAgent)) {
-          const ver = userAgent.match(/OS\s*([\d_]+)/)?.[1]?.replace(/_/g,'.') || '';
-          device = `🍎 iPhone (iOS ${ver})`;
-        } else if (/iPad/.test(userAgent)) {
-          device = `🍎 iPad`;
-        } else if (/Windows/.test(userAgent)) {
-          device = `🖥 Windows`;
-        } else if (/Macintosh|Mac OS/.test(userAgent)) {
-          device = `🖥 MacOS`;
-        } else if (/Linux/.test(userAgent)) {
-          device = `🖥 Linux`;
-        }
+      if(!sessionSecret()) return res.status(503).json({ success:false, error:'Вход с подтверждением временно недоступен' });
+      const challengeId = randomBytes(24).toString('hex');
+      const code = String(randomInt(10_000_000, 100_000_000));
+      const expiresAt = new Date(Date.now() + LOGIN_CHALLENGE_TTL_MS).toISOString();
+      const clearPrevious = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?user_id=eq.${user.id}`, {
+        method:'DELETE', headers:sbHeaders
+      });
+      if(!clearPrevious.ok){
+        await supabaseFailureDetails(clearPrevious, 'FernieID login challenge cleanup failed');
+        return res.status(503).json({ success:false, error:'Не удалось подготовить подтверждение входа' });
       }
-
-      const serviceMap = {
-        'ferniex-minigame.vercel.app': '🎮 FernieX Minigame',
-        'fernie-x-ai-chat.vercel.app': '🤖 FernieX AI',
-        'ferniex-id.vercel.app': '🔐 FernieID (Личный кабинет)',
-      };
-      const origin = req.headers['origin'] || req.headers['referer'] || '';
-      const serviceName = Object.entries(serviceMap).find(([k]) => origin.includes(k))?.[1] || '🌐 FernieID';
-
-      await sendTgMessage(user.telegram_id,
-        `🔐 <b>Выполнен вход через FernieID</b>\n\n` +
-        `🛡 Сервис: <b>${serviceName}</b>\n\n` +
-        `<blockquote>` +
-        `👤 Аккаунт: <b>${username}</b>\n` +
-        `🕒 Время: <b>${now} МСК</b>` +
-        `</blockquote>\n\n` +
-        `<blockquote>` +
-        `🌐 IP: <code>${clientIp || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'неизвестен'}</code>\n` +
-        `📱 Устройство: <b>${device}</b>` +
-        `</blockquote>\n\n` +
-        `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
+      const saveChallenge = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}`, {
+        method:'POST', headers:{...sbHeaders, Prefer:'return=minimal'},
+        body:JSON.stringify({ challenge_id:challengeId, user_id:user.id, api_key_id:null, code_hash:hashLoginCode(challengeId, code), expires_at:expiresAt, attempts:0 })
+      });
+      if(!saveChallenge.ok){
+        await supabaseFailureDetails(saveChallenge, 'FernieID login challenge insert failed');
+        return res.status(503).json({ success:false, error:'Подтверждение входа временно недоступно' });
+      }
+      const maskedTelegram = `${String(user.telegram_id).slice(0, 2)}••••${String(user.telegram_id).slice(-2)}`;
+      const safeUsername = String(user.username).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+      const sent = await sendTgMessage(user.telegram_id,
+        `🔐 <b>Подтверждение входа в FernieID</b>\n\n` +
+        `<blockquote>Аккаунт: <b>${safeUsername}</b>\nКод: <code>${code}</code>\nДействует 5 минут.</blockquote>\n` +
+        `Если это были не вы, не сообщайте код никому.`
       );
+      if(!sent){
+        await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?challenge_id=eq.${challengeId}`, {method:'DELETE',headers:sbHeaders});
+        return res.status(503).json({ success:false, error:'Не удалось отправить код. Откройте чат с ботом и попробуйте снова.' });
+      }
+      return res.json({ success:true, require2fa:true, challengeId, telegramHint:maskedTelegram });
     }
-
-    res.json({ success: true, userId: user.id, telegramLinked: false });
+    res.json({ success:true, userId:user.id, username:user.username, sessionToken:createSessionToken(user.id), telegramLinked:false });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
 
+app.post('/api/login/verify-2fa', async (req, res) => {
+  const challengeId = String(req.body?.challengeId || '');
+  const code = String(req.body?.code || '').trim();
+  if(!/^[a-f\d]{48}$/i.test(challengeId) || !/^\d{8}$/.test(code))
+    return res.status(400).json({success:false,error:'Введи корректный код подтверждения'});
+  try{
+    const result = await verifyLoginChallenge(challengeId, code);
+    if(!result.user) return res.status(result.status).json({success:false,error:result.error});
+    const {user} = result;
+    await sendTgMessage(user.telegram_id,
+      `✅ <b>Вход в FernieID подтверждён</b>\n\nАккаунт: <b>${user.username}</b>\nЕсли это были не вы — смените пароль.`
+    );
+    return res.json({success:true,userId:user.id,username:user.username,sessionToken:createSessionToken(user.id)});
+  } catch(error){
+    console.error('FernieID login 2FA verification error:', error);
+    return res.status(500).json({success:false,error:'Ошибка сервера'});
+  }
+});
+
 // ====== Верификация FernieID токена (для внешних сервисов) ======
 app.post("/api/verify-token", async (req, res) => {
-  const { userId, username } = req.body;
-  if (!userId || !username) return res.json({ success: false, error: "Нет данных" });
+  const claims = verifySessionToken(req.body?.sessionToken);
+  if(!claims) return res.status(401).json({success:false,error:'Сессия истекла или недействительна. Войдите снова.'});
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&username=eq.${username}&select=id,username,role,telegram_id,avatar_url,banner_url,theme`, { headers: sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(claims.sub)}&select=id,username,role,telegram_id,avatar_url,banner_url,theme`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
@@ -4523,36 +4618,41 @@ app.post('/api/auth/login', async (req, res) => {
       })
     });
 
-    // 5. Если есть Telegram — отправляем 2FA код
+    // 5. Если есть Telegram — отправляем одноразовый код входа
     if (user.telegram_id) {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-
-      await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes`, {
-        method: 'POST',
-        headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates' },
-        body: JSON.stringify({ user_id: user.id, code, expires_at: expiresAt })
+      if(!sessionSecret()) return res.status(503).json({success:false,error:'Подтверждение входа временно недоступно'});
+      const challengeId = randomBytes(24).toString('hex');
+      const code = String(randomInt(10_000_000, 100_000_000));
+      const expiresAt = new Date(Date.now() + LOGIN_CHALLENGE_TTL_MS).toISOString();
+      const previous = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?user_id=eq.${user.id}&api_key_id=eq.${keys[0].id}`, {
+        method:'DELETE',headers:sbHeaders
       });
-
-      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
-      await sendTgMessage(user.telegram_id,
-        `🔐 <b>Запрос на вход</b>\n` +
-        `<blockquote>` +
-        `🛡 Сервис: <b>${appName}</b>\n` +
-        `👤 Аккаунт: <b>${user.username}</b>\n` +
-        `🕒 Время: <b>${now} МСК</b>` +
-        `</blockquote>\n` +
-        `Твой код подтверждения:\n` +
-        `<blockquote><code>${code}</code></blockquote>\n` +
-        `⏱ Действует <b>5 минут</b>\n` +
-        `⚠️ <i>Никому не сообщай этот код!</i>`
+      if(!previous.ok){
+        await supabaseFailureDetails(previous, 'SDK login challenge cleanup failed');
+        return res.status(503).json({success:false,error:'Не удалось подготовить подтверждение входа'});
+      }
+      const challengeRes = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}`, {
+        method:'POST',headers:{...sbHeaders,Prefer:'return=minimal'},
+        body:JSON.stringify({challenge_id:challengeId,user_id:user.id,api_key_id:keys[0].id,code_hash:hashLoginCode(challengeId,code),expires_at:expiresAt,attempts:0})
+      });
+      if(!challengeRes.ok){
+        await supabaseFailureDetails(challengeRes, 'SDK login challenge insert failed');
+        return res.status(503).json({success:false,error:'Подтверждение входа временно недоступно'});
+      }
+      const safeUsername = String(user.username).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+      const sent = await sendTgMessage(user.telegram_id,
+        `🔐 <b>Запрос на вход</b>\n<blockquote>Сервис: <b>${appName}</b>\nАккаунт: <b>${safeUsername}</b></blockquote>` +
+        `Код: <code>${code}</code>\nКод действует 5 минут. Никому его не сообщай.`
       );
-
-      return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
+      if(!sent){
+        await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?challenge_id=eq.${challengeId}`,{method:'DELETE',headers:sbHeaders});
+        return res.status(503).json({success:false,error:'Не удалось отправить код. Открой чат с ботом и попробуй снова.'});
+      }
+      return res.json({ success: true, require2fa: true, challengeId, telegramLinked: true });
     }
 
     // 6. Нет Telegram — сразу пускаем
-    res.json({ success: true, require2fa: false, userId: user.id, username: user.username, role: user.role });
+    res.json({ success: true, require2fa: false, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
     console.error('auth/login error:', e);
@@ -4565,7 +4665,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ══════════════════════════════════════════
 app.post('/api/auth/verify-2fa', async (req, res) => {
   const { apiKey, userId, code } = req.body;
-  if (!apiKey || !userId || !code)
+    if (!apiKey || !req.body?.challengeId || !req.body?.code)
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
@@ -4575,26 +4675,13 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     if (!keys.length || keys[0].status !== 'active')
       return res.json({ success: false, error: 'Неверный API ключ' });
 
-    // Проверяем код
-    const r = await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { headers: sbHeaders });
-    const rows = await r.json();
-    if (!rows.length) return res.json({ success: false, error: 'Код не найден или истёк' });
-
-    const entry = rows[0];
-    if (new Date() > new Date(entry.expires_at)) {
-      await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
-      return res.json({ success: false, error: 'Код истёк' });
-    }
-    if (entry.code !== String(code).trim())
-      return res.json({ success: false, error: 'Неверный код' });
-
-    // Удаляем код
-    await fetch(`${SB_URL}/rest/v1/trackr_2fa_codes?user_id=eq.${userId}`, { method: 'DELETE', headers: sbHeaders });
-
-    // Возвращаем данные юзера
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=id,username,role,telegram_id`, { headers: sbHeaders });
-    const users = await userRes.json();
-    const user = users[0];
+    const challengeId = String(req.body.challengeId);
+    const code = String(req.body.code).trim();
+    if(!/^[a-f\d]{48}$/i.test(challengeId) || !/^\d{8}$/.test(code))
+      return res.status(400).json({success:false,error:'Некорректный код подтверждения'});
+    const verification = await verifyLoginChallenge(challengeId, code, keys[0].id);
+    if(!verification.user) return res.status(verification.status).json({success:false,error:verification.error});
+    const {user} = verification;
 
     // Получаем appName из ключа
     const appName = keys[0].app_name || 'FernieID';
@@ -4609,7 +4696,7 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
       );
     }
 
-    res.json({ success: true, userId: user.id, username: user.username, role: user.role });
+    res.json({ success: true, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
     console.error('auth/verify-2fa error:', e);
