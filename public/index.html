@@ -238,16 +238,39 @@ body{
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
 @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}}
 
-/* --- hero-блок «Главная» --- */
-.hero-panel{position:relative;overflow:hidden;background:linear-gradient(160deg,#ffffff 0%,var(--field) 130%);}
-.hero-accent{position:absolute;inset:0;pointer-events:none;z-index:0;}
-.hero-accent::before{content:'';position:absolute;width:230px;height:230px;border-radius:50%;background:var(--blob-pink);opacity:.22;top:-110px;right:-70px;filter:blur(10px);}
-.hero-accent::after{content:'';position:absolute;width:190px;height:190px;border-radius:50%;background:var(--blob-sage);opacity:.22;bottom:-110px;left:-60px;filter:blur(10px);}
+/* --- dashboard welcome + subscription --- */
+.hero-panel{position:relative;overflow:hidden;background:linear-gradient(145deg,color-mix(in srgb,var(--card) 92%,var(--blob-pink)),color-mix(in srgb,var(--field) 84%,var(--card)));}
+.hero-accent{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.hero-accent::before,.hero-accent::after{content:'';position:absolute;border-radius:50%;filter:blur(4px);animation:heroGlow 10s ease-in-out infinite alternate;}
+.hero-accent::before{width:310px;height:310px;background:color-mix(in srgb,var(--blob-pink) 72%,transparent);opacity:.22;top:-190px;right:-85px;}
+.hero-accent::after{width:250px;height:250px;background:color-mix(in srgb,var(--blob-sage) 75%,transparent);opacity:.2;bottom:-185px;left:-85px;animation-delay:-4s;}
 .hero-panel>*{position:relative;z-index:1;}
 .hero-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.25rem;flex-shrink:0;background-size:cover;background-position:center;}
 .hero-top{display:flex;align-items:center;gap:.9rem;margin-bottom:1.3rem;}
 .hero-greet{color:var(--muted);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:.15rem;}
 .hero-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.4px;}
+.overview-subscription{position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;overflow:hidden;margin:0 0 .9rem;padding:1.25rem 1.35rem;border:1px solid color-mix(in srgb,var(--blob-pink) 36%,var(--line));border-radius:20px;background:linear-gradient(115deg,color-mix(in srgb,var(--blob-pink) 34%,var(--card)),color-mix(in srgb,var(--blob-sage) 40%,var(--card)),color-mix(in srgb,var(--blob-pink) 30%,var(--card)));background-size:220% 220%;animation:overviewSubscriptionFlow 13s ease-in-out infinite;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.overview-subscription[data-tier="plus"]{background-image:linear-gradient(115deg,#f4c4a8,#f4e2b6,#e8c3bf,#f4c4a8);border-color:#eac8b5;}
+.overview-subscription[data-tier="pro"]{background-image:linear-gradient(115deg,#b8c2f1,#e0c3f0,#bfdde5,#b8c2f1);border-color:#c9c9ed;}
+.overview-subscription[data-tier="none"]{background-image:linear-gradient(115deg,color-mix(in srgb,var(--blob-pink) 40%,var(--card)),color-mix(in srgb,var(--blob-sage) 45%,var(--card)),color-mix(in srgb,var(--blob-pink) 36%,var(--card)));}
+.overview-subscription[data-tier="unknown"]{background-image:linear-gradient(115deg,var(--field),color-mix(in srgb,var(--card) 75%,var(--blob-sage)),var(--field));}
+.overview-subscription:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 35%,transparent);outline-offset:3px;}
+.overview-subscription:hover{transform:translateY(-2px);box-shadow:0 16px 30px -22px rgba(0,0,0,.4);}
+.overview-subscription::after{content:'';position:absolute;width:170px;height:170px;top:-105px;right:20%;border-radius:50%;background:rgba(255,255,255,.35);filter:blur(3px);pointer-events:none;}
+.overview-subscription-copy,.overview-subscription-action{position:relative;z-index:1;}
+.overview-subscription-kicker{display:flex;align-items:center;gap:.4rem;color:color-mix(in srgb,var(--ink) 62%,var(--muted));font-size:.67rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;}
+.overview-subscription-title{margin-top:.4rem;color:var(--ink);font-family:'Syne',sans-serif;font-size:clamp(1.2rem,2.6vw,1.8rem);font-weight:800;letter-spacing:-.055em;line-height:1.12;}
+.overview-subscription-desc{margin-top:.3rem;color:color-mix(in srgb,var(--ink) 68%,var(--muted));font-size:.78rem;line-height:1.45;}
+.overview-subscription-action{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border:1px solid color-mix(in srgb,var(--ink) 14%,transparent);border-radius:14px;background:color-mix(in srgb,var(--card) 66%,transparent);color:var(--ink);font-size:1.35rem;}
+.overview-account-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.overview-account-item{min-width:0;padding:.85rem 1rem;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);border-radius:15px;background:color-mix(in srgb,var(--card) 78%,transparent);backdrop-filter:blur(10px);}
+.overview-account-label{display:flex;align-items:center;gap:.4rem;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.03em;}
+.overview-account-value{display:flex;align-items:center;gap:.4rem;min-width:0;margin-top:.38rem;color:var(--ink);font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;overflow-wrap:anywhere;}
+.overview-account-value .cico{width:14px;height:14px;}
+@keyframes overviewSubscriptionFlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes heroGlow{0%{transform:translate3d(-10px,5px,0) scale(.94);}100%{transform:translate3d(18px,-12px,0) scale(1.08);}}
+@media(max-width:560px){.overview-subscription{align-items:flex-start;padding:1rem;border-radius:17px;}.overview-subscription-action{width:38px;height:38px;flex-basis:38px;}.overview-account-grid{gap:.5rem;}.overview-account-item{padding:.75rem .8rem;}.overview-account-value{font-size:.88rem;}}
+@media(prefers-reduced-motion:reduce){.hero-accent::before,.hero-accent::after,.overview-subscription{animation:none;}}
 
 /* --- красивая CTA-кнопка на переход по внешней ссылке --- */
 .link-cta{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:999px;background:var(--ink);color:var(--ink-contrast);font-weight:700;font-size:.9rem;text-decoration:none;transition:opacity .15s, transform .15s;}
@@ -1152,17 +1175,25 @@ html,body{touch-action:manipulation;}
             </div>
             <div class="pill" id="ovRolePill" style="margin-left:auto;">Пользователь</div>
           </div>
-          <div class="grid2">
-            <div class="stat-box"><div class="stat-label">ID аккаунта</div><div class="stat-value" id="ovId" style="font-size:1rem;">—</div></div>
-            <div class="stat-box"><div class="stat-label">Telegram</div><div class="stat-value" id="ovTgStatus" style="font-size:1rem;">—</div></div>
+          <div class="overview-subscription" id="overviewSubscriptionCard" role="button" tabindex="0" aria-label="Открыть управление подпиской">
+            <div class="overview-subscription-copy">
+              <div class="overview-subscription-kicker"><i class="cico cico-spark"></i> Fernie+ · СТАТУС</div>
+              <div class="overview-subscription-title" id="overviewSubscriptionTitle">Проверяем подписку…</div>
+              <div class="overview-subscription-desc" id="overviewSubscriptionDesc">Получаем актуальный статус аккаунта</div>
+            </div>
+            <div class="overview-subscription-action" aria-hidden="true">↗</div>
+          </div>
+          <div class="overview-account-grid">
+            <div class="overview-account-item"><div class="overview-account-label"><i class="cico cico-user"></i> ID аккаунта</div><div class="overview-account-value" id="ovId">—</div></div>
+            <div class="overview-account-item"><div class="overview-account-label"><i class="cico cico-link"></i> Telegram</div><div class="overview-account-value" id="ovTgStatus">—</div></div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-head"><div class="panel-title">Быстрые разделы</div></div>
           <div class="grid2">
-            <div class="stat-box" style="cursor:pointer;" data-goto="subscription"><div class="stat-label"><i class="cico cico-spark ic"></i>Fernie+ / Pro</div><div class="row-value" style="font-size:.85rem;font-weight:500;color:var(--muted);justify-content:flex-start;">Посмотреть статус подписки</div></div>
             <div class="stat-box" style="cursor:pointer;" data-goto="security"><div class="stat-label"><i class="cico cico-shield ic"></i>Безопасность</div><div class="row-value" style="font-size:.85rem;font-weight:500;color:var(--muted);justify-content:flex-start;">Telegram и защита аккаунта</div></div>
+            <div class="stat-box" style="cursor:pointer;" data-goto="social"><div class="stat-label"><i class="cico cico-globe ic"></i>Социализация</div><div class="row-value" style="font-size:.85rem;font-weight:500;color:var(--muted);justify-content:flex-start;">Лента и профиль</div></div>
           </div>
         </div>
       </div>
@@ -1854,6 +1885,13 @@ document.querySelectorAll('[data-goto]').forEach(el=>{
   el.addEventListener('click', ()=> switchSection(el.dataset.goto));
 });
 $('profileCardBtn').onclick = () => switchSection('profile');
+$('overviewSubscriptionCard').addEventListener('click', () => switchSection('subscription'));
+$('overviewSubscriptionCard').addEventListener('keydown', event => {
+  if(event.key === 'Enter' || event.key === ' '){
+    event.preventDefault();
+    switchSection('subscription');
+  }
+});
 
 let activeNavSection = null;
 let hoveredNavSection = null;
@@ -2394,7 +2432,7 @@ function renderProfile(){
   $('ovUsername').textContent = currentUser.username;
   $('ovId').textContent = currentUser.id;
   $('ovRolePill').textContent = currentUser.role === 'admin' ? 'Администратор' : 'Пользователь';
-  $('ovTgStatus').innerHTML = currentUser.telegramLinked ? icon('check','ic')+'Привязан' : '— Нет';
+  $('ovTgStatus').innerHTML = currentUser.telegramLinked || currentUser.telegram_id ? icon('check','ic')+'Привязан' : 'Не привязан';
   $('ovAvatar').textContent = initial;
   $('ovAvatar').style.backgroundImage = currentUser.avatar_url ? `url('${currentUser.avatar_url}')` : '';
   if(currentUser.avatar_url) $('ovAvatar').textContent = '';
@@ -2514,6 +2552,7 @@ function showToastSafe(msg){
 const loaded = {};
 async function loadSectionData(name){
   if(!currentUser) return;
+  if(name === 'overview') return loadOverviewSubscription();
   if(name === 'udg') {
     loadExchangeMarket();
     return;
@@ -2528,6 +2567,40 @@ async function loadSectionData(name){
   if(name === 'admin' && currentUser.role === 'admin') return loadAdmin();
   if(name === 'admintickets' && currentUser.role === 'admin') return loadAdminTicketsList();
   if(name === 'adminapplies' && currentUser.role === 'admin') return loadAdminAppliesList();
+}
+
+async function loadOverviewSubscription(){
+  const title = $('overviewSubscriptionTitle');
+  const description = $('overviewSubscriptionDesc');
+  const card = $('overviewSubscriptionCard');
+  if(!title || !description || !card || !currentUser) return;
+  title.textContent = 'Проверяем подписку…';
+  description.textContent = 'Получаем актуальный статус аккаунта';
+  try{
+    const [fpRes, proRes] = await Promise.all([
+      fetch(`${API}/api/fernieplus/${encodeURIComponent(currentUser.id)}`),
+      fetch(`${API}/api/fernieplus/pro/${encodeURIComponent(currentUser.id)}`)
+    ]);
+    const [fp, pro] = await Promise.all([fpRes.json(), proRes.json()]);
+    const tier = pro.active ? 'pro' : fp.active ? 'plus' : 'none';
+    card.dataset.tier = tier;
+    if(tier === 'pro'){
+      title.textContent = 'Fernie+ Pro активна';
+      description.textContent = 'Полный доступ к возможностям Fernie+ и Pro.';
+    } else if(tier === 'plus'){
+      title.textContent = 'Fernie+ активна';
+      description.textContent = 'Дополнительные функции и оформление профиля доступны.';
+    } else {
+      title.textContent = 'Подписка не оформлена';
+      description.textContent = hasTelegramLinked()
+        ? 'Открой раздел, чтобы выбрать Fernie+ или Fernie+ Pro.'
+        : 'Привяжи Telegram, чтобы оформить подписку и включить возможности бота.';
+    }
+  } catch{
+    card.dataset.tier = 'unknown';
+    title.textContent = 'Статус подписки недоступен';
+    description.textContent = 'Нажми, чтобы открыть управление подпиской.';
+  }
 }
 
 async function loadUdgBalance(){
@@ -3243,6 +3316,7 @@ async function cancelSubscription(){
     }
     showToastSafe('Подписка отключена');
     await loadSubscription(true);
+    await loadOverviewSubscription();
   } catch (error) {
     showToastSafe('Ошибка связи с сервером');
   }
@@ -3376,6 +3450,7 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
       showToastSafe('Подписка создана, но автоматическая активация временно недоступна');
     }
     await loadSubscription(true);
+    await loadOverviewSubscription();
     setTimeout(() => closeModal(), 1800);
   };
 
