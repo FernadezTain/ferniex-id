@@ -6104,7 +6104,7 @@ app.get('/api/social/chats/:conversationId/messages', async (req, res) => {
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
     const query = new URLSearchParams({
       conversation_id:`eq.${conversationId}`,
-      select:'id,conversation_id,sender_id,recipient_id,body,created_at,delivered_at,read_at',
+      select:'id,conversation_id,sender_id,recipient_id,body,image_url,reply_to_message_id,created_at,delivered_at,read_at,deleted_at',
       order:'created_at.desc,id.desc',
       limit:'100'
     });
@@ -6123,13 +6123,41 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const { conversationId } = req.params;
     const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+    const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : '';
+    const replyToMessageId = typeof req.body?.replyToMessageId === 'string' && /^[0-9a-f-]{36}$/i.test(req.body.replyToMessageId)
+      ? req.body.replyToMessageId
+      : null;
     if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
-    if(!body || body.length > 4000) return res.status(400).json({ success:false, error:'Сообщение должно содержать от 1 до 4000 символов' });
+    if(body.length > 4000 || (!body && !imageBase64)) return res.status(400).json({ success:false, error:'Добавьте текст или изображение (текст до 4000 символов)' });
     const conversation = await getSocialConversation(conversationId, user.id);
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+
+    let imageUrl = null;
+    if(imageBase64){
+      const image = parseDataUrl(imageBase64);
+      if(!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.mimeType)) return res.status(400).json({ success:false, error:'Поддерживаются изображения JPG, PNG и WEBP' });
+      if(image.buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success:false, error:'Размер фотографии не должен превышать 8 МБ' });
+      const fileName = `chat_${conversationId}_${randomBytes(12).toString('hex')}.${image.ext}`;
+      const uploadResponse = await fetch(`${SB_URL}/storage/v1/object/social-chat-media/${fileName}`, {
+        method:'POST',
+        headers:{ apikey:SB_SERVICE_KEY, Authorization:`Bearer ${SB_SERVICE_KEY}`, 'Content-Type':image.mimeType, 'x-upsert':'false' },
+        body:image.buffer
+      });
+      if(!uploadResponse.ok){
+        console.error('[social chat] image upload failed:', (await uploadResponse.text()).slice(0, 500));
+        throw new Error('Не удалось загрузить фотографию');
+      }
+      imageUrl = `${SB_URL}/storage/v1/object/public/social-chat-media/${fileName}`;
+    }
     const response = await fetch(`${SB_URL}/rest/v1/rpc/send_social_message`, {
       method:'POST', headers:sbHeaders,
-      body:JSON.stringify({ p_conversation_id:conversationId, p_sender_id:user.id, p_body:body })
+      body:JSON.stringify({
+        p_conversation_id:conversationId,
+        p_sender_id:user.id,
+        p_body:body,
+        p_image_url:imageUrl,
+        p_reply_to_message_id:replyToMessageId
+      })
     });
     const result = await response.json();
     if(!response.ok || !Array.isArray(result) || !result[0]) throw new Error('Не удалось отправить сообщение');
@@ -6153,9 +6181,29 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
     } catch(error){
       console.error('[social chat] Telegram notification failed:', error.message);
     }
-    res.json({ success:true, message:result[0] });
+    res.json({ success:true, message });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось отправить сообщение' });
+  }
+});
+
+app.delete('/api/social/chats/:conversationId/messages/:messageId', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId, messageId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId) || !/^[0-9a-f-]{36}$/i.test(messageId)) return res.status(400).json({ success:false, error:'Некорректное сообщение' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/delete_social_message`, {
+      method:'POST', headers:sbHeaders,
+      body:JSON.stringify({ p_message_id:messageId, p_user_id:user.id })
+    });
+    const result = await response.json();
+    if(!response.ok || !Array.isArray(result) || !result[0]) return res.status(403).json({ success:false, error:'Можно удалить только своё сообщение' });
+    res.json({ success:true, message:result[0] });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось удалить сообщение' });
   }
 });
 
