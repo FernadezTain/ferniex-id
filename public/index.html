@@ -239,7 +239,7 @@ body{
 @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}}
 
 /* --- dashboard welcome + subscription --- */
-.hero-panel{position:relative;overflow:hidden;background:linear-gradient(145deg,color-mix(in srgb,var(--card) 92%,var(--blob-pink)),color-mix(in srgb,var(--field) 84%,var(--card)));}
+.hero-panel{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff8f4,#f5eee7 50%,#edf1eb);border-color:rgba(83,62,49,.12);}
 .hero-accent{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
 .hero-accent::before,.hero-accent::after{content:'';position:absolute;border-radius:50%;filter:blur(4px);animation:heroGlow 10s ease-in-out infinite alternate;}
 .hero-accent::before{width:310px;height:310px;background:color-mix(in srgb,var(--blob-pink) 72%,transparent);opacity:.22;top:-190px;right:-85px;}
@@ -247,29 +247,30 @@ body{
 .hero-panel>*{position:relative;z-index:1;}
 .hero-avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.25rem;flex-shrink:0;background-size:cover;background-position:center;}
 .hero-top{display:flex;align-items:center;gap:.9rem;margin-bottom:1.3rem;}
-.hero-greet{color:var(--muted);font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;margin-bottom:.15rem;}
-.hero-name{font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.4px;}
-.overview-subscription{position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;overflow:hidden;margin:0 0 .9rem;padding:1.25rem 1.35rem;border:1px solid color-mix(in srgb,var(--blob-pink) 36%,var(--line));border-radius:20px;background:linear-gradient(115deg,color-mix(in srgb,var(--blob-pink) 34%,var(--card)),color-mix(in srgb,var(--blob-sage) 40%,var(--card)),color-mix(in srgb,var(--blob-pink) 30%,var(--card)));background-size:220% 220%;animation:overviewSubscriptionFlow 13s ease-in-out infinite;cursor:pointer;transition:transform .2s,box-shadow .2s;}
-.overview-subscription[data-tier="plus"]{background-image:linear-gradient(115deg,#f4c4a8,#f4e2b6,#e8c3bf,#f4c4a8);border-color:#eac8b5;}
-.overview-subscription[data-tier="pro"]{background-image:linear-gradient(115deg,#b8c2f1,#e0c3f0,#bfdde5,#b8c2f1);border-color:#c9c9ed;}
-.overview-subscription[data-tier="none"]{background-image:linear-gradient(115deg,color-mix(in srgb,var(--blob-pink) 40%,var(--card)),color-mix(in srgb,var(--blob-sage) 45%,var(--card)),color-mix(in srgb,var(--blob-pink) 36%,var(--card)));}
-.overview-subscription[data-tier="unknown"]{background-image:linear-gradient(115deg,var(--field),color-mix(in srgb,var(--card) 75%,var(--blob-sage)),var(--field));}
+.hero-panel .hero-greet{color:#635b56;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:.15rem;}
+.hero-panel .hero-name{color:#211a17;font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.4px;}
+.hero-panel #ovRolePill{background:rgba(255,255,255,.72);border-color:rgba(61,45,36,.14);color:#51463f;}
+.overview-subscription{position:relative;display:flex;align-items:center;justify-content:space-between;gap:1rem;overflow:hidden;margin:0 0 .9rem;padding:1.25rem 1.35rem;border:1px solid rgba(83,62,49,.14);border-radius:20px;background:linear-gradient(115deg,#f3d6c9,#e5e8d5,#f1d8c7,#f3d6c9);background-size:240% 240%;animation:overviewSubscriptionFlow 13s ease-in-out infinite;cursor:pointer;transition:transform .2s,box-shadow .2s;}
+.overview-subscription[data-tier="plus"]{background-image:linear-gradient(115deg,#f6d3bd,#f3e4bd,#efc9c0,#f6d3bd);border-color:#e9c2ac;}
+.overview-subscription[data-tier="pro"]{background-image:linear-gradient(115deg,#c9d0fa,#ead2f1,#c2e0eb,#c9d0fa);border-color:#c6c9e8;}
+.overview-subscription[data-tier="none"]{background-image:linear-gradient(115deg,#f2dfd2,#ecebd8,#dce8dc,#f2dfd2);}
+.overview-subscription[data-tier="unknown"]{background-image:linear-gradient(115deg,#eee9e4,#e2e4df,#eee9e4);}
 .overview-subscription:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 35%,transparent);outline-offset:3px;}
 .overview-subscription:hover{transform:translateY(-2px);box-shadow:0 16px 30px -22px rgba(0,0,0,.4);}
 .overview-subscription::after{content:'';position:absolute;width:170px;height:170px;top:-105px;right:20%;border-radius:50%;background:rgba(255,255,255,.35);filter:blur(3px);pointer-events:none;}
 .overview-subscription-copy,.overview-subscription-action{position:relative;z-index:1;}
-.overview-subscription-kicker{display:flex;align-items:center;gap:.4rem;color:color-mix(in srgb,var(--ink) 62%,var(--muted));font-size:.67rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;}
-.overview-subscription-title{margin-top:.4rem;color:var(--ink);font-family:'Syne',sans-serif;font-size:clamp(1.2rem,2.6vw,1.8rem);font-weight:800;letter-spacing:-.055em;line-height:1.12;}
-.overview-subscription-desc{margin-top:.3rem;color:color-mix(in srgb,var(--ink) 68%,var(--muted));font-size:.78rem;line-height:1.45;}
-.overview-subscription-action{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border:1px solid color-mix(in srgb,var(--ink) 14%,transparent);border-radius:14px;background:color-mix(in srgb,var(--card) 66%,transparent);color:var(--ink);font-size:1.35rem;}
-.overview-account-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
-.overview-account-item{min-width:0;padding:.85rem 1rem;border:1px solid color-mix(in srgb,var(--line) 82%,transparent);border-radius:15px;background:color-mix(in srgb,var(--card) 78%,transparent);backdrop-filter:blur(10px);}
-.overview-account-label{display:flex;align-items:center;gap:.4rem;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.03em;}
-.overview-account-value{display:flex;align-items:center;gap:.4rem;min-width:0;margin-top:.38rem;color:var(--ink);font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;overflow-wrap:anywhere;}
+.overview-subscription-kicker{display:flex;align-items:center;gap:.4rem;color:#62514b;font-size:.67rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;}
+.overview-subscription-title{margin-top:.4rem;color:#241a1c;font-family:'Syne',sans-serif;font-size:clamp(1.2rem,2.6vw,1.8rem);font-weight:800;letter-spacing:-.055em;line-height:1.12;}
+.overview-subscription-desc{margin-top:.3rem;color:#514440;font-size:.78rem;line-height:1.45;}
+.overview-subscription-action{display:grid;place-items:center;width:44px;height:44px;flex:0 0 44px;border:1px solid rgba(46,34,30,.14);border-radius:14px;background:rgba(255,255,255,.62);color:#30231f;font-size:1.35rem;}
+.overview-account-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;padding:.7rem;border:1px solid rgba(73,57,47,.13);border-radius:17px;background:rgba(255,255,255,.58);}
+.overview-account-item{min-width:0;padding:.72rem .85rem;border:1px solid rgba(73,57,47,.1);border-radius:12px;background:rgba(255,255,255,.74);}
+.overview-account-label{display:flex;align-items:center;gap:.4rem;color:#71655e;font-size:.68rem;font-weight:700;letter-spacing:.03em;}
+.overview-account-value{display:flex;align-items:center;gap:.4rem;min-width:0;margin-top:.38rem;color:#241a1c;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;overflow-wrap:anywhere;}
 .overview-account-value .cico{width:14px;height:14px;}
 @keyframes overviewSubscriptionFlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 @keyframes heroGlow{0%{transform:translate3d(-10px,5px,0) scale(.94);}100%{transform:translate3d(18px,-12px,0) scale(1.08);}}
-@media(max-width:560px){.overview-subscription{align-items:flex-start;padding:1rem;border-radius:17px;}.overview-subscription-action{width:38px;height:38px;flex-basis:38px;}.overview-account-grid{gap:.5rem;}.overview-account-item{padding:.75rem .8rem;}.overview-account-value{font-size:.88rem;}}
+@media(max-width:560px){.overview-subscription{align-items:flex-start;padding:1rem;border-radius:17px;}.overview-subscription-action{width:38px;height:38px;flex-basis:38px;}.overview-account-grid{gap:.45rem;padding:.5rem;border-radius:14px;}.overview-account-item{padding:.7rem .65rem;}.overview-account-value{font-size:.85rem;}}
 @media(prefers-reduced-motion:reduce){.hero-accent::before,.hero-accent::after,.overview-subscription{animation:none;}}
 
 /* --- красивая CTA-кнопка на переход по внешней ссылке --- */
@@ -1113,6 +1114,18 @@ html,body{touch-action:manipulation;}
         <div class="switch-row">Уже есть аккаунт? <a class="switch-link" id="go-login">Войти</a></div>
       </div>
 
+      <div class="form-section" id="section-login-2fa">
+        <h1 class="auth-title">Подтверди вход</h1>
+        <p class="auth-subtitle" id="login2faHint">Отправили одноразовый код в привязанный Telegram.</p>
+        <div class="field">
+          <label class="field-label" for="login2faCode">Код из Telegram</label>
+          <input class="field-input" id="login2faCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="8 цифр" style="text-align:center;letter-spacing:.28em;font-weight:800;">
+        </div>
+        <div class="form-msg" id="login2faMsg"></div>
+        <button class="submit-btn" id="login2faSubmit">Подтвердить вход →</button>
+        <div class="switch-row"><a class="switch-link" id="login2faBack">← Вернуться ко входу</a></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -1186,14 +1199,6 @@ html,body{touch-action:manipulation;}
           <div class="overview-account-grid">
             <div class="overview-account-item"><div class="overview-account-label"><i class="cico cico-user"></i> ID аккаунта</div><div class="overview-account-value" id="ovId">—</div></div>
             <div class="overview-account-item"><div class="overview-account-label"><i class="cico cico-link"></i> Telegram</div><div class="overview-account-value" id="ovTgStatus">—</div></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><div class="panel-title">Быстрые разделы</div></div>
-          <div class="grid2">
-            <div class="stat-box" style="cursor:pointer;" data-goto="security"><div class="stat-label"><i class="cico cico-shield ic"></i>Безопасность</div><div class="row-value" style="font-size:.85rem;font-weight:500;color:var(--muted);justify-content:flex-start;">Telegram и защита аккаунта</div></div>
-            <div class="stat-box" style="cursor:pointer;" data-goto="social"><div class="stat-label"><i class="cico cico-globe ic"></i>Социализация</div><div class="row-value" style="font-size:.85rem;font-weight:500;color:var(--muted);justify-content:flex-start;">Лента и профиль</div></div>
           </div>
         </div>
       </div>
@@ -1637,6 +1642,7 @@ document.addEventListener('touchend', e => {
 const API = 'https://ferniex-id.vercel.app';
 const $ = id => document.getElementById(id);
 const STORE_KEY = 'fid_session';
+let pendingLoginChallenge = null;
 
 let currentUser = null; // {id, username, role, telegramLinked, telegram_id, avatar_url, banner_url, theme}
 let exchangeMarketData = null;
@@ -1699,6 +1705,7 @@ function setBtnLoading(btn, loading, defaultText){
 function showSection(name){
   $('section-login').classList.toggle('active', name==='login');
   $('section-register').classList.toggle('active', name==='register');
+  $('section-login-2fa').classList.toggle('active', name==='login-2fa');
   $('section-autologin').classList.toggle('active', name==='autologin');
   $('loginMsg').textContent=''; $('regMsg').textContent='';
 }
@@ -1753,12 +1760,17 @@ $('loginSubmit').onclick = async () => {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if(data.success && data.userId){
-      localStorage.setItem(STORE_KEY, JSON.stringify({ userId: data.userId, username }));
-      await bootDashboard();
+    if(data.success && data.require2fa && data.challengeId){
+      pendingLoginChallenge = { challengeId:data.challengeId, username };
+      $('login2faHint').textContent = `Код отправлен в Telegram ${data.telegramHint || ''}. Он действует 5 минут.`;
+      $('login2faCode').value = '';
+      showSection('login-2fa');
+      $('login2faCode').focus();
+    } else if(data.success && data.userId && data.sessionToken){
+      await finishLogin(data, username);
     } else {
       msg.style.color = 'var(--red)';
-      msg.textContent = data.error || 'Неверный логин или пароль';
+      msg.textContent = data.error || 'Не удалось подтвердить вход';
     }
   } catch(e){
     msg.style.color = 'var(--red)';
@@ -1767,6 +1779,36 @@ $('loginSubmit').onclick = async () => {
     setBtnLoading($('loginSubmit'), false, 'Войти в аккаунт →');
   }
 };
+$('login2faSubmit').onclick = async () => {
+  const msg = $('login2faMsg');
+  const code = $('login2faCode').value.trim();
+  msg.textContent = '';
+  if(!pendingLoginChallenge){ showSection('login'); return; }
+  if(!/^\d{8}$/.test(code)){ msg.textContent = 'Введи 8 цифр из сообщения FernieXBot'; return; }
+  const button = $('login2faSubmit');
+  setBtnLoading(button, true, 'Подтвердить вход →');
+  try{
+    const res = await fetch(`${API}/api/login/verify-2fa`, {
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({challengeId:pendingLoginChallenge.challengeId,code})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success || !data.sessionToken) throw new Error(data.error || 'Не удалось подтвердить вход');
+    await finishLogin(data, data.username || pendingLoginChallenge.username);
+    pendingLoginChallenge = null;
+  } catch(error){
+    msg.textContent = error.message || 'Ошибка соединения';
+  } finally {
+    setBtnLoading(button, false, 'Подтвердить вход →');
+  }
+};
+$('login2faBack').addEventListener('click', () => { pendingLoginChallenge = null; showSection('login'); });
+$('login2faCode').addEventListener('keydown', event => { if(event.key === 'Enter') $('login2faSubmit').click(); });
+
+async function finishLogin(data, username){
+  localStorage.setItem(STORE_KEY, JSON.stringify({ userId:data.userId, username, sessionToken:data.sessionToken }));
+  await bootDashboard();
+}
 $('loginPassword').addEventListener('keydown', e => { if(e.key==='Enter') $('loginSubmit').click(); });
 $('loginUsername').addEventListener('keydown', e => { if(e.key==='Enter') $('loginPassword').focus(); });
 
@@ -1796,9 +1838,13 @@ $('regSubmit').onclick = async () => {
         body: JSON.stringify({ username, password })
       });
       const loginData = await loginRes.json();
-      if(loginData.success && loginData.userId){
-        localStorage.setItem(STORE_KEY, JSON.stringify({ userId: loginData.userId, username }));
-        await bootDashboard();
+      if(loginData.success && loginData.require2fa && loginData.challengeId){
+        pendingLoginChallenge = { challengeId:loginData.challengeId, username };
+        $('login2faHint').textContent = `Код отправлен в Telegram ${loginData.telegramHint || ''}. Он действует 5 минут.`;
+        $('login2faCode').value = '';
+        showSection('login-2fa');
+      } else if(loginData.success && loginData.userId && loginData.sessionToken){
+        await finishLogin(loginData, username);
       } else {
         showSection('login'); $('loginUsername').value = username;
       }
@@ -1861,7 +1907,8 @@ $('pfChangeUsernameBtn').onclick = () => {
       const data = await res.json();
       if(data.success){
         currentUser.username = data.username || newUsername;
-        localStorage.setItem(STORE_KEY, JSON.stringify({ userId: currentUser.id, username: currentUser.username }));
+        const session = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+        localStorage.setItem(STORE_KEY, JSON.stringify({ ...session, userId:currentUser.id, username:currentUser.username }));
         renderProfile();
         closeModal();
       } else {
@@ -2395,12 +2442,13 @@ $('mobileMenuCloseBtn').addEventListener('click', () => { closeMobileMenu(); syn
 async function bootDashboard(){
   const raw = localStorage.getItem(STORE_KEY);
   if(!raw) return logout();
-  const { userId, username } = JSON.parse(raw);
+  const { userId, username, sessionToken } = JSON.parse(raw);
+  if(!sessionToken) return logout();
 
   try{
     const res = await fetch(`${API}/api/verify-token`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId, username })
+      body: JSON.stringify({ sessionToken })
     });
     const data = await res.json();
     if(!data.success) return logout();
