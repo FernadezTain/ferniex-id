@@ -1798,6 +1798,80 @@ await fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${id}`, {
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
+app.delete('/api/admin/backgrounds/:id', async (req, res) => {
+  const { id } = req.params;
+  const { adminId, reason } = req.body || {};
+  const cleanReason = typeof reason === 'string' ? reason.trim().slice(0, 300) : '';
+  if(!adminId || !cleanReason) return res.status(400).json({ success:false, error:'Укажите администратора и причину удаления' });
+  try{
+    if(!await checkAdmin(adminId)) return res.status(403).json({ success:false, error:'Нет доступа' });
+
+    const adminRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(adminId)}&select=username,telegram_id`, { headers:sbHeaders });
+    const admins = await adminRes.json();
+    const moderator = admins[0];
+    if(!adminRes.ok || !moderator) return res.status(403).json({ success:false, error:'Администратор не найден' });
+
+    const backgroundRes = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${encodeURIComponent(id)}&select=*`, { headers:sbHeaders });
+    const backgrounds = await backgroundRes.json();
+    const background = backgrounds[0];
+    if(!backgroundRes.ok) throw new Error('Не удалось проверить фон');
+    if(!background) return res.status(404).json({ success:false, error:'Фон не найден' });
+
+    const [activeUsersRes, ownerRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${encodeURIComponent(id)}&select=id,telegram_id`, { headers:sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(background.uploader_id)}&select=telegram_id`, { headers:sbHeaders })
+    ]);
+    const activeUsers = await activeUsersRes.json();
+    const owners = await ownerRes.json();
+    if(!activeUsersRes.ok || !ownerRes.ok) throw new Error('Не удалось получить пользователей фона');
+
+    const likesRes = await fetch(`${SB_URL}/rest/v1/background_likes?background_id=eq.${encodeURIComponent(id)}`, { method:'DELETE', headers:sbHeaders });
+    if(!likesRes.ok) throw new Error('Не удалось удалить избранные фоны');
+
+    const activeRes = await fetch(`${SB_URL}/rest/v1/users?active_background_id=eq.${encodeURIComponent(id)}`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
+      body:JSON.stringify({ active_background_id:null })
+    });
+    if(!activeRes.ok) throw new Error('Не удалось убрать фон из профилей пользователей');
+
+    const deleteRes = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${encodeURIComponent(id)}`, { method:'DELETE', headers:sbHeaders });
+    if(!deleteRes.ok) throw new Error('Не удалось удалить фон');
+
+    const telegramIds = [...new Set(activeUsers.map(user => user.telegram_id).filter(Boolean).map(String))];
+    const botClears = await Promise.allSettled(telegramIds.map(telegramId => fetch(`${BOT_URL}/api/fernieplus/background/remove`, {
+      method:'POST', headers:{ 'Content-Type':'application/json', 'X-Fernie-Server-Key':FERNIE_SERVER_KEY },
+      body:JSON.stringify({ telegram_id:telegramId })
+    })));
+    botClears.forEach(result => {
+      if(result.status === 'rejected' || !result.value.ok) console.error('[background moderation] failed to clear bot media');
+    });
+
+    const escapeTelegramHtml = value => String(value ?? '').replace(/[&<>]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[char]);
+    const ownerTelegramId = owners[0]?.telegram_id;
+    const moderatorLabel = `${moderator.username || 'Администратор'} | ${moderator.telegram_id || adminId}`;
+    const caption = `<b>FernieID</b>\nВаш фон был удалён модератором.\n\n` +
+      `🖼 <b>Название:</b> ${escapeTelegramHtml(background.name || '—')}\n` +
+      `📝 <b>Описание:</b> ${escapeTelegramHtml(background.description || '—')}\n\n` +
+      `⚠️ <b>Причина:</b> ${escapeTelegramHtml(cleanReason)}\n` +
+      `👤 <b>Модератор:</b> ${escapeTelegramHtml(moderatorLabel)}`;
+    let notificationSent = false;
+    if(ownerTelegramId){
+      const photoRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body:JSON.stringify({ chat_id:ownerTelegramId, photo:background.image_url, caption, parse_mode:'HTML' })
+      });
+      const photoData = await photoRes.json().catch(() => ({}));
+      notificationSent = photoRes.ok && photoData.ok;
+      if(!notificationSent) notificationSent = await sendTgMessage(ownerTelegramId, caption);
+    }
+
+    res.json({ success:true, notificationSent, clearedProfiles:activeUsers.length, clearedBotProfiles:botClears.filter(result => result.status === 'fulfilled' && result.value.ok).length });
+  } catch(error){
+    console.error('[background moderation] delete failed:', error);
+    res.status(500).json({ success:false, error:error.message || 'Не удалось удалить фон' });
+  }
+});
+
 // Получить активный фон пользователя
 app.get('/api/backgrounds/active/:userId', async (req, res) => {
   try {
