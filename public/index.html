@@ -1125,7 +1125,14 @@ html,body{touch-action:manipulation;}
         <div class="field">
           <label class="field-label" for="login2faDigit0">Код из Telegram</label>
           <div class="login-otp" id="login2faCode" role="group" aria-label="Восьмизначный код подтверждения">
-            ${Array.from({length:8}, (_, index) => `<input class="field-input login-otp-digit" id="login2faDigit${index}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="${index === 0 ? 'one-time-code' : 'off'}" aria-label="Цифра ${index + 1}">`).join('')}
+            <input class="field-input login-otp-digit" id="login2faDigit0" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="one-time-code" aria-label="Цифра 1">
+            <input class="field-input login-otp-digit" id="login2faDigit1" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 2">
+            <input class="field-input login-otp-digit" id="login2faDigit2" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 3">
+            <input class="field-input login-otp-digit" id="login2faDigit3" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 4">
+            <input class="field-input login-otp-digit" id="login2faDigit4" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 5">
+            <input class="field-input login-otp-digit" id="login2faDigit5" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 6">
+            <input class="field-input login-otp-digit" id="login2faDigit6" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 7">
+            <input class="field-input login-otp-digit" id="login2faDigit7" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="off" aria-label="Цифра 8">
           </div>
         </div>
         <div class="form-msg" id="login2faMsg"></div>
