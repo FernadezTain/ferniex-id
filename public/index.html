@@ -304,26 +304,48 @@ body{
 .subscription-status-card.plus{background-image:linear-gradient(125deg,#fff4d7,#f4b8a4,#f1d0c4,#fff4d7);}
 .subscription-status-card.pro{background-image:linear-gradient(125deg,#e8ddff,#b8c8ff,#d9c7ff,#e8ddff);}
 .subscription-status-card>*{position:relative;z-index:1;}
+.subscription-status-card.active .subscription-status-title{color:#241a1c;}
+.subscription-status-card.active .subscription-status-desc{color:rgba(36,26,28,.76);}
 .subscription-status-head{display:flex;align-items:flex-start;gap:1rem;}
-.subscription-status-mark{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:15px;background:var(--card);color:var(--amber);font-size:1.25rem;box-shadow:0 8px 20px -14px rgba(0,0,0,.35);}
-.subscription-status-card.pro .subscription-status-mark{color:#7754cf;}
+.subscription-status-mark{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:15px;background:rgba(255,255,255,.72);color:#9a5625;font-size:1.25rem;box-shadow:0 8px 20px -14px rgba(0,0,0,.35);}
+.subscription-status-card.pro .subscription-status-mark{color:#6543b5;}
 .subscription-status-title{font-family:'Syne',sans-serif;font-size:clamp(1.1rem,2vw,1.45rem);font-weight:800;letter-spacing:-.04em;}
 .subscription-status-desc{margin-top:.35rem;color:color-mix(in srgb,var(--ink) 68%,var(--muted));font-size:.84rem;line-height:1.55;}
-.subscription-status-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.25rem;}
-.subscription-status-actions .btn{min-width:150px;}
-.subscription-bg-tabs{display:flex;gap:.4rem;margin-bottom:.9rem;padding:4px;border:1px solid var(--field-border);border-radius:999px;background:var(--field);}
-.subscription-bg-tab{flex:1;padding:.55rem .4rem;border:0;border-radius:999px;background:transparent;color:var(--muted);font:700 .72rem Inter,sans-serif;cursor:pointer;}
-.subscription-bg-tab.active{background:var(--ink);color:var(--ink-contrast);}
-.subscription-bg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;}
-.subscription-bg-item{overflow:hidden;border:1px solid var(--field-border);border-radius:13px;background:var(--field);}
-.subscription-bg-image{display:block;width:100%;height:105px;object-fit:cover;background:var(--card);}
-.subscription-bg-item-body{padding:.6rem;}
-.subscription-bg-name{overflow:hidden;font-size:.78rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
-.subscription-bg-meta{margin-top:.2rem;overflow:hidden;color:var(--muted);font-size:.65rem;text-overflow:ellipsis;white-space:nowrap;}
-.subscription-bg-actions{display:flex;gap:.35rem;margin-top:.55rem;}
-.subscription-bg-actions .btn{min-width:0;flex:1;padding:7px 8px;font-size:.67rem;}
+.subscription-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:.75rem;margin-top:.85rem;}
+.subscription-action-card{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:.45rem;padding:1rem;border:1px solid var(--line);border-radius:16px;background:var(--card);}
+.subscription-action-card h3{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;}
+.subscription-action-card p{flex:1;color:var(--muted);font-size:.75rem;line-height:1.5;}
+.subscription-action-card .btn{width:100%;margin-top:.25rem;}
+.subscription-subview{animation:subscriptionViewIn .28s cubic-bezier(.2,.8,.2,1) both;}
+.subscription-subview[hidden]{display:none;}
+.subscription-back{display:inline-flex;align-items:center;gap:.45rem;margin-bottom:1rem;padding:.65rem .9rem;border:1px solid var(--field-border);border-radius:999px;background:var(--field);color:var(--ink);font:700 .8rem Inter,sans-serif;cursor:pointer;}
+.subscription-bg-tabs{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;margin-bottom:1rem;padding:4px;border:1px solid var(--field-border);border-radius:999px;background:var(--field);}
+.subscription-bg-slider{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:999px;background:var(--ink);transition:transform .34s cubic-bezier(.22,1,.36,1),width .34s cubic-bezier(.22,1,.36,1);}
+.subscription-bg-tab{position:relative;z-index:1;min-width:0;padding:.62rem .45rem;border:0;border-radius:999px;background:transparent;color:var(--muted);font:700 .76rem Inter,sans-serif;cursor:pointer;transition:color .2s;}
+.subscription-bg-tab.active{color:var(--ink-contrast);}
+.subscription-bg-body{min-height:170px;transition:opacity .18s,transform .18s;}
+.subscription-bg-body.is-switching{opacity:0;transform:translateY(7px);}
+.subscription-bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:.8rem;}
+.subscription-bg-item{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:16px;background:var(--field);animation:subscriptionViewIn .3s both;}
+.subscription-bg-image{display:block;width:100%;height:150px;object-fit:cover;background:var(--card);}
+.subscription-bg-item-body{padding:.75rem;}
+.subscription-bg-name{overflow:hidden;font-size:.84rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-bg-meta{margin-top:.25rem;overflow:hidden;color:var(--muted);font-size:.7rem;text-overflow:ellipsis;white-space:nowrap;}
+.subscription-bg-actions{display:flex;gap:.4rem;margin-top:.65rem;}
+.subscription-bg-actions .btn{min-width:0;flex:1;padding:8px 9px;font-size:.72rem;white-space:normal;}
+.subscription-bg-skeleton{min-height:228px;overflow:hidden;border:1px solid var(--field-border);border-radius:16px;background:linear-gradient(100deg,var(--field) 20%,color-mix(in srgb,var(--card) 72%,var(--field)) 42%,var(--field) 64%);background-size:220% 100%;animation:subscriptionShimmer 1.35s ease-in-out infinite;}
+.subscription-bg-loading{display:flex;align-items:center;justify-content:center;gap:.65rem;padding:1.1rem;color:var(--muted);font-size:.8rem;}
+.subscription-bg-spinner{width:18px;height:18px;border:2px solid var(--field-border);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite;}
+.subscription-result{display:flex;flex-direction:column;align-items:center;gap:.7rem;padding:1.2rem .4rem;text-align:center;}
+.subscription-result-emoji{font-size:2.4rem;line-height:1;animation:subscriptionEmojiPop .7s cubic-bezier(.2,1.7,.4,1) both;}
+.subscription-result-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
+.subscription-result-copy{max-width:360px;color:var(--muted);font-size:.82rem;line-height:1.55;}
 @keyframes subscriptionGradient{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
-@media(prefers-reduced-motion:reduce){.subscription-status-card.active{animation:none;}}
+@keyframes subscriptionViewIn{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:translateY(0);}}
+@keyframes subscriptionShimmer{to{background-position:-220% 0;}}
+@keyframes subscriptionEmojiPop{0%{opacity:0;transform:scale(.25) rotate(-24deg);}65%{opacity:1;transform:scale(1.22) rotate(7deg);}100%{transform:scale(1) rotate(0);}}
+@media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-status-card{padding:1.15rem;border-radius:17px;}.subscription-status-head{gap:.7rem;}.subscription-status-mark{width:42px;height:42px;flex-basis:42px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
+@media(prefers-reduced-motion:reduce){.subscription-status-card.active,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
 .plus-action.secondary{background:var(--field);border:1px solid var(--field-border);color:var(--ink);box-shadow:none;}
@@ -1100,9 +1122,25 @@ html,body{touch-action:manipulation;}
 
       <!-- ПОДПИСКА -->
       <div class="dash-section" id="section-subscription">
-        <div class="panel" style="padding:1.5rem;">
-          <div class="panel-head" style="margin-bottom:.9rem;"><div><div class="panel-title"><i class="cico cico-spark ic"></i>Подписка FernieID</div><div class="panel-sub">Текущий статус и управление</div></div></div>
-          <div id="plansBody" class="loader">Загрузка…</div>
+        <div class="subscription-subview" id="subscriptionHomeView">
+          <div class="panel" style="padding:1.5rem;">
+            <div class="panel-head" style="margin-bottom:.9rem;"><div><div class="panel-title"><i class="cico cico-spark ic"></i>Подписка FernieID</div><div class="panel-sub">Текущий статус и управление</div></div></div>
+            <div id="plansBody" class="loader">Загрузка…</div>
+          </div>
+        </div>
+        <div class="subscription-subview" id="subscriptionBackgroundView" hidden>
+          <div class="panel" style="padding:1.25rem;">
+            <button type="button" class="subscription-back" id="subscriptionBackgroundBack">← Назад к подписке</button>
+            <div class="panel-head" style="margin-bottom:.9rem;"><div><div class="panel-title"><i class="cico cico-pencil ic"></i>Фон профиля в боте</div><div class="panel-sub">Выбери фон для своего Telegram-профиля</div></div></div>
+            <div class="subscription-bg-tabs" id="subscriptionBackgroundTabs">
+              <div class="subscription-bg-slider" id="subscriptionBackgroundSlider"></div>
+              <button type="button" class="subscription-bg-tab active" data-profile-bg-tab="feed">Лента</button>
+              <button type="button" class="subscription-bg-tab" data-profile-bg-tab="mine">Мои фоны</button>
+              <button type="button" class="subscription-bg-tab" data-profile-bg-tab="liked">Избранное</button>
+            </div>
+            <div class="subscription-bg-body" id="profileBackgroundBody" aria-live="polite"></div>
+            <button type="button" class="btn btn-dark" id="profileBackgroundCreate" style="display:none;width:100%;margin-top:.8rem;">＋ Добавить фон</button>
+          </div>
         </div>
       </div>
 
@@ -1843,6 +1881,13 @@ function goToSocialChatTab(){
 }
 
 function switchSection(name){
+  if(name === 'subscription'){
+    $('subscriptionBackgroundView').hidden = true;
+    $('subscriptionHomeView').hidden = false;
+  } else if(!$('subscriptionBackgroundView').hidden){
+    $('subscriptionBackgroundView').hidden = true;
+    $('subscriptionHomeView').hidden = false;
+  }
   document.querySelectorAll('.nav-block[data-section]').forEach(n=>n.classList.toggle('active', n.dataset.section===name));
   document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));
   const target = $('section-'+name);
@@ -3244,12 +3289,11 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
   const showSuccess = async () => {
     stopPolling();
     $('genericModalBox').innerHTML = `
-      <div class="pay-shell">
-        <div class="pay-hero">
-          <div class="pay-success-badge">${icon('check')}</div>
-          <div class="pay-title">Оплата прошла успешно</div>
-          <div class="pay-subtitle">Подписка Fernie+ активируется автоматически.</div>
-        </div>
+      <div class="subscription-result">
+        <div class="subscription-result-emoji">🎉</div>
+        <div class="subscription-result-title">Оплата прошла!</div>
+        <div class="subscription-result-copy">${escapeHtml(planTitle)} активируется. Обновляем статус подписки…</div>
+        <div class="pay-spinner"></div>
       </div>`;
     try {
       const activationPath = planKey === 'pro' ? '/api/fernieplus/pro/activate' : '/api/fernieplus/activate';
@@ -3273,7 +3317,7 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
     } catch (error) {
       showToastSafe('Подписка создана, но автоматическая активация временно недоступна');
     }
-    await loadSubscription();
+    await loadSubscription(true);
     setTimeout(() => closeModal(), 1800);
   };
 
@@ -3401,14 +3445,20 @@ async function startYookassaFlow(planKey, durationKey, durationLabel, amount){
 
 let activeProfileBackgroundId = null;
 let likedProfileBackgroundIds = new Set();
+let activeProfileBackgroundTab = 'feed';
+let profileBackgroundLoadId = 0;
 
-function profileBackgroundTabs(active){
-  return `<div class="subscription-bg-tabs">
-    <button type="button" class="subscription-bg-tab${active === 'feed' ? ' active' : ''}" data-profile-bg-tab="feed">Лента</button>
-    <button type="button" class="subscription-bg-tab${active === 'mine' ? ' active' : ''}" data-profile-bg-tab="mine">Мои фоны</button>
-    <button type="button" class="subscription-bg-tab${active === 'liked' ? ' active' : ''}" data-profile-bg-tab="liked">Избранное</button>
-  </div>`;
+function positionProfileBackgroundSlider(){
+  const tabs = $('subscriptionBackgroundTabs');
+  const slider = $('subscriptionBackgroundSlider');
+  const active = tabs?.querySelector('.subscription-bg-tab.active');
+  if(!tabs || !slider || !active) return;
+  const tabsRect = tabs.getBoundingClientRect();
+  const activeRect = active.getBoundingClientRect();
+  slider.style.width = `${activeRect.width}px`;
+  slider.style.transform = `translateX(${activeRect.left - tabsRect.left - 4}px)`;
 }
+window.addEventListener('resize', () => requestAnimationFrame(positionProfileBackgroundSlider));
 
 function renderProfileBackgroundItems(items, tab){
   const body = $('profileBackgroundBody');
@@ -3430,7 +3480,7 @@ function renderProfileBackgroundItems(items, tab){
           <button type="button" class="btn ${active ? 'btn-outline' : 'btn-dark'}" data-set-profile-bg="${safeId}">${active ? 'Установлен' : 'Установить'}</button>
           ${tab === 'mine'
             ? `<button type="button" class="btn btn-danger" data-delete-profile-bg="${safeId}">Удалить</button>`
-            : `<button type="button" class="btn btn-outline" data-like-profile-bg="${safeId}" data-liked="${liked}">${liked ? '♥' : '♡'}</button>`}
+            : `<button type="button" class="btn btn-outline" data-like-profile-bg="${safeId}" data-liked="${liked}">${liked ? '♥ В избранном' : '♡ В избранное'}</button>`}
         </div>
       </div>
     </article>`;
@@ -3443,32 +3493,71 @@ function renderProfileBackgroundItems(items, tab){
 
 async function loadProfileBackgroundTab(tab){
   const body = $('profileBackgroundBody');
-  body.innerHTML = '<div class="loader">Загрузка фонов…</div>';
+  if(!body) return;
+  const loadId = ++profileBackgroundLoadId;
+  body.classList.add('is-switching');
+  await new Promise(resolve => setTimeout(resolve, 140));
+  if(loadId !== profileBackgroundLoadId) return;
+  body.innerHTML = `<div class="subscription-bg-grid">${Array.from({length:4}, () => '<div class="subscription-bg-skeleton" aria-hidden="true"></div>').join('')}</div><div class="subscription-bg-loading"><span class="subscription-bg-spinner"></span>Загружаем фоны</div>`;
+  requestAnimationFrame(() => body.classList.remove('is-switching'));
   const path = tab === 'mine' ? `/api/backgrounds/user/${encodeURIComponent(currentUser.id)}`
     : tab === 'liked' ? `/api/backgrounds/liked/${encodeURIComponent(currentUser.id)}` : '/api/backgrounds';
   try{
     const res = await fetch(`${API}${path}`);
     const data = await res.json();
+    if(loadId !== profileBackgroundLoadId) return;
     if(!res.ok || data.success === false) throw new Error(data.error || 'Не удалось загрузить фоны');
     const items = tab === 'liked' ? (data.liked || []) : (data.backgrounds || []);
     if(tab === 'liked') likedProfileBackgroundIds = new Set(items.map(item => String(item.id)));
     renderProfileBackgroundItems(items, tab);
   } catch(error){
+    if(loadId !== profileBackgroundLoadId) return;
     body.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить фоны</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
   }
 }
 
+async function switchProfileBackgroundTab(tab){
+  if(!['feed', 'mine', 'liked'].includes(tab)) return;
+  activeProfileBackgroundTab = tab;
+  document.querySelectorAll('#subscriptionBackgroundTabs [data-profile-bg-tab]').forEach(button => {
+    button.classList.toggle('active', button.dataset.profileBgTab === tab);
+  });
+  $('profileBackgroundCreate').style.display = tab === 'mine' ? '' : 'none';
+  requestAnimationFrame(positionProfileBackgroundSlider);
+  await loadProfileBackgroundTab(tab);
+}
+
 async function openProfileBackgrounds(tab = 'feed'){
-  openModal(`<div class="modal-title">Фон профиля в боте</div>${profileBackgroundTabs(tab)}<div id="profileBackgroundBody"></div>${tab === 'mine' ? '<button type="button" class="btn btn-dark" id="profileBackgroundCreate" style="width:100%;margin-top:.8rem;">＋ Добавить фон</button>' : ''}`);
+  $('subscriptionHomeView').hidden = true;
+  $('subscriptionBackgroundView').hidden = false;
+  document.querySelectorAll('.nav-block[data-section]').forEach(nav => nav.classList.toggle('active', nav.dataset.section === 'subscription'));
+  activeNavSection = 'subscription';
+  updateNavCascade('subscription');
+  closeMobileMenu();
+  syncMobileTabbar('subscription');
+  $('mobileContentBack').style.display = 'none';
+  window.scrollTo(0, 0);
+  $('profileBackgroundBody').innerHTML = `<div class="subscription-bg-grid">${Array.from({length:4}, () => '<div class="subscription-bg-skeleton" aria-hidden="true"></div>').join('')}</div><div class="subscription-bg-loading"><span class="subscription-bg-spinner"></span>Загружаем фоны</div>`;
   const [activeRes, likedRes] = await Promise.all([
     fetch(`${API}/api/backgrounds/active/${encodeURIComponent(currentUser.id)}`).then(res => res.json()).catch(() => null),
     fetch(`${API}/api/backgrounds/liked/${encodeURIComponent(currentUser.id)}`).then(res => res.json()).catch(() => null)
   ]);
   activeProfileBackgroundId = activeRes?.active_background_id || null;
   likedProfileBackgroundIds = new Set((likedRes?.liked || []).map(item => String(item.id)));
-  $('genericModalBox').querySelectorAll('[data-profile-bg-tab]').forEach(button => button.addEventListener('click', () => openProfileBackgrounds(button.dataset.profileBgTab)));
-  $('profileBackgroundCreate')?.addEventListener('click', openProfileBackgroundCreate);
-  await loadProfileBackgroundTab(tab);
+  document.querySelectorAll('#subscriptionBackgroundTabs [data-profile-bg-tab]').forEach(button => {
+    button.onclick = () => switchProfileBackgroundTab(button.dataset.profileBgTab);
+  });
+  $('subscriptionBackgroundBack').onclick = closeProfileBackgrounds;
+  $('profileBackgroundCreate').onclick = openProfileBackgroundCreate;
+  await switchProfileBackgroundTab(tab);
+}
+
+function closeProfileBackgrounds(){
+  profileBackgroundLoadId++;
+  $('subscriptionBackgroundView').hidden = true;
+  $('subscriptionHomeView').hidden = false;
+  $('mobileContentBack').style.display = '';
+  requestAnimationFrame(() => window.scrollTo(0, 0));
 }
 
 async function setProfileBackground(backgroundId){
@@ -3481,8 +3570,7 @@ async function setProfileBackground(backgroundId){
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось установить фон');
     activeProfileBackgroundId = backgroundId;
     showToastSafe('Фон профиля в боте обновлён');
-    const tab = $('genericModalBox').querySelector('[data-profile-bg-tab].active')?.dataset.profileBgTab || 'feed';
-    await loadProfileBackgroundTab(tab);
+    await loadProfileBackgroundTab(activeProfileBackgroundTab);
   } catch(error){ showToastSafe(error.message || 'Ошибка соединения'); }
 }
 
@@ -3497,16 +3585,12 @@ async function toggleProfileBackgroundLike(backgroundId){
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось обновить избранное');
     if(isLiked) likedProfileBackgroundIds.delete(String(backgroundId));
     else likedProfileBackgroundIds.add(String(backgroundId));
-    const tab = $('genericModalBox').querySelector('[data-profile-bg-tab].active')?.dataset.profileBgTab || 'feed';
-    await loadProfileBackgroundTab(tab);
+    await loadProfileBackgroundTab(activeProfileBackgroundTab);
   } catch(error){ showToastSafe(error.message || 'Ошибка соединения'); }
 }
 
 async function deleteProfileBackground(backgroundId){
-  if(!(await confirmModal('Удалить этот фон из ленты? Если он установлен, он также будет снят с профиля.', { title:'Удалить фон?', okLabel:'Удалить', danger:true, icon:'cross' }))){
-    await openProfileBackgrounds('mine');
-    return;
-  }
+  if(!(await confirmModal('Удалить этот фон из ленты? Если он установлен, он также будет снят с профиля.', { title:'Удалить фон?', okLabel:'Удалить', danger:true, icon:'cross' }))) return;
   try{
     const res = await fetch(`${API}/api/backgrounds/${encodeURIComponent(backgroundId)}`, {
       method:'DELETE', headers:{'Content-Type':'application/json'},
@@ -3515,7 +3599,7 @@ async function deleteProfileBackground(backgroundId){
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось удалить фон');
     if(String(activeProfileBackgroundId) === String(backgroundId)) activeProfileBackgroundId = null;
-    await openProfileBackgrounds('mine');
+    await loadProfileBackgroundTab('mine');
   } catch(error){ showToastSafe(error.message || 'Ошибка соединения'); }
 }
 
@@ -3550,7 +3634,7 @@ function openProfileBackgroundCreate(){
     <div class="field"><label class="field-label" for="profileBgDescription">Описание (необязательно)</label><input class="field-input" id="profileBgDescription" maxlength="120" placeholder="Короткое описание"></div>
     <div class="form-msg" id="profileBgCreateMessage"></div>
     <div class="modal-actions"><button type="button" class="btn btn-outline" id="profileBgCreateCancel">Назад</button><button type="button" class="btn btn-dark" id="profileBgCreateSubmit">Создать</button></div>`);
-  $('profileBgCreateCancel').addEventListener('click', () => openProfileBackgrounds('mine'));
+  $('profileBgCreateCancel').addEventListener('click', () => closeModal());
   $('profileBgCreateSubmit').addEventListener('click', submitProfileBackgroundCreate);
 }
 
@@ -3570,7 +3654,8 @@ async function submitProfileBackgroundCreate(){
     });
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось добавить фон');
-    await openProfileBackgrounds('mine');
+    closeModal();
+    await switchProfileBackgroundTab('mine');
   } catch(error){
     message.textContent = error.message || 'Ошибка соединения';
     setBtnLoading(button, false, 'Создать');
@@ -3585,21 +3670,19 @@ function renderSubscriptionCards(fpActive, proActive){
   const description = tier === 'pro' ? 'У тебя открыт полный набор возможностей Fernie+ Pro.'
     : tier === 'plus' ? 'Твой профиль в боте и возможности Fernie+ доступны.'
       : 'Оформи Fernie+, чтобы открыть дополнительные возможности и кастомизацию профиля в боте.';
-  const checkoutPlan = tier === 'plus' ? 'pro' : 'fp';
-  const checkoutMethod = checkoutPlan === 'pro' ? 'stars' : 'seeds';
+  const actions = tier === 'none'
+    ? `<article class="subscription-action-card"><h3>Оформить Fernie+</h3><p>Открой дополнительные функции и настройку профиля в боте.</p><button type="button" class="btn btn-dark" data-subscription-checkout="fp">Оформить подписку</button></article>`
+    : `${tier === 'plus' ? '<article class="subscription-action-card"><h3>Больше возможностей</h3><p>Перейди на Pro, чтобы открыть все функции Fernie+ Pro.</p><button type="button" class="btn btn-dark" data-subscription-checkout="pro">Улучшить до Pro</button></article>' : ''}
+      <article class="subscription-action-card"><h3>Оформление профиля</h3><p>Выбери фон, который будет отображаться в твоём профиле Telegram-бота.</p><button type="button" class="btn btn-outline" id="profileBackgroundsOpen">Фон профиля в боте</button></article>
+      <article class="subscription-action-card"><h3>Управление подпиской</h3><p>Отключение сразу завершит доступ к Fernie+ и Pro.</p><button type="button" class="btn btn-danger" id="cancelSubscriptionButton">Отменить подписку</button></article>`;
   body.innerHTML = `<section class="subscription-status-card ${tier === 'none' ? '' : `active ${tier}`}" aria-live="polite">
     <div class="subscription-status-head">
-      <div class="subscription-status-mark">${tier === 'pro' ? '✦' : '✧'}</div>
+      <div class="subscription-status-mark" aria-hidden="true">${tier === 'pro' ? '✦' : '✧'}</div>
       <div><div class="subscription-status-title">${title}</div><div class="subscription-status-desc">${description}</div></div>
     </div>
-    <div class="subscription-status-actions">
-      ${tier === 'none'
-        ? '<button type="button" class="btn btn-dark" data-subscription-checkout="fp">Оформить подписку</button>'
-        : `${tier === 'plus' ? '<button type="button" class="btn btn-dark" data-subscription-checkout="pro">Улучшить до Pro</button>' : ''}<button type="button" class="btn btn-dark" id="profileBackgroundsOpen">Фон профиля в боте</button><button type="button" class="btn btn-danger" id="cancelSubscriptionButton">Отменить подписку</button>`}
-    </div>
-  </section>`;
+  </section><div class="subscription-actions-grid">${actions}</div>`;
   body.querySelector('[data-subscription-checkout]')?.addEventListener('click', event => {
-    const plan = event.currentTarget.dataset.subscriptionCheckout || checkoutPlan;
+    const plan = event.currentTarget.dataset.subscriptionCheckout || 'fp';
     const checkoutUrl = new URL('https://www.ferniex.ru/oplatapodpiski.html');
     checkoutUrl.searchParams.set('userId', currentUser.id);
     checkoutUrl.searchParams.set('username', currentUser.username);
