@@ -6237,7 +6237,12 @@ app.post('/api/social/chats/:conversationId/presence', async (req, res) => {
     const response = await fetch(`${SB_URL}/rest/v1/social_chat_presence?on_conflict=user_id`, {
       method:'POST',
       headers:{ ...sbHeaders, Prefer:'resolution=merge-duplicates,return=minimal' },
-      body:JSON.stringify({ user_id:user.id, conversation_id:conversationId, last_seen_at:new Date().toISOString() })
+      body:JSON.stringify({
+        user_id:user.id,
+        conversation_id:conversationId,
+        last_seen_at:new Date().toISOString(),
+        is_typing:req.body?.typing === true
+      })
     });
     if(!response.ok) throw new Error('Не удалось обновить статус');
     res.json({ success:true });
@@ -6276,13 +6281,17 @@ app.get('/api/social/chats/:conversationId/presence', async (req, res) => {
       user_id:`eq.${partnerId}`,
       conversation_id:`eq.${conversationId}`,
       last_seen_at:`gte.${cutoff}`,
-      select:'user_id',
+      select:'user_id,is_typing',
       limit:'1'
     });
     const response = await fetch(`${SB_URL}/rest/v1/social_chat_presence?${query}`, { headers:sbHeaders });
     const presence = await response.json();
     if(!response.ok || !Array.isArray(presence)) throw new Error('Не удалось проверить статус');
-    res.json({ success:true, inChat:presence.length > 0 });
+    res.json({
+      success:true,
+      inChat:presence.length > 0,
+      typing:presence.length > 0 && presence[0].is_typing === true
+    });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось проверить статус' });
   }
