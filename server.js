@@ -6168,13 +6168,16 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
       const recipient = recipients[0];
       if(recipientResponse.ok && recipient?.telegram_id){
         const escapeTelegramHtml = value => String(value ?? '').replace(/[&<>]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[character]);
+        const previewText = String(message.body || (message.image_url ? '📷 Фото' : '')).replace(/\s+/g, ' ').trim();
+        const previewCharacters = Array.from(previewText);
+        const preview = previewCharacters.slice(0, 10).join('') + (previewCharacters.length > 10 ? '...' : '');
         const url = new URL(process.env.FERNIE_WEB_URL || 'https://ferniex-id.vercel.app/');
         url.searchParams.set('section', 'social');
         url.searchParams.set('socialTab', 'chat');
         url.searchParams.set('chatWith', String(user.id));
         await sendTgMessageButtons(
           recipient.telegram_id,
-          `💬 <b>У вас новое сообщение от ${escapeTelegramHtml(user.username)}</b>`,
+          `💬 <b>У вас новое сообщение от ${escapeTelegramHtml(user.username)}</b>\n<blockquote>${escapeTelegramHtml(preview)}</blockquote>`,
           [[{ text:'Прочитать', url:url.toString() }]]
         );
       }
