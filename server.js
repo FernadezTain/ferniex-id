@@ -1564,7 +1564,7 @@ app.get('/api/admin/users', async (req, res) => {
   try {
     if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
     const r = await fetch(
-      `${SB_URL}/rest/v1/users?select=id,username,role,balance,created_at,telegram_id&order=created_at.desc`,
+      `${SB_URL}/rest/v1/users?select=id,username,role,balance,created_at,telegram_id,avatar_url,banner_url&order=created_at.desc`,
       { headers: sbHeaders }
     );
     const data = await r.json();
@@ -1617,8 +1617,28 @@ app.post('/api/admin/update-user', async (req, res) => {
   try {
     if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
     const patch = {};
-    if (role !== undefined) patch.role = role;
-    if (telegramId !== undefined) patch.telegram_id = telegramId === '' ? null : parseInt(telegramId) || null;
+    if (req.body.username !== undefined) {
+      const username = String(req.body.username).trim();
+      if (!/^(?=.{3,20}$)[\p{L}\p{N}_]+$/u.test(username)) {
+        return res.status(400).json({ success:false, error:'Ник должен содержать 3–20 букв, цифр или подчёркиваний' });
+      }
+      const duplicateResponse = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id&limit=1`, { headers:sbHeaders });
+      const duplicates = await duplicateResponse.json();
+      if (!duplicateResponse.ok) throw new Error('Не удалось проверить уникальность ника');
+      if (duplicates.some(user => String(user.id) !== String(userId))) {
+        return res.status(409).json({ success:false, error:'Этот ник уже занят' });
+      }
+      patch.username = username;
+    }
+    if (role !== undefined) {
+      if (!['user', 'admin'].includes(role)) return res.status(400).json({ success:false, error:'Недопустимая роль' });
+      patch.role = role;
+    }
+    if (telegramId !== undefined) {
+      const value = String(telegramId).trim();
+      if (value && !/^\d{5,15}$/.test(value)) return res.status(400).json({ success:false, error:'Telegram ID должен содержать от 5 до 15 цифр' });
+      patch.telegram_id = value || null;
+    }
     if (newPassword && newPassword.length >= 4) {
       const hash = await bcrypt.hash(newPassword, 10);
       patch.password_hash = hash;
@@ -1630,7 +1650,7 @@ app.post('/api/admin/update-user', async (req, res) => {
       body: JSON.stringify(patch)
     });
     if (r.ok) res.json({ success: true });
-    else res.json({ success: false, error: 'Ошибка обновления' });
+    else res.status(502).json({ success: false, error: 'Ошибка обновления' });
   } catch(e) { res.json({ success: false, error: 'Ошибка сервера' }); }
 });
 
