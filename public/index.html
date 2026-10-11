@@ -1001,8 +1001,7 @@ body:hover::-webkit-scrollbar-thumb{
   /* декоративные пятна фона на мобилке выглядят как обрезанные куски — убираем */
   .blob{display:none;}
 
-  /* фон страницы = цвет карточек, чтобы блоки заполняли весь экран одним цветом */
-  body{background:var(--card);}
+  body{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 45%,var(--card)) 0%,var(--bg) 78%,var(--bg) 100%) fixed;}
 }
 
 .footer-legal{
