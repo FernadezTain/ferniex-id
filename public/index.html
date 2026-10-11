@@ -825,19 +825,58 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-back{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border:1px solid var(--line);border-radius:50%;background:var(--field);color:var(--ink);font-size:1.15rem;cursor:pointer;}
 .chat-head-name{min-width:0;overflow:hidden;font-size:.86rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
 .chat-thread{display:flex;min-height:0;flex:1;flex-direction:column;gap:.55rem;overflow-y:auto;padding:1rem .8rem;overscroll-behavior:contain;}
+.chat-thread>.loader{display:grid;place-items:center;align-content:center;gap:.8rem;width:100%;min-height:210px;flex:1;margin:auto;padding:1.5rem;color:var(--muted);font-size:.8rem;text-align:center;}
+.chat-thread>.loader::before{width:34px;height:34px;border:2px solid var(--field-border);border-top-color:var(--red);border-right-color:var(--blob-pink);border-radius:50%;content:'';animation:chatLoaderSpin .8s linear infinite,chatLoaderGlow 1.8s ease-in-out infinite;}
+@keyframes chatLoaderSpin{to{transform:rotate(360deg);}}
+@keyframes chatLoaderGlow{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 0%,transparent);}50%{box-shadow:0 0 0 8px color-mix(in srgb,var(--red) 10%,transparent);}}
+.chat-thread>.loader::after{content:'Подготавливаем переписку';animation:chatLoadingText 1.8s ease-in-out infinite;}
+@keyframes chatLoadingText{0%,100%{opacity:.55;}50%{opacity:1;}}
 .chat-start-prompt{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:.45rem;padding:1rem;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.5;}
 .chat-start-prompt .chat-empty-icon{width:54px;height:54px;margin:0 0 .3rem;border-radius:20px;}
 .chat-start-prompt .chat-empty-icon .cico{transform:scale(1.2);}
-.chat-message{max-width:min(82%,420px);padding:.62rem .78rem .42rem;border:1px solid var(--line);border-radius:15px 15px 15px 4px;background:var(--card);color:var(--ink);font-size:.82rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;box-shadow:0 5px 15px -13px rgba(0,0,0,.45);}
+.chat-message{position:relative;max-width:min(82%,420px);padding:.62rem .78rem .42rem;border:1px solid var(--line);border-radius:15px 15px 15px 4px;background:var(--card);color:var(--ink);font-size:.82rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;box-shadow:0 5px 15px -13px rgba(0,0,0,.45);animation:chatMessageIn .22s cubic-bezier(.2,.8,.2,1) both;touch-action:pan-y;}
 .chat-message.mine{align-self:flex-end;border-color:color-mix(in srgb,var(--blob-sage) 45%,var(--line));border-radius:15px 15px 4px 15px;background:color-mix(in srgb,var(--blob-sage) 23%,var(--card));}
+.chat-message-image{display:block;width:min(100%,320px);max-height:360px;margin:0 0 .35rem;border-radius:10px;object-fit:contain;background:color-mix(in srgb,var(--field) 72%,transparent);cursor:pointer;}
+.chat-message-image:only-child{margin-bottom:.1rem;}
+.chat-reply-quote{display:block;margin-bottom:.4rem;padding:.36rem .5rem;border-left:3px solid var(--blob-pink);border-radius:4px 8px 8px 4px;background:color-mix(in srgb,var(--field) 72%,transparent);color:var(--muted);font-size:.71rem;line-height:1.4;cursor:pointer;}
+.chat-reply-quote strong{display:block;margin-bottom:.1rem;color:var(--ink);font-size:.66rem;}
+.chat-deleted{color:var(--muted);font-style:italic;}
 .chat-message-meta{display:flex;justify-content:flex-end;gap:.3rem;margin-top:.22rem;color:var(--muted);font-size:.58rem;}
 .chat-message-status{font-weight:800;letter-spacing:-.12em;}
 .chat-message-status.read{color:#4b9bd4;}
+.chat-read-receipt{align-self:flex-end;margin-top:-.28rem;padding:0 .25rem;color:#4b9bd4;font-size:.6rem;animation:chatReceiptIn .2s ease both;}
+@keyframes chatMessageIn{from{opacity:0;transform:translateY(7px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes chatReceiptIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
 .chat-compose{display:flex;align-items:flex-end;gap:.55rem;padding:.65rem;border-top:1px solid var(--line);background:var(--card);}
 .chat-compose textarea{min-height:42px;max-height:120px;flex:1;resize:none;padding:11px 13px;border-radius:14px;font-size:.82rem;line-height:1.35;}
-.chat-send{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:0;border-radius:50%;background:var(--ink);color:var(--ink-contrast);cursor:pointer;}
+.chat-attach,.chat-send{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--field-border);border-radius:50%;background:var(--field);color:var(--ink);cursor:pointer;transition:transform .18s,background .18s,color .18s,box-shadow .18s;}
+.chat-attach:hover{transform:rotate(-12deg);background:color-mix(in srgb,var(--blob-sage) 35%,var(--field));}
+.chat-attach .cico{width:19px;height:19px;transform:rotate(-42deg);}
+.chat-attach .cico::before{left:4px;top:0;width:10px;height:16px;border:2px solid currentColor;border-bottom-color:transparent;border-radius:7px 7px 0 0;}
+.chat-attach .cico::after{left:7px;top:4px;width:6px;height:11px;border:1.6px solid currentColor;border-bottom-color:transparent;border-radius:5px 5px 0 0;}
+.chat-send{border-color:transparent;background:linear-gradient(145deg,#e9786f,#d94f4b);color:#fff;box-shadow:0 7px 17px -10px rgba(205,64,60,.8);}
+.chat-send:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 10px 20px -9px rgba(205,64,60,.72);}
+.chat-send:active{transform:scale(.92);}
+.chat-send svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transform:translate(-1px,1px);}
 .chat-send:disabled{opacity:.45;cursor:default;}
-.chat-send .cico{transform:rotate(45deg) scale(.9);}
+.chat-attachment-preview{display:flex;gap:.5rem;overflow-x:auto;padding:.55rem .75rem;border-top:1px solid var(--line);background:var(--card);}
+.chat-attachment-preview[hidden],.chat-reply-preview[hidden]{display:none;}
+.chat-attachment-thumb{position:relative;width:58px;height:58px;flex:0 0 58px;overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--field);animation:chatMessageIn .18s ease both;}
+.chat-attachment-thumb img{width:100%;height:100%;object-fit:cover;}
+.chat-attachment-remove{position:absolute;top:2px;right:2px;display:grid;place-items:center;width:19px;height:19px;border:0;border-radius:50%;background:rgba(20,18,16,.74);color:#fff;font-size:.85rem;cursor:pointer;}
+.chat-reply-preview{display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;border-top:1px solid var(--line);background:color-mix(in srgb,var(--blob-pink) 9%,var(--card));}
+.chat-reply-copy{min-width:0;flex:1;border-left:3px solid var(--blob-pink);padding-left:.55rem;}
+.chat-reply-copy strong,.chat-reply-copy span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-reply-copy strong{font-size:.68rem;}
+.chat-reply-copy span{margin-top:.12rem;color:var(--muted);font-size:.69rem;}
+.chat-reply-cancel{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:1.15rem;cursor:pointer;}
+.chat-context-menu{position:fixed;z-index:70;min-width:205px;padding:6px;border:1px solid color-mix(in srgb,var(--ink) 12%,var(--line));border-radius:13px;background:color-mix(in srgb,var(--card) 93%,transparent);box-shadow:0 16px 42px -18px rgba(0,0,0,.58);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);animation:chatMenuIn .14s ease both;}
+.chat-context-menu[hidden]{display:none;}
+.chat-context-read{padding:7px 9px 8px;border-bottom:1px solid var(--line);color:var(--muted);font-size:.64rem;line-height:1.4;}
+.chat-context-action{display:flex;align-items:center;width:100%;gap:.55rem;padding:9px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:600 .75rem Inter,sans-serif;text-align:left;cursor:pointer;}
+.chat-context-action:hover{background:var(--field);}
+.chat-context-action.danger{color:var(--red);}
+@keyframes chatMenuIn{from{opacity:0;transform:translateY(4px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
 .chat-search-results{display:flex;max-height:390px;flex-direction:column;gap:.5rem;overflow-y:auto;}
 .chat-search-row{display:flex;align-items:center;gap:.7rem;padding:.55rem .6rem;border:1px solid var(--line);border-radius:13px;background:var(--field);}
 .chat-search-row .chat-row-name{flex:1;}
@@ -845,7 +884,7 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-modal-search{margin-bottom:.75rem;}
 @media(max-width:900px){.chat-fab{right:18px;bottom:calc(102px + var(--app-safe-bottom));}}
 @media(max-width:560px){.chat-workspace{min-height:300px;}.chat-empty{min-height:270px;}.chat-conversation{min-height:calc(100dvh - 300px);max-height:calc(100dvh - 260px);border-radius:0;border-right:0;border-left:0;}.chat-fab{width:54px;height:54px;right:18px;}}
-@media(prefers-reduced-motion:reduce){.chat-fab,.chat-row{transition:none;}}
+@media(prefers-reduced-motion:reduce){.chat-fab,.chat-row,.chat-message,.chat-context-menu,.chat-read-receipt{transition:none;animation:none;}.chat-thread>.loader::before,.chat-thread>.loader::after{animation:none;}}
 
 /* --- ticket list card --- */
 .ticket-row{display:flex;align-items:center;gap:.9rem;padding:.9rem 1rem;border-radius:14px;background:var(--field);border:1px solid var(--field-border);cursor:pointer;transition:border-color .15s;margin-bottom:.6rem;}
@@ -1381,9 +1420,13 @@ html,body{touch-action:manipulation;}
                     <div class="chat-head-name" id="socialChatName"></div>
                   </div>
                   <div class="chat-thread" id="socialChatThread" aria-live="polite"></div>
+                  <div class="chat-attachment-preview" id="socialChatAttachmentPreview" hidden></div>
+                  <div class="chat-reply-preview" id="socialChatReplyPreview" hidden></div>
                   <form class="chat-compose" id="socialChatCompose">
+                    <input type="file" id="socialChatFiles" accept="image/jpeg,image/png,image/webp" multiple hidden>
+                    <button type="button" class="chat-attach" id="socialChatAttach" aria-label="Прикрепить фотографии"><i class="cico" aria-hidden="true"></i></button>
                     <textarea class="field-input" id="socialChatInput" rows="1" maxlength="4000" placeholder="Сообщение…" aria-label="Текст сообщения"></textarea>
-                    <button type="submit" class="chat-send" id="socialChatSend" aria-label="Отправить сообщение"><i class="cico cico-plus"></i></button>
+                    <button type="submit" class="chat-send" id="socialChatSend" aria-label="Отправить сообщение"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.7 2.3a1 1 0 0 0-1.05-.22L2.8 9.1a1.5 1.5 0 0 0 .12 2.83l7.06 2.2 2.2 7.06A1.5 1.5 0 0 0 15 21.3l7.1-17.85a1 1 0 0 0-.4-1.15ZM12 12l7.07-7.07"/></svg></button>
                   </form>
                 </div>
               </div>
@@ -2183,6 +2226,9 @@ let socialChatPolling = null;
 let socialChatLoading = false;
 let socialChatSearchTimer = null;
 let socialChatSearchSequence = 0;
+let socialChatAttachments = [];
+let socialChatReplyTo = null;
+let socialChatLongPressTimer = null;
 
 function socialChatHeaders(){
   let session = {};
@@ -2269,14 +2315,18 @@ async function openOrCreateSocialChat(user){
 async function openSocialChat(conversationId, partner){
   stopSocialChatPolling();
   activeSocialChat = { id:conversationId, partner };
+  socialChatAttachments = [];
+  socialChatReplyTo = null;
   $('chatListView').hidden = true;
   $('chatConversationView').hidden = false;
   $('socialNewChatBtn').hidden = true;
+  renderSocialChatAttachments();
+  clearSocialChatReply();
   $('socialChatAvatar').innerHTML = partner?.avatar_url
     ? `<img src="${escapeHtml(partner.avatar_url)}" alt="" loading="lazy">`
     : escapeHtml((partner?.username || '?')[0].toUpperCase());
   $('socialChatName').textContent = partner.username || 'Пользователь';
-  $('socialChatThread').innerHTML = '<div class="loader">Загружаем сообщения…</div>';
+  $('socialChatThread').innerHTML = '<div class="loader"></div>';
   $('socialChatInput').value = '';
   await loadSocialMessages(true);
   socialChatPolling = setInterval(() => loadSocialMessages(false), 4500);
@@ -2288,7 +2338,7 @@ async function loadSocialMessages(showLoading){
   const conversationId = activeSocialChat.id;
   const thread = $('socialChatThread');
   const wasNearBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 100;
-  if(showLoading) thread.innerHTML = '<div class="loader">Загружаем сообщения…</div>';
+  if(showLoading) thread.innerHTML = '<div class="loader"></div>';
   try{
     const data = await socialChatRequest(`/api/social/chats/${encodeURIComponent(conversationId)}/messages`);
     if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
@@ -2305,11 +2355,18 @@ async function loadSocialMessages(showLoading){
       thread.innerHTML = `<div class="chat-start-prompt"><div class="chat-empty-icon"><i class="cico" aria-hidden="true"></i></div><span>Отправьте любое первое сообщение с пользователем «${escapeHtml(activeSocialChat.partner.username || 'Пользователь')}»</span></div>`;
       return;
     }
+    const messagesById = new Map(messages.map(message => [String(message.id), message]));
     thread.innerHTML = messages.map(message => {
       const mine = String(message.sender_id) === String(currentUser.id);
       const status = mine ? `<span class="chat-message-status${message.read_at ? ' read' : ''}" aria-label="${message.read_at ? 'Прочитано' : message.delivered_at ? 'Доставлено' : 'Отправлено'}">${message.read_at ? '✓✓' : message.delivered_at ? '✓' : '◷'}</span>` : '';
-      return `<div class="chat-message${mine ? ' mine' : ''}">${escapeHtml(message.body)}<div class="chat-message-meta"><time>${chatTime(message.created_at)}</time>${status}</div></div>`;
+      const reply = messagesById.get(String(message.reply_to_message_id));
+      const replyHtml = message.reply_to_message_id ? `<div class="chat-reply-quote" data-scroll-to-message="${escapeHtml(message.reply_to_message_id)}"><strong>${reply ? String(reply.sender_id) === String(currentUser.id) ? 'Вы' : escapeHtml(activeSocialChat.partner.username) : 'Ответ на сообщение'}</strong>${escapeHtml(reply?.deleted_at ? 'Сообщение удалено' : reply?.body || (reply?.image_url ? '📷 Фото' : 'Сообщение'))}</div>` : '';
+      const photo = message.image_url && !message.deleted_at ? `<img class="chat-message-image" src="${escapeHtml(message.image_url)}" alt="Фото из сообщения" loading="lazy" data-open-chat-image>` : '';
+      const body = message.deleted_at ? '<span class="chat-deleted">Сообщение удалено</span>' : escapeHtml(message.body || '');
+      const readable = message.read_at ? `<div class="chat-read-receipt">Прочитано: ${escapeHtml(new Date(message.read_at).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }))}</div>` : '';
+      return `<div class="chat-message${mine ? ' mine' : ''}${message.deleted_at ? ' deleted' : ''}" data-chat-message="${escapeHtml(message.id)}" data-message-mine="${mine}" data-message-read="${escapeHtml(message.read_at || '')}" data-message-time="${escapeHtml(message.created_at)}">${replyHtml}${photo}${body}<div class="chat-message-meta"><time>${chatTime(message.created_at)}</time>${status}</div></div>${readable}`;
     }).join('');
+    bindSocialChatMessageInteractions(messages);
     if(showLoading || wasNearBottom) thread.scrollTop = thread.scrollHeight;
   } catch(error){
     if(activeSocialChat?.id === conversationId) thread.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить сообщения</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
@@ -2323,15 +2380,31 @@ async function sendSocialMessage(event){
   if(!activeSocialChat) return;
   const input = $('socialChatInput');
   const body = input.value.trim();
-  if(!body) return;
+  if(!body && !socialChatAttachments.length) return;
   const button = $('socialChatSend');
+  const files = [...socialChatAttachments];
+  const replyToMessageId = socialChatReplyTo?.id || null;
   button.disabled = true;
   try{
-    await socialChatRequest(`/api/social/chats/${encodeURIComponent(activeSocialChat.id)}/messages`, {
-      method:'POST', body:JSON.stringify({ body })
-    });
+    if(files.length){
+      for(let index = 0; index < files.length; index++){
+        await socialChatRequest(`/api/social/chats/${encodeURIComponent(activeSocialChat.id)}/messages`, {
+          method:'POST', body:JSON.stringify({
+            body:index === 0 ? body : '',
+            imageBase64:files[index].dataUrl,
+            replyToMessageId:index === 0 ? replyToMessageId : null
+          })
+        });
+      }
+    } else {
+      await socialChatRequest(`/api/social/chats/${encodeURIComponent(activeSocialChat.id)}/messages`, {
+        method:'POST', body:JSON.stringify({ body, replyToMessageId })
+      });
+    }
     input.value = '';
     input.style.height = '';
+    clearSocialChatAttachments();
+    clearSocialChatReply();
     await loadSocialMessages(true);
     loadSocialChats(false);
   } catch(error){
@@ -2341,6 +2414,160 @@ async function sendSocialMessage(event){
     input.focus();
   }
 }
+
+function renderSocialChatAttachments(){
+  const preview = $('socialChatAttachmentPreview');
+  if(!preview) return;
+  preview.hidden = !socialChatAttachments.length;
+  preview.innerHTML = socialChatAttachments.map((file, index) => `<div class="chat-attachment-thumb"><img src="${file.dataUrl}" alt="Предпросмотр фотографии"><button type="button" class="chat-attachment-remove" data-remove-chat-image="${index}" aria-label="Убрать фотографию">×</button></div>`).join('');
+  preview.querySelectorAll('[data-remove-chat-image]').forEach(button => button.addEventListener('click', () => {
+    socialChatAttachments.splice(Number(button.dataset.removeChatImage), 1);
+    renderSocialChatAttachments();
+  }));
+}
+
+function clearSocialChatAttachments(){
+  socialChatAttachments = [];
+  $('socialChatFiles').value = '';
+  renderSocialChatAttachments();
+}
+
+async function addSocialChatAttachments(files){
+  const allowed = files.filter(file => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type));
+  if(allowed.length !== files.length) showToastSafe('Можно прикреплять только JPG, PNG или WEBP');
+  for(const file of allowed){
+    if(socialChatAttachments.length >= 8){ showToastSafe('К одному сообщению можно прикрепить до 8 фотографий'); break; }
+    if(file.size > 12 * 1024 * 1024){ showToastSafe(`«${file.name}» больше 12 МБ`); continue; }
+    try{
+      const dataUrl = await compressImageForPost(file, 1600, .82);
+      const totalSize = socialChatAttachments.reduce((sum, item) => sum + item.dataUrl.length, 0);
+      if(totalSize + dataUrl.length > 10 * 1024 * 1024){ showToastSafe('Общий размер фотографий слишком большой'); break; }
+      socialChatAttachments.push({ name:file.name, dataUrl });
+    } catch(error){
+      showToastSafe(`Не удалось обработать «${file.name}»`);
+    }
+  }
+  renderSocialChatAttachments();
+}
+
+function setSocialChatReply(message){
+  if(message.deleted_at) return;
+  socialChatReplyTo = message;
+  const preview = $('socialChatReplyPreview');
+  const excerpt = message.body || (message.image_url ? '📷 Фото' : 'Сообщение');
+  preview.innerHTML = `<div class="chat-reply-copy"><strong>Ответ ${String(message.sender_id) === String(currentUser.id) ? 'на своё сообщение' : `пользователю ${escapeHtml(activeSocialChat.partner.username)}`}</strong><span>${escapeHtml(excerpt)}</span></div><button type="button" class="chat-reply-cancel" id="socialChatReplyCancel" aria-label="Отменить ответ">×</button>`;
+  preview.hidden = false;
+  $('socialChatReplyCancel').addEventListener('click', clearSocialChatReply);
+  $('socialChatInput').focus();
+}
+
+function clearSocialChatReply(){
+  socialChatReplyTo = null;
+  const preview = $('socialChatReplyPreview');
+  if(preview){ preview.hidden = true; preview.innerHTML = ''; }
+}
+
+function closeSocialChatContextMenu(){
+  document.querySelector('.chat-context-menu')?.remove();
+}
+
+function openSocialChatContextMenu(message, anchor, point){
+  closeSocialChatContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'chat-context-menu';
+  const readAt = message.read_at ? `Прочитано: ${new Date(message.read_at).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}` : '';
+  const own = String(message.sender_id) === String(currentUser.id);
+  menu.innerHTML = `${readAt ? `<div class="chat-context-read">${escapeHtml(readAt)}</div>` : ''}
+    <button type="button" class="chat-context-action" data-chat-action="copy">▣ <span>Скопировать сообщение</span></button>
+    <button type="button" class="chat-context-action" data-chat-action="reply">↩ <span>Ответить</span></button>
+    <button type="button" class="chat-context-action danger" data-chat-action="delete" ${own && !message.deleted_at ? '' : 'disabled'}>⌫ <span>Удалить</span></button>`;
+  document.body.appendChild(menu);
+  menu.querySelector('[data-chat-action="copy"]').addEventListener('click', async () => {
+    const text = [message.body, message.image_url ? message.image_url : ''].filter(Boolean).join('\n');
+    try{ await navigator.clipboard.writeText(text); showToastSafe('Сообщение скопировано'); }
+    catch{ showToastSafe('Не удалось скопировать сообщение'); }
+    closeSocialChatContextMenu();
+  });
+  menu.querySelector('[data-chat-action="reply"]').addEventListener('click', () => { setSocialChatReply(message); closeSocialChatContextMenu(); });
+  menu.querySelector('[data-chat-action="delete"]').addEventListener('click', async () => {
+    closeSocialChatContextMenu();
+    if(!own || message.deleted_at) return;
+    if(!(await confirmModal('Удалить это сообщение? Оно будет скрыто в переписке.', { title:'Удалить сообщение?', okLabel:'Удалить', danger:true, icon:'cross' }))) return;
+    try{
+      await socialChatRequest(`/api/social/chats/${encodeURIComponent(activeSocialChat.id)}/messages/${encodeURIComponent(message.id)}`, { method:'DELETE' });
+      await loadSocialMessages(true);
+      loadSocialChats(false);
+    } catch(error){ showToastSafe(error.message || 'Не удалось удалить сообщение'); }
+  });
+  const bounds = menu.getBoundingClientRect();
+  const x = point?.clientX ?? anchor.getBoundingClientRect().left;
+  const y = point?.clientY ?? anchor.getBoundingClientRect().bottom;
+  menu.style.left = `${Math.max(8, Math.min(x, innerWidth - bounds.width - 8))}px`;
+  menu.style.top = `${Math.max(8, Math.min(y, innerHeight - bounds.height - 8))}px`;
+}
+
+function bindSocialChatMessageInteractions(messages){
+  const messagesById = new Map(messages.map(message => [String(message.id), message]));
+  $('socialChatThread').querySelectorAll('[data-chat-message]').forEach(element => {
+    const message = messagesById.get(element.dataset.chatMessage);
+    if(!message) return;
+    element.addEventListener('contextmenu', event => {
+      event.preventDefault();
+      openSocialChatContextMenu(message, element, event);
+    });
+    let startX = 0;
+    let startY = 0;
+    let longPressTriggered = false;
+    element.addEventListener('pointerdown', event => {
+      if(event.pointerType === 'mouse' && event.button !== 0) return;
+      startX = event.clientX;
+      startY = event.clientY;
+      longPressTriggered = false;
+      socialChatLongPressTimer = setTimeout(() => {
+        longPressTriggered = true;
+        openSocialChatContextMenu(message, element, { clientX:startX, clientY:startY });
+      }, 560);
+    });
+    element.addEventListener('pointermove', event => {
+      if(Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) clearTimeout(socialChatLongPressTimer);
+    });
+    const clearPress = () => clearTimeout(socialChatLongPressTimer);
+    element.addEventListener('pointerup', clearPress);
+    element.addEventListener('pointercancel', clearPress);
+    element.addEventListener('pointerleave', clearPress);
+    element.addEventListener('click', event => {
+      if(longPressTriggered){ event.preventDefault(); event.stopPropagation(); return; }
+      const quote = event.target.closest('[data-scroll-to-message]');
+      if(quote){
+        const target = $('socialChatThread').querySelector(`[data-chat-message="${CSS.escape(quote.dataset.scrollToMessage)}"]`);
+        target?.scrollIntoView({ behavior:'smooth', block:'center' });
+        target?.animate([{ transform:'scale(1)' },{ transform:'scale(1.035)' },{ transform:'scale(1)' }], { duration:420 });
+      }
+      const image = event.target.closest('[data-open-chat-image]');
+      if(image) window.open(image.src, '_blank', 'noopener');
+    });
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    element.addEventListener('touchstart', event => {
+      swipeStartX = event.touches[0].clientX;
+      swipeStartY = event.touches[0].clientY;
+    }, { passive:true });
+    element.addEventListener('touchend', event => {
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - swipeStartX;
+      const dy = touch.clientY - swipeStartY;
+      if(dx > 72 && Math.abs(dy) < 44) setSocialChatReply(message);
+    }, { passive:true });
+  });
+}
+
+document.addEventListener('click', event => {
+  if(!event.target.closest('.chat-context-menu')) closeSocialChatContextMenu();
+});
+
+document.addEventListener('keydown', event => {
+  if(event.key === 'Escape') closeSocialChatContextMenu();
+});
 
 function renderSocialChatUsers(users){
   const results = $('socialChatSearchResults');
@@ -2408,12 +2635,21 @@ $('socialChatBack').addEventListener('click', () => {
   loadSocialChats();
 });
 $('socialChatCompose').addEventListener('submit', sendSocialMessage);
+$('socialChatAttach').addEventListener('click', () => $('socialChatFiles').click());
+$('socialChatFiles').addEventListener('change', async event => {
+  const files = [...(event.currentTarget.files || [])];
+  event.currentTarget.value = '';
+  await addSocialChatAttachments(files);
+});
 $('socialChatInput').addEventListener('input', event => {
   event.currentTarget.style.height = 'auto';
   event.currentTarget.style.height = `${Math.min(event.currentTarget.scrollHeight, 120)}px`;
 });
 $('socialChatInput').addEventListener('keydown', event => {
-  if(event.key === 'Enter' && (event.ctrlKey || event.metaKey)) $('socialChatCompose').requestSubmit();
+  if(event.key === 'Enter' && !event.shiftKey && !event.isComposing){
+    event.preventDefault();
+    $('socialChatCompose').requestSubmit();
+  }
 });
 
 function switchSection(name){
