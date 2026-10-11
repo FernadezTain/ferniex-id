@@ -31,17 +31,20 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 *{transition:background-color .45s cubic-bezier(.4,0,.2,1), border-color .45s cubic-bezier(.4,0,.2,1), color .45s cubic-bezier(.4,0,.2,1);}
-html{height:100%;}
+html{height:100%;background:var(--bg);}
 body{
   min-height:100%;
   min-height:100dvh;
   min-height:var(--tg-viewport-stable-height,100dvh);
   font-family:'Inter',sans-serif;
-  background:var(--bg);
+  position:relative;
+  isolation:isolate;
+  background:transparent;
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   overflow-x:hidden;
 }
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 20%,var(--card)) 0%,var(--bg) 62vh,var(--bg) 100%);}
 
 /* декоративные пятна фона */
 .blob{position:fixed;border-radius:50%;filter:blur(2px);opacity:.9;z-index:0;pointer-events:none;}
@@ -1001,7 +1004,6 @@ body:hover::-webkit-scrollbar-thumb{
   /* декоративные пятна фона на мобилке выглядят как обрезанные куски — убираем */
   .blob{display:none;}
 
-  body{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 45%,var(--card)) 0%,var(--bg) 78%,var(--bg) 100%) fixed;}
 }
 
 .footer-legal{
