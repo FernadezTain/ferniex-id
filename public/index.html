@@ -80,6 +80,11 @@ body{
 .field-input::placeholder{color:#b6ac9f;}
 .field-input:focus{border-color:color-mix(in srgb, var(--ink) 35%, var(--field-border));background:var(--field);box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 16%, transparent);}
 .field-input[type="password"]{padding-right:44px;}
+.login-otp{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:.4rem;}
+.login-otp-digit{min-width:0;padding:13px 0;text-align:center;font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:0;}
+.login-otp-digit::placeholder{color:color-mix(in srgb,var(--muted) 55%,transparent);opacity:1;}
+.login-otp-digit:focus{border-color:var(--ink);}
+@media(max-width:420px){.login-otp{gap:.3rem;}.login-otp-digit{padding:12px 0;font-size:.98rem;}}
 .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--muted);border-radius:8px;transition:color .15s, background .15s;-webkit-tap-highlight-color:transparent;}
 .eye-btn:hover{color:var(--ink);background:rgba(0,0,0,0.04);}
 .forgot-row{display:flex;justify-content:flex-end;margin-top:-.55rem;margin-bottom:1.35rem;}
@@ -1118,8 +1123,10 @@ html,body{touch-action:manipulation;}
         <h1 class="auth-title">Подтверди вход</h1>
         <p class="auth-subtitle" id="login2faHint">Отправили одноразовый код в привязанный Telegram.</p>
         <div class="field">
-          <label class="field-label" for="login2faCode">Код из Telegram</label>
-          <input class="field-input" id="login2faCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="8 цифр" style="text-align:center;letter-spacing:.28em;font-weight:800;">
+          <label class="field-label" for="login2faDigit0">Код из Telegram</label>
+          <div class="login-otp" id="login2faCode" role="group" aria-label="Восьмизначный код подтверждения">
+            ${Array.from({length:8}, (_, index) => `<input class="field-input login-otp-digit" id="login2faDigit${index}" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" placeholder="0" autocomplete="${index === 0 ? 'one-time-code' : 'off'}" aria-label="Цифра ${index + 1}">`).join('')}
+          </div>
         </div>
         <div class="form-msg" id="login2faMsg"></div>
         <button class="submit-btn" id="login2faSubmit">Подтвердить вход →</button>
@@ -1763,9 +1770,9 @@ $('loginSubmit').onclick = async () => {
     if(data.success && data.require2fa && data.challengeId){
       pendingLoginChallenge = { challengeId:data.challengeId, username };
       $('login2faHint').textContent = `Код отправлен в Telegram ${data.telegramHint || ''}. Он действует 5 минут.`;
-      $('login2faCode').value = '';
+      clearLoginOtp();
       showSection('login-2fa');
-      $('login2faCode').focus();
+      $('login2faDigit0').focus();
     } else if(data.success && data.userId && data.sessionToken){
       await finishLogin(data, username);
     } else {
@@ -1779,9 +1786,52 @@ $('loginSubmit').onclick = async () => {
     setBtnLoading($('loginSubmit'), false, 'Войти в аккаунт →');
   }
 };
+
+function readLoginOtp(){
+  return [...document.querySelectorAll('.login-otp-digit')].map(input => input.value).join('');
+}
+
+function clearLoginOtp(){
+  document.querySelectorAll('.login-otp-digit').forEach(input => { input.value = ''; });
+}
+
+document.querySelectorAll('.login-otp-digit').forEach((input, index, inputs) => {
+  input.addEventListener('input', () => {
+    const digits = input.value.replace(/\D/g, '');
+    if(digits.length > 1){
+      const start = digits.length === inputs.length ? 0 : index;
+      [...digits].slice(0, inputs.length - start).forEach((digit, offset) => {
+        inputs[start + offset].value = digit;
+      });
+      inputs[Math.min(start + digits.length, inputs.length - 1)].focus();
+      return;
+    }
+    input.value = digits.slice(-1);
+    if(input.value && inputs[index + 1]) inputs[index + 1].focus();
+  });
+  input.addEventListener('keydown', event => {
+    if(event.key === 'Backspace' && !input.value && inputs[index - 1]){
+      inputs[index - 1].value = '';
+      inputs[index - 1].focus();
+    } else if(event.key === 'ArrowLeft' && inputs[index - 1]){
+      inputs[index - 1].focus();
+    } else if(event.key === 'ArrowRight' && inputs[index + 1]){
+      inputs[index + 1].focus();
+    } else if(event.key === 'Enter'){
+      $('login2faSubmit').click();
+    }
+  });
+  input.addEventListener('paste', event => {
+    event.preventDefault();
+    const digits = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, inputs.length);
+    inputs.forEach((slot, slotIndex) => { slot.value = digits[slotIndex] || ''; });
+    inputs[Math.min(digits.length, inputs.length - 1)]?.focus();
+  });
+});
+
 $('login2faSubmit').onclick = async () => {
   const msg = $('login2faMsg');
-  const code = $('login2faCode').value.trim();
+  const code = readLoginOtp();
   msg.textContent = '';
   if(!pendingLoginChallenge){ showSection('login'); return; }
   if(!/^\d{8}$/.test(code)){ msg.textContent = 'Введи 8 цифр из сообщения FernieXBot'; return; }
@@ -1803,7 +1853,6 @@ $('login2faSubmit').onclick = async () => {
   }
 };
 $('login2faBack').addEventListener('click', () => { pendingLoginChallenge = null; showSection('login'); });
-$('login2faCode').addEventListener('keydown', event => { if(event.key === 'Enter') $('login2faSubmit').click(); });
 
 async function finishLogin(data, username){
   localStorage.setItem(STORE_KEY, JSON.stringify({ userId:data.userId, username, sessionToken:data.sessionToken }));
@@ -1841,8 +1890,9 @@ $('regSubmit').onclick = async () => {
       if(loginData.success && loginData.require2fa && loginData.challengeId){
         pendingLoginChallenge = { challengeId:loginData.challengeId, username };
         $('login2faHint').textContent = `Код отправлен в Telegram ${loginData.telegramHint || ''}. Он действует 5 минут.`;
-        $('login2faCode').value = '';
+        clearLoginOtp();
         showSection('login-2fa');
+        $('login2faDigit0').focus();
       } else if(loginData.success && loginData.userId && loginData.sessionToken){
         await finishLogin(loginData, username);
       } else {
