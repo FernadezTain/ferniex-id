@@ -812,13 +812,15 @@ body:hover::-webkit-scrollbar-thumb{
 .social-profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.4rem;background-size:cover;background-position:center;flex-shrink:0;}
 .social-profile-name{font-weight:700;font-size:1.05rem;}
 .social-profile-actions{display:flex;gap:.6rem;margin-top:.5rem;}
-.social-profile-sections{display:flex;gap:.45rem;margin:1.2rem 0 .9rem;padding:4px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--field) 62%,transparent);}
-.social-profile-section-tab{flex:1;padding:.68rem .9rem;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 .78rem Inter,sans-serif;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s;}
-.social-profile-section-tab.active{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(20,16,10,.08);}
+.social-profile-sections{position:relative;display:flex;margin:1.2rem 0 .9rem;padding:4px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--field) 62%,transparent);}
+.social-profile-section-slider{position:absolute;top:4px;bottom:4px;left:4px;width:0;border-radius:10px;background:var(--card);box-shadow:0 2px 8px rgba(20,16,10,.08);transition:transform .34s cubic-bezier(.22,1,.36,1),width .34s cubic-bezier(.22,1,.36,1);}
+.social-profile-section-tab{position:relative;z-index:1;flex:1;padding:.68rem .9rem;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 .78rem Inter,sans-serif;cursor:pointer;transition:color .2s;}
+.social-profile-section-tab.active{color:var(--ink);}
 .social-profile-section{animation:subscriptionViewIn .22s ease both;}
 .social-profile-section[hidden]{display:none;}
 .social-profile-gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,155px),1fr));gap:.75rem;}
 .social-profile-gift{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:16px;background:var(--field);transition:transform .18s,border-color .18s,box-shadow .18s;}
+.social-profile-gift[role="button"]{cursor:pointer;}
 .social-profile-gift:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 12px 24px -18px rgba(0,0,0,.4);}
 .social-profile-gift-art{position:relative;display:grid;place-items:center;aspect-ratio:1;overflow:hidden;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);}
 .social-profile-gift-art::before{position:absolute;inset:0;background-image:var(--gift-background);background-position:center;background-size:cover;content:'';}
@@ -830,6 +832,7 @@ body:hover::-webkit-scrollbar-thumb{
 .social-profile-gift-price{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;white-space:nowrap;}
 .social-profile-gift-price span{color:var(--amber);font-size:.66rem;}
 .social-profile-gift .udg-gift-market-badge{font-size:.5rem;}
+@media(prefers-reduced-motion:reduce){.social-profile-section-slider{transition:none;}}
 .social-posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
 .social-posts-grid .grid-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--field);cursor:pointer;}
 .social-posts-grid .grid-photo img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -887,6 +890,27 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-start-prompt .chat-empty-icon{width:54px;height:54px;margin:0 0 .3rem;border-radius:20px;}
 .chat-start-prompt .chat-empty-icon .cico{transform:scale(1.2);}
 .chat-message{position:relative;max-width:min(82%,420px);padding:.62rem .78rem .42rem;border:1px solid var(--line);border-radius:15px 15px 15px 4px;background:var(--card);color:var(--ink);font-size:.82rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;box-shadow:0 5px 15px -13px rgba(0,0,0,.45);animation:chatMessageIn .22s cubic-bezier(.2,.8,.2,1) both;touch-action:pan-y;}
+.chat-message.gift-transfer{align-self:center;width:min(100%,320px);max-width:100%;padding:0;border:0;border-radius:20px;background:transparent;box-shadow:none;overflow:visible;white-space:normal;}
+.chat-message.gift-transfer.mine{border:0;border-radius:20px;background:transparent;}
+.chat-gift-service{width:100%;margin-bottom:.45rem;color:var(--muted);font-size:.68rem;font-weight:800;text-align:center;}
+.chat-gift-card{position:relative;display:block;width:100%;overflow:hidden;padding:0;border:1px solid color-mix(in srgb,var(--ink) 16%,var(--line));border-radius:20px;background:var(--field);color:var(--ink);box-shadow:0 14px 34px -20px rgba(0,0,0,.62);text-align:left;}
+.chat-gift-art{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1/1;overflow:hidden;background:linear-gradient(145deg,color-mix(in srgb,var(--blob-pink) 42%,var(--card)),color-mix(in srgb,var(--blob-sage) 44%,var(--card)));}
+.chat-gift-art::before{position:absolute;inset:0;background-image:var(--gift-background);background-position:center;background-size:cover;content:'';}
+.chat-gift-art::after{position:absolute;inset:45% 0 0;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--ink) 30%,transparent));content:'';}
+.chat-gift-art img{position:relative;z-index:1;width:72%;height:72%;object-fit:contain;filter:drop-shadow(0 15px 16px rgba(0,0,0,.25));}
+.chat-gift-no-image{position:relative;z-index:1;color:color-mix(in srgb,var(--ink) 60%,transparent);font:800 3rem Syne,sans-serif;}
+.chat-gift-ribbon{position:absolute;top:16px;right:-34px;z-index:2;width:128px;padding:.3rem 0;background:color-mix(in srgb,var(--ink) 78%,transparent);color:#fff;font-size:.56rem;font-weight:800;letter-spacing:.08em;text-align:center;transform:rotate(45deg);}
+.chat-gift-copy{padding:.85rem .95rem .95rem;text-align:center;}
+.chat-gift-heading{font-family:'Syne',sans-serif;font-size:.98rem;font-weight:800;}
+.chat-gift-collection{margin-top:.2rem;color:var(--muted);font-size:.7rem;}
+.chat-gift-meta{display:grid;gap:.32rem;margin-top:.7rem;padding:.65rem .75rem;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--card) 65%,transparent);}
+.chat-gift-meta-row{display:flex;justify-content:space-between;gap:.7rem;font-size:.67rem;}
+.chat-gift-meta-row span{color:var(--muted);}
+.chat-gift-meta-row b{min-width:0;overflow:hidden;font-weight:700;text-align:right;text-overflow:ellipsis;white-space:nowrap;}
+.chat-gift-view{display:inline-flex;align-items:center;justify-content:center;min-width:110px;margin-top:.7rem;padding:.48rem .9rem;border:1px solid color-mix(in srgb,var(--ink) 10%,transparent);border-radius:999px;background:var(--ink);color:var(--ink-contrast);font:700 .72rem Inter,sans-serif;cursor:pointer;}
+.chat-gift-view:hover{opacity:.9;}
+.chat-gift-wave{position:fixed;z-index:42;width:16px;height:16px;border:1px solid color-mix(in srgb,var(--blob-pink) 75%,#fff);border-radius:50%;pointer-events:none;}
+.chat-message.gift-transfer .chat-message-meta{padding:0 .25rem;}
 .chat-message.mine{align-self:flex-end;border-color:color-mix(in srgb,var(--blob-sage) 45%,var(--line));border-radius:15px 15px 4px 15px;background:color-mix(in srgb,var(--blob-sage) 23%,var(--card));}
 .chat-message-image{display:block;width:min(100%,320px);height:auto;aspect-ratio:4/3;max-height:360px;margin:0 0 .35rem;border-radius:10px;object-fit:contain;background:color-mix(in srgb,var(--field) 72%,transparent);cursor:pointer;}
 .chat-message-image:only-child{margin-bottom:.1rem;}
@@ -937,10 +961,13 @@ body:hover::-webkit-scrollbar-thumb{
 .chat-search-row .chat-row-name{flex:1;}
 .chat-search-empty{padding:1rem .3rem;color:var(--muted);font-size:.8rem;text-align:center;}
 .chat-modal-search{margin-bottom:.75rem;}
+.udg-gift-transfer-recipient{display:flex;align-items:center;gap:.55rem;margin-top:.75rem;padding:.7rem .75rem;border:1px solid var(--field-border);border-radius:14px;background:var(--field);font-size:.72rem;}
+.udg-gift-transfer-recipient>span{color:var(--muted);}
+.udg-gift-transfer-recipient strong{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 @media(max-width:900px){.chat-fab{right:18px;bottom:calc(102px + var(--app-safe-bottom));}}
 @media(max-width:900px){#section-social>.panel{padding:1rem;}.chat-workspace{min-height:0;padding-bottom:.5rem;}.chat-conversation{height:clamp(320px,66dvh,640px);min-height:0;max-height:calc(var(--tg-viewport-stable-height,100dvh) - 320px);border-radius:16px;}.chat-thread{min-height:0;}.chat-context-menu{width:min(250px,calc(100vw - 24px));max-height:calc(100dvh - var(--app-safe-top) - var(--app-safe-bottom) - 24px);overflow-y:auto;padding:6px;border-radius:16px;}}
 @media(max-width:560px){.chat-workspace{min-height:0;}.chat-empty{min-height:270px;}.chat-conversation{height:clamp(300px,61dvh,560px);min-height:0;max-height:calc(var(--tg-viewport-stable-height,100dvh) - 340px);border-radius:15px;}.chat-message-image{width:min(100%,260px);max-height:280px;}.chat-fab{width:54px;height:54px;right:18px;}}
-@media(prefers-reduced-motion:reduce){.chat-fab,.chat-row,.chat-message,.chat-context-menu,.chat-read-receipt{transition:none;animation:none;}.chat-thread>.loader::before,.chat-thread>.loader::after,.chat-presence-typing i{animation:none;}}
+@media(prefers-reduced-motion:reduce){.chat-fab,.chat-row,.chat-message,.chat-context-menu,.chat-read-receipt,.chat-gift-view{transition:none;animation:none;}.chat-thread>.loader::before,.chat-thread>.loader::after,.chat-presence-typing i{animation:none;}}
 
 /* --- ticket list card --- */
 .ticket-row{display:flex;align-items:center;gap:.9rem;padding:.9rem 1rem;border-radius:14px;background:var(--field);border:1px solid var(--field-border);cursor:pointer;transition:border-color .15s;margin-bottom:.6rem;}
@@ -2299,6 +2326,7 @@ document.querySelectorAll('#section-social .tab-btn').forEach(btn => {
 
 let activeSocialChat = null;
 let socialChatPolling = null;
+const animatedSocialGiftMessages = new Set();
 let socialChatLoading = false;
 let socialChatPresencePolling = null;
 let socialChatPresenceStopPromise = Promise.resolve();
@@ -2475,6 +2503,65 @@ async function openSocialChat(conversationId, partner){
   startSocialChatPresence(conversationId);
 }
 
+function socialGiftMessageHtml(message){
+  const gift = message.gift_payload || {};
+  const senderLabel = String(message.sender_id) === String(currentUser.id) ? 'Вы передали подарок' : 'Вам передали подарок';
+  const title = gift.model_name || gift.gift_id || 'Подарок UDG';
+  const art = gift.image_url
+    ? `<img src="${escapeHtml(gift.image_url)}" alt="${escapeHtml(title)}" loading="lazy">`
+    : `<span class="chat-gift-no-image">${escapeHtml(String(title)[0] || 'G')}</span>`;
+  return `<div class="chat-gift-service">${senderLabel}</div>
+    <article class="chat-gift-card" data-social-gift-card data-gift-index="${escapeHtml(message.id)}">
+      <div class="chat-gift-art">${art}<span class="chat-gift-ribbon">ПОДАРОК</span></div>
+      <div class="chat-gift-copy">
+        <div class="chat-gift-heading">${escapeHtml(title)}</div>
+        <div class="chat-gift-collection">${escapeHtml(gift.collection_name || 'UDG')}</div>
+        <div class="chat-gift-meta">
+          <div class="chat-gift-meta-row"><span>Модель</span><b>${escapeHtml(gift.model_name || gift.gift_id || '—')}</b></div>
+          ${gift.symbol_name ? `<div class="chat-gift-meta-row"><span>Узор</span><b>${escapeHtml(gift.symbol_name)}</b></div>` : ''}
+          <div class="chat-gift-meta-row"><span>Фон</span><b>${escapeHtml(gift.background_name || '—')}</b></div>
+        </div>
+        <button type="button" class="chat-gift-view" data-open-social-gift="${escapeHtml(message.id)}">Просмотр</button>
+      </div>
+    </article>`;
+}
+
+function animateSocialGiftTransfer(messageElement){
+  const giftCard = messageElement.querySelector('[data-social-gift-card]');
+  const messageId = messageElement.dataset.chatMessage;
+  const createdAt = new Date(messageElement.dataset.messageTime).getTime();
+  if(!giftCard || animatedSocialGiftMessages.has(messageId) || !Number.isFinite(createdAt) || Date.now() - createdAt > 120000) return;
+  const rect = giftCard.getBoundingClientRect();
+  if(rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth) return;
+  animatedSocialGiftMessages.add(messageId);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const centerX = innerWidth / 2;
+  const centerY = innerHeight / 2;
+  const offsetX = centerX - (rect.left + rect.width / 2);
+  const offsetY = centerY - (rect.top + rect.height / 2);
+  const entrance = giftCard.animate([
+    { opacity:0, transform:`translate3d(${offsetX}px,${offsetY}px,0) scale(1.24) rotate(-6deg)` },
+    { opacity:1, transform:'translate3d(0,-5px,0) scale(1.025) rotate(1deg)', offset:.72 },
+    { opacity:1, transform:'translate3d(0,2px,0) scale(.99) rotate(-.3deg)', offset:.88 },
+    { opacity:1, transform:'translate3d(0,0,0) scale(1) rotate(0deg)' }
+  ], { duration:620, easing:'cubic-bezier(.16,1,.3,1)', fill:'both' });
+  entrance.onfinish = () => {
+    giftCard.style.transform = 'none';
+    giftCard.style.opacity = '1';
+    entrance.cancel();
+    const wave = document.createElement('span');
+    wave.className = 'chat-gift-wave';
+    wave.style.left = `${rect.left + rect.width / 2}px`;
+    wave.style.top = `${rect.top + rect.height / 2}px`;
+    document.body.appendChild(wave);
+    const ripple = wave.animate([
+      { opacity:.48, transform:'translate(-50%,-50%) scale(.15)' },
+      { opacity:0, transform:'translate(-50%,-50%) scale(150)' }
+    ], { duration:760, easing:'cubic-bezier(.16,1,.3,1)' });
+    ripple.onfinish = () => wave.remove();
+  };
+}
+
 async function loadSocialMessages(showLoading){
   if(!activeSocialChat || socialChatLoading) return;
   socialChatLoading = true;
@@ -2496,7 +2583,7 @@ async function loadSocialMessages(showLoading){
       loadSocialChats(false);
     }
     const signature = JSON.stringify(messages.map(message => [
-      message.id, message.body, message.image_url, message.reply_to_message_id,
+      message.id, message.body, message.image_url, message.message_type, message.gift_payload, message.reply_to_message_id,
       message.read_at, message.deleted_at
     ]));
     if(signature === activeSocialChat.renderedSignature) return;
@@ -2512,13 +2599,22 @@ async function loadSocialMessages(showLoading){
       const reply = messagesById.get(String(message.reply_to_message_id));
       const replyHtml = message.reply_to_message_id ? `<div class="chat-reply-quote" data-scroll-to-message="${escapeHtml(message.reply_to_message_id)}"><strong>${reply ? String(reply.sender_id) === String(currentUser.id) ? 'Вы' : escapeHtml(activeSocialChat.partner.username) : 'Ответ на сообщение'}</strong>${escapeHtml(reply?.deleted_at ? 'Сообщение удалено' : reply?.body || (reply?.image_url ? '📷 Фото' : 'Сообщение'))}</div>` : '';
       const photo = message.image_url && !message.deleted_at ? `<img class="chat-message-image" src="${escapeHtml(message.image_url)}" alt="Фото из сообщения" loading="lazy" data-open-chat-image>` : '';
-      const body = message.deleted_at ? '<span class="chat-deleted">Сообщение удалено</span>' : escapeHtml(message.body || '');
-      return `<div class="chat-message${mine ? ' mine' : ''}${message.deleted_at ? ' deleted' : ''}" data-chat-message="${escapeHtml(message.id)}" data-message-mine="${mine}" data-message-read="${escapeHtml(message.read_at || '')}" data-message-time="${escapeHtml(message.created_at)}">${replyHtml}${photo}${body}<div class="chat-message-meta"><time>${chatTime(message.created_at)}</time>${status}</div></div>`;
+      const isGift = message.message_type === 'udg_gift' && message.gift_payload && !message.deleted_at;
+      const body = message.deleted_at ? '<span class="chat-deleted">Сообщение удалено</span>'
+        : isGift ? socialGiftMessageHtml(message) : escapeHtml(message.body || '');
+      return `<div class="chat-message${mine ? ' mine' : ''}${message.deleted_at ? ' deleted' : ''}${isGift ? ' gift-transfer' : ''}" data-chat-message="${escapeHtml(message.id)}" data-message-mine="${mine}" data-message-read="${escapeHtml(message.read_at || '')}" data-message-time="${escapeHtml(message.created_at)}">${isGift ? '' : replyHtml + photo}${body}<div class="chat-message-meta"><time>${chatTime(message.created_at)}</time>${status}</div></div>`;
     }).join('');
     bindSocialChatMessageInteractions(messages);
+    thread.querySelectorAll('.chat-message.gift-transfer').forEach(element => {
+      const message = messagesById.get(element.dataset.chatMessage);
+      const art = element.querySelector('.chat-gift-art');
+      if(message?.gift_payload?.background_url) art.style.setProperty('--gift-background', `url("${message.gift_payload.background_url.replace(/["\\]/g, '\\$&')}")`);
+      element.querySelector('[data-open-social-gift]')?.addEventListener('click', () => openUdgGiftDetails(message.gift_payload.uid, false, message.gift_payload));
+    });
     requestAnimationFrame(() => {
       if(!activeSocialChat || activeSocialChat.id !== conversationId) return;
       thread.scrollTop = showLoading || wasNearBottom ? thread.scrollHeight : oldScrollTop;
+      requestAnimationFrame(() => thread.querySelectorAll('.chat-message.gift-transfer').forEach(animateSocialGiftTransfer));
     });
   } catch(error){
     if(activeSocialChat?.id === conversationId){
@@ -3665,6 +3761,7 @@ async function loadUdgInventory(){
     const data = await res.json();
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить подарки');
     udgInventoryCache = Array.isArray(data.items) ? data.items : [];
+    socialProfileGiftCache.set(String(currentUser.id), udgInventoryCache);
     renderUdgGiftGrid(udgInventoryCache, true);
   } catch(error){
     container.innerHTML = `<div class="empty-box"><div class="title">Инвентарь недоступен</div><div class="desc">${escapeHtml(error.message || 'Ошибка загрузки')}</div></div>`;
@@ -3684,8 +3781,8 @@ function udgGiftDetailRows(item){
   return rows.map(([label, value]) => `<div class="udg-gift-detail-row"><span class="udg-gift-detail-label">${escapeHtml(label)}</span><span class="udg-gift-detail-value${label === 'Цена объявления' ? ' price' : ''}">${escapeHtml(value)}</span></div>`).join('');
 }
 
-function openUdgGiftDetails(uid, inventory = false){
-  const item = (inventory ? udgInventoryCache : udgMarketCache).find(gift => String(gift.uid) === String(uid));
+function openUdgGiftDetails(uid, inventory = false, gift = null){
+  const item = gift || (inventory ? udgInventoryCache : udgMarketCache).find(candidate => String(candidate.uid) === String(uid));
   if(!item) return;
   const isOwner = String(item.owner_user_id) === String(currentUser?.id);
   openModal(`<div class="udg-gift-detail">
@@ -3693,7 +3790,8 @@ function openUdgGiftDetails(uid, inventory = false){
     <div class="udg-gift-detail-title">${escapeHtml(udgGiftTitle(item))}</div>
     <div class="udg-gift-detail-uid">UID ${escapeHtml(item.uid)}</div>
     <div class="udg-gift-detail-actions">
-      ${inventory ? item.listed ? '<button type="button" class="btn btn-dark" id="udgGiftDetailPrice">Изменить цену</button><button type="button" class="btn btn-outline" id="udgGiftDetailListing">Снять с рынка</button>' : '<button type="button" class="btn btn-dark" id="udgGiftDetailListing">Выставить на рынок</button>' : isOwner ? '<span class="pill">Твой подарок</span>' : '<button type="button" class="btn btn-exchange-buy" id="udgGiftDetailBuy">Купить</button>'}
+      ${inventory ? item.listed ? '<button type="button" class="btn btn-dark" id="udgGiftDetailPrice">Изменить цену</button><button type="button" class="btn btn-outline" id="udgGiftDetailListing">Снять с рынка</button>' : '<button type="button" class="btn btn-dark" id="udgGiftDetailListing">Выставить на рынок</button>' : isOwner ? '<span class="pill">Твой подарок</span>' : item.listed ? '<button type="button" class="btn btn-exchange-buy" id="udgGiftDetailBuy">Купить</button>' : '<span class="pill">В коллекции</span>'}
+      ${inventory && !item.listed ? '<button type="button" class="btn btn-outline" id="udgGiftDetailTransfer">Передать</button>' : ''}
       <button type="button" class="btn btn-outline" id="udgGiftShare">Поделиться</button>
     </div>
     <div class="udg-gift-detail-rows">${udgGiftDetailRows(item)}</div>
@@ -3743,6 +3841,116 @@ function openUdgGiftDetails(uid, inventory = false){
   if(listingButton) listingButton.addEventListener('click', () => toggleUdgGiftListing(item.uid));
   const priceButton = $('udgGiftDetailPrice');
   if(priceButton) priceButton.addEventListener('click', () => openUdgListingPriceModal(item.uid));
+  const transferButton = $('udgGiftDetailTransfer');
+  if(transferButton) transferButton.addEventListener('click', () => openUdgGiftTransferRecipientModal(item));
+}
+
+function openUdgGiftTransferRecipientModal(gift){
+  openModal(`<div class="modal-title">Передать подарок</div>
+    <div class="panel-sub" style="margin:-.55rem 0 1rem;">${escapeHtml(udgGiftTitle(gift))} · найди получателя по нику</div>
+    <div class="chat-modal-search"><input class="field-input" id="udgGiftRecipientSearch" type="search" placeholder="Введите ник пользователя" autocomplete="off" aria-label="Поиск получателя подарка"></div>
+    <div class="chat-search-results" id="udgGiftRecipientResults"><div class="chat-search-empty">Начните вводить ник получателя</div></div>
+    <div id="udgGiftRecipientSelected"></div>`);
+  const input = $('udgGiftRecipientSearch');
+  const results = $('udgGiftRecipientResults');
+  const selected = $('udgGiftRecipientSelected');
+  let timer = null;
+  let sequence = 0;
+  let selectedUser = null;
+  input.focus();
+
+  const renderSelected = () => {
+    if(!selectedUser){ selected.innerHTML = ''; return; }
+    selected.innerHTML = `<div class="udg-gift-transfer-recipient"><span>Получатель</span><strong>${escapeHtml(selectedUser.username)}</strong><button type="button" class="btn btn-dark btn-sm" id="udgGiftTransferStart">Передать подарок</button></div>`;
+    $('udgGiftTransferStart').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      setBtnLoading(button, true, 'Передать подарок');
+      try{
+        const data = await socialChatRequest('/api/udg/transfer/send-code', {
+          method:'POST', body:JSON.stringify({ uid:gift.uid, recipientId:selectedUser.id })
+        });
+        openUdgGiftTransferCodeModal(gift, selectedUser, data.challengeId);
+      } catch(error){
+        showToastSafe(error.message || 'Не удалось отправить код');
+        if(button.isConnected) setBtnLoading(button, false, 'Передать подарок');
+      }
+    });
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    selectedUser = null;
+    renderSelected();
+    const query = input.value.trim();
+    const requestId = ++sequence;
+    if(!query){ results.innerHTML = '<div class="chat-search-empty">Начните вводить ник получателя</div>'; return; }
+    results.innerHTML = '<div class="loader">Ищем пользователей…</div>';
+    timer = setTimeout(async () => {
+      try{
+        const data = await socialChatRequest(`/api/social/chat-users?q=${encodeURIComponent(query)}`);
+        if(requestId !== sequence || !results.isConnected) return;
+        const users = data.users || [];
+        if(!users.length){ results.innerHTML = '<div class="chat-search-empty">Пользователи не найдены</div>'; return; }
+        results.innerHTML = users.map((user, index) => `<div class="chat-search-row">
+          ${socialChatAvatar(user)}<span class="chat-row-name">${escapeHtml(user.username)}</span>
+          <button type="button" class="btn btn-outline btn-sm" data-choose-gift-recipient="${index}">Выбрать</button>
+        </div>`).join('');
+        results.querySelectorAll('[data-choose-gift-recipient]').forEach(button => {
+          button.addEventListener('click', () => {
+            selectedUser = users[Number(button.dataset.chooseGiftRecipient)];
+            renderSelected();
+          });
+        });
+      } catch(error){
+        if(requestId === sequence) results.innerHTML = `<div class="chat-search-empty">${escapeHtml(error.message || 'Ошибка поиска')}</div>`;
+      }
+    }, 250);
+  });
+}
+
+function openUdgGiftTransferCodeModal(gift, recipient, challengeId){
+  openModal(`<div class="modal-title">Подтвердите передачу</div>
+    <div class="panel-sub" style="margin:-.55rem 0 1rem;">Отправили 6-значный код в ваш привязанный Telegram. Он действует 10 минут.</div>
+    <label class="field-label" for="udgGiftTransferCode">Код из Telegram</label>
+    <input class="field-input login-otp-digit" id="udgGiftTransferCode" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="000000" aria-label="Шестизначный код подтверждения">
+    <div class="form-msg" id="udgGiftTransferMessage"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" id="udgGiftTransferCancel">Отмена</button>
+      <button type="button" class="btn btn-dark" id="udgGiftTransferConfirm">Передать подарок</button>
+    </div>`);
+  const input = $('udgGiftTransferCode');
+  const button = $('udgGiftTransferConfirm');
+  const message = $('udgGiftTransferMessage');
+  $('udgGiftTransferCancel').addEventListener('click', closeModal);
+  input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 6); });
+  input.focus();
+
+  const confirm = async () => {
+    if(!/^\d{6}$/.test(input.value)){
+      message.textContent = 'Введите 6 цифр из сообщения бота';
+      input.focus();
+      return;
+    }
+    setBtnLoading(button, true, 'Передать подарок');
+    message.textContent = '';
+    try{
+      const data = await socialChatRequest('/api/udg/transfer/confirm', {
+        method:'POST', body:JSON.stringify({ challengeId, code:input.value })
+      });
+      udgInventoryCache = udgInventoryCache.filter(item => String(item.uid) !== String(gift.uid));
+      socialProfileGiftCache.set(String(currentUser.id), udgInventoryCache);
+      closeModal();
+      if(data.warning) showToastSafe(data.warning);
+      document.querySelector('#section-social .tab-btn[data-soctab="chat"]')?.click();
+      await openSocialChat(data.conversation.id, data.partner || recipient);
+    } catch(error){
+      message.textContent = error.message || 'Не удалось передать подарок';
+      setBtnLoading(button, false, 'Передать подарок');
+    }
+  };
+
+  button.addEventListener('click', confirm);
+  input.addEventListener('keydown', event => { if(event.key === 'Enter') confirm(); });
 }
 
 async function toggleUdgGiftListing(uid){
@@ -3822,7 +4030,8 @@ async function buyUdgGift(item){
     switchSection('security');
     return;
   }
-  if(!(await confirmModal(`Купить «${udgGiftTitle(item)}» за ${Number(item.price).toLocaleString('ru-RU')} FC?`, {
+  const price = Number(item.listing_price ?? item.price);
+  if(!(await confirmModal(`Купить «${udgGiftTitle(item)}» за ${price.toLocaleString('ru-RU')} FC?`, {
     title:'Подтвердите покупку', icon:'cards', okLabel:'Купить'
   }))) return;
   const transactionId = createTransactionId();
@@ -5108,6 +5317,7 @@ function renderSocialProfile(user, isFriend, posts){
     `}
     <div class="section-divider"></div>
     <div class="social-profile-sections" role="tablist" aria-label="Разделы профиля">
+      <span class="social-profile-section-slider" aria-hidden="true"></span>
       <button type="button" class="social-profile-section-tab active" id="spPostsTab" role="tab" aria-selected="true" aria-controls="spPostsSection">Публикации</button>
       <button type="button" class="social-profile-section-tab" id="spGiftsTab" role="tab" aria-selected="false" aria-controls="spGiftsSection">Подарки</button>
     </div>
@@ -5120,6 +5330,7 @@ function renderSocialProfile(user, isFriend, posts){
     </section>
   `;
   attachProfileFeedHandlers();
+  requestAnimationFrame(() => positionSocialProfileSectionSlider($('spPostsTab').parentElement));
   $('spPostsTab').addEventListener('click', () => setSocialProfileSection('posts', user));
   $('spGiftsTab').addEventListener('click', () => setSocialProfileSection('gifts', user));
   const friendBtn = $('spFriendBtn');
@@ -5149,16 +5360,28 @@ function setSocialProfileSection(section, user){
   $('spGiftsTab').setAttribute('aria-selected', String(showGifts));
   $('spPostsSection').hidden = showGifts;
   $('spGiftsSection').hidden = !showGifts;
+  requestAnimationFrame(() => positionSocialProfileSectionSlider($('spGiftsTab').parentElement));
   if(showGifts) loadSocialProfileGifts(user);
 }
 
-function renderSocialProfileGifts(items){
+function positionSocialProfileSectionSlider(container){
+  const slider = container?.querySelector('.social-profile-section-slider');
+  const active = container?.querySelector('.social-profile-section-tab.active');
+  if(!slider || !active) return;
+  const containerRect = container.getBoundingClientRect();
+  const activeRect = active.getBoundingClientRect();
+  slider.style.width = `${activeRect.width}px`;
+  slider.style.transform = `translateX(${activeRect.left - containerRect.left - 4}px)`;
+}
+
+function renderSocialProfileGifts(items, sectionId = 'spGiftsSection'){
+  const section = $(sectionId);
   if(!items.length){
-    $('spGiftsSection').innerHTML = `<div class="empty-box"><div class="udg-inventory-icon"><i class="cico cico-cards"></i></div><div class="title">Подарков пока нет</div><div class="desc">UDG-подарки пользователя появятся здесь.</div></div>`;
+    section.innerHTML = `<div class="empty-box"><div class="udg-inventory-icon"><i class="cico cico-cards"></i></div><div class="title">Подарков пока нет</div><div class="desc">UDG-подарки пользователя появятся здесь.</div></div>`;
     return;
   }
-  $('spGiftsSection').innerHTML = `<div class="social-profile-gift-grid">${items.map((item, index) => `
-    <article class="social-profile-gift" data-profile-gift="${index}">
+  section.innerHTML = `<div class="social-profile-gift-grid">${items.map((item, index) => `
+    <article class="social-profile-gift" data-profile-gift="${index}" role="button" tabindex="0" aria-label="Показать подарок ${escapeHtml(item.model_name || item.gift_id || 'UDG')}">
       <div class="social-profile-gift-art">${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.model_name || 'UDG-подарок')}" loading="lazy">` : `<span class="udg-gift-no-image">${escapeHtml((item.model_name || item.gift_id || 'G')[0].toUpperCase())}</span>`}</div>
       <div class="social-profile-gift-copy">
         <div class="social-profile-gift-title">${escapeHtml(item.model_name || item.gift_id || 'UDG-подарок')}</div>
@@ -5169,17 +5392,29 @@ function renderSocialProfileGifts(items){
         </div>
       </div>
     </article>`).join('')}</div>`;
-  $('spGiftsSection').querySelectorAll('[data-profile-gift]').forEach((card, index) => {
+  section.querySelectorAll('[data-profile-gift]').forEach((card, index) => {
     const item = items[index];
     if(item.background_url) card.querySelector('.social-profile-gift-art').style.setProperty('--gift-background', `url("${item.background_url.replace(/["\\]/g, '\\$&')}")`);
+    card.addEventListener('click', () => openUdgGiftDetails(item.uid, sectionId === 'myProfileGiftsSection', item));
+    card.addEventListener('keydown', event => {
+      if(event.key === 'Enter' || event.key === ' '){
+        event.preventDefault();
+        openUdgGiftDetails(item.uid, sectionId === 'myProfileGiftsSection', item);
+      }
+    });
   });
 }
 
-async function loadSocialProfileGifts(user){
-  const section = $('spGiftsSection');
+async function loadSocialProfileGifts(user, sectionId = 'spGiftsSection'){
+  const section = $(sectionId);
   const userId = String(user.id);
+  const isCurrentProfile = () => section.isConnected && (sectionId === 'spGiftsSection'
+    ? $('socialProfileBody').dataset.userId === userId
+    : String(currentUser?.id) === userId);
   if(socialProfileGiftCache.has(userId)){
-    renderSocialProfileGifts(socialProfileGiftCache.get(userId));
+    const items = socialProfileGiftCache.get(userId);
+    if(String(currentUser?.id) === userId) udgInventoryCache = items;
+    renderSocialProfileGifts(items, sectionId);
     return;
   }
   section.innerHTML = '<div class="loader">Загружаем подарки…</div>';
@@ -5187,12 +5422,13 @@ async function loadSocialProfileGifts(user){
     const response = await fetch(`${API}/api/udg/inventory/${encodeURIComponent(user.id)}`);
     const data = await response.json();
     if(!response.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить подарки');
-    if(!section.isConnected || $('socialProfileBody').dataset.userId !== userId) return;
+    if(!isCurrentProfile()) return;
     const items = Array.isArray(data.items) ? data.items : [];
     socialProfileGiftCache.set(userId, items);
-    renderSocialProfileGifts(items);
+    if(String(currentUser?.id) === userId) udgInventoryCache = items;
+    renderSocialProfileGifts(items, sectionId);
   } catch(error){
-    if(section.isConnected && $('socialProfileBody').dataset.userId === userId) section.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить подарки</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
+    if(isCurrentProfile()) section.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить подарки</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
   }
 }
 $('socialProfileBack').addEventListener('click', showSocialListPanel);
@@ -5271,12 +5507,36 @@ function renderMyProfileTab(user, posts){
       </div>
     </div>
     <div class="section-divider"></div>
-    <div class="panel-head" style="margin-bottom:1rem;"><div class="panel-title" style="font-size:.95rem;">${icon('cards','ic')}Мои публикации</div></div>
-    <div id="myProfilePostsList">
-      ${posts.length ? posts.map(renderMyPostCard).join('') : renderMyProfileEmptyHtml()}
+    <div class="social-profile-sections" role="tablist" aria-label="Разделы моего профиля">
+      <span class="social-profile-section-slider" aria-hidden="true"></span>
+      <button type="button" class="social-profile-section-tab active" id="myProfilePostsTab" role="tab" aria-selected="true" aria-controls="myProfilePostsSection">Публикации</button>
+      <button type="button" class="social-profile-section-tab" id="myProfileGiftsTab" role="tab" aria-selected="false" aria-controls="myProfileGiftsSection">Подарки</button>
     </div>
+    <section class="social-profile-section" id="myProfilePostsSection" role="tabpanel" aria-labelledby="myProfilePostsTab">
+      <div id="myProfilePostsList">
+        ${posts.length ? posts.map(renderMyPostCard).join('') : renderMyProfileEmptyHtml()}
+      </div>
+    </section>
+    <section class="social-profile-section" id="myProfileGiftsSection" role="tabpanel" aria-labelledby="myProfileGiftsTab" hidden>
+      <div class="loader">Загружаем подарки…</div>
+    </section>
   `;
+  requestAnimationFrame(() => positionSocialProfileSectionSlider($('myProfilePostsTab').parentElement));
+  $('myProfilePostsTab').addEventListener('click', () => setMyProfileSection('posts', user));
+  $('myProfileGiftsTab').addEventListener('click', () => setMyProfileSection('gifts', user));
   attachMyProfileFeedHandlers();
+}
+
+function setMyProfileSection(section, user){
+  const showGifts = section === 'gifts';
+  $('myProfilePostsTab').classList.toggle('active', !showGifts);
+  $('myProfilePostsTab').setAttribute('aria-selected', String(!showGifts));
+  $('myProfileGiftsTab').classList.toggle('active', showGifts);
+  $('myProfileGiftsTab').setAttribute('aria-selected', String(showGifts));
+  $('myProfilePostsSection').hidden = showGifts;
+  $('myProfileGiftsSection').hidden = !showGifts;
+  requestAnimationFrame(() => positionSocialProfileSectionSlider($('myProfileGiftsTab').parentElement));
+  if(showGifts) loadSocialProfileGifts(user, 'myProfileGiftsSection');
 }
 
 function attachMyProfileFeedHandlers(){
