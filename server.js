@@ -2795,6 +2795,7 @@ app.post('/api/udg/transfer/confirm', async (req, res) => {
       transfer_id: challengeId,
       from_telegram_id: String(senderAccount.telegram_id),
       to_telegram_id: String(recipient.telegram_id),
+      to_user_id: String(recipient.id),
       uid: challenge.gift_uid
     });
     if (!transfer.data?.success || transfer.status >= 400) {
