@@ -626,7 +626,8 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-market-count{color:var(--muted);font-size:.74rem;}
 .udg-market-clear{padding:5px 9px;border:1px solid var(--field-border);border-radius:999px;background:transparent;color:var(--muted);font:700 .68rem Inter,sans-serif;cursor:pointer;}
 .udg-market-clear:hover{background:var(--field);color:var(--ink);}
-.udg-gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.85rem;}
+.udg-gift-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem;}
+@media(max-width:720px){.udg-gift-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 .udg-gift-card{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:17px;background:var(--field);transition:transform .18s,border-color .18s,box-shadow .18s;}
 .udg-gift-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 12px 24px -18px rgba(0,0,0,.4);}
 .udg-gift-art{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:1/1;overflow:hidden;padding:0;border:0;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);cursor:pointer;}
