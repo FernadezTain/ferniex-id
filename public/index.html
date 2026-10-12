@@ -812,6 +812,24 @@ body:hover::-webkit-scrollbar-thumb{
 .social-profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.4rem;background-size:cover;background-position:center;flex-shrink:0;}
 .social-profile-name{font-weight:700;font-size:1.05rem;}
 .social-profile-actions{display:flex;gap:.6rem;margin-top:.5rem;}
+.social-profile-sections{display:flex;gap:.45rem;margin:1.2rem 0 .9rem;padding:4px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--field) 62%,transparent);}
+.social-profile-section-tab{flex:1;padding:.68rem .9rem;border:0;border-radius:10px;background:transparent;color:var(--muted);font:700 .78rem Inter,sans-serif;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s;}
+.social-profile-section-tab.active{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(20,16,10,.08);}
+.social-profile-section{animation:subscriptionViewIn .22s ease both;}
+.social-profile-section[hidden]{display:none;}
+.social-profile-gift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,155px),1fr));gap:.75rem;}
+.social-profile-gift{min-width:0;overflow:hidden;border:1px solid var(--field-border);border-radius:16px;background:var(--field);transition:transform .18s,border-color .18s,box-shadow .18s;}
+.social-profile-gift:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 22%,var(--field-border));box-shadow:0 12px 24px -18px rgba(0,0,0,.4);}
+.social-profile-gift-art{position:relative;display:grid;place-items:center;aspect-ratio:1;overflow:hidden;background:linear-gradient(145deg,#f4d4c7,#d6d9c8);}
+.social-profile-gift-art::before{position:absolute;inset:0;background-image:var(--gift-background);background-position:center;background-size:cover;content:'';}
+.social-profile-gift-art img{position:relative;z-index:1;width:74%;height:74%;object-fit:contain;filter:drop-shadow(0 14px 14px rgba(0,0,0,.2));}
+.social-profile-gift-copy{min-width:0;padding:.7rem .75rem .75rem;}
+.social-profile-gift-title{overflow:hidden;font-size:.78rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.social-profile-gift-meta{margin-top:.22rem;overflow:hidden;color:var(--muted);font-size:.66rem;text-overflow:ellipsis;white-space:nowrap;}
+.social-profile-gift-foot{display:flex;align-items:center;justify-content:space-between;gap:.35rem;margin-top:.55rem;}
+.social-profile-gift-price{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;white-space:nowrap;}
+.social-profile-gift-price span{color:var(--amber);font-size:.66rem;}
+.social-profile-gift .udg-gift-market-badge{font-size:.5rem;}
 .social-posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
 .social-posts-grid .grid-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--field);cursor:pointer;}
 .social-posts-grid .grid-photo img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -5070,6 +5088,7 @@ function renderSocialProfile(user, isFriend, posts){
   const initial = escapeHtml((user.username||'?')[0].toUpperCase());
   const avatarStyle = user.avatar_url ? `background-image:url('${user.avatar_url}')` : '';
   const bannerStyle = user.banner_url ? `background-image:url('${user.banner_url}')` : '';
+  $('socialProfileBody').dataset.userId = String(user.id);
   $('socialProfileBody').innerHTML = `
     <div class="profile-banner-wrap${user.banner_url ? ' has-img' : ''}" style="${bannerStyle};margin-top:0;"></div>
     <div class="profile-head-row" style="padding:0;">
@@ -5088,11 +5107,21 @@ function renderSocialProfile(user, isFriend, posts){
       </div>
     `}
     <div class="section-divider"></div>
-    <div class="panel-head" style="margin-bottom:1rem;"><div class="panel-title" style="font-size:.95rem;">${icon('cards','ic')}Публикации</div></div>
-    ${posts.length ? `<div style="display:flex;flex-direction:column;gap:1.1rem;">${posts.map(renderProfilePostCard).join('')}</div>`
-      : `<div class="empty-box"><div class="emoji-ico">${icon('cards')}</div><div class="title">Пока нет постов</div></div>`}
+    <div class="social-profile-sections" role="tablist" aria-label="Разделы профиля">
+      <button type="button" class="social-profile-section-tab active" id="spPostsTab" role="tab" aria-selected="true" aria-controls="spPostsSection">Публикации</button>
+      <button type="button" class="social-profile-section-tab" id="spGiftsTab" role="tab" aria-selected="false" aria-controls="spGiftsSection">Подарки</button>
+    </div>
+    <section class="social-profile-section" id="spPostsSection" role="tabpanel" aria-labelledby="spPostsTab">
+      ${posts.length ? `<div style="display:flex;flex-direction:column;gap:1.1rem;">${posts.map(renderProfilePostCard).join('')}</div>`
+        : `<div class="empty-box"><div class="emoji-ico">${icon('cards')}</div><div class="title">Пока нет постов</div></div>`}
+    </section>
+    <section class="social-profile-section" id="spGiftsSection" role="tabpanel" aria-labelledby="spGiftsTab" hidden>
+      <div class="loader">Загружаем подарки…</div>
+    </section>
   `;
   attachProfileFeedHandlers();
+  $('spPostsTab').addEventListener('click', () => setSocialProfileSection('posts', user));
+  $('spGiftsTab').addEventListener('click', () => setSocialProfileSection('gifts', user));
   const friendBtn = $('spFriendBtn');
   if(friendBtn) friendBtn.onclick = async () => {
     friendBtn.disabled = true;
@@ -5108,6 +5137,63 @@ function renderSocialProfile(user, isFriend, posts){
   };
   const msgBtn = $('spMsgBtn');
   if(msgBtn) msgBtn.onclick = () => goToSocialChatTab(user);
+}
+
+const socialProfileGiftCache = new Map();
+
+function setSocialProfileSection(section, user){
+  const showGifts = section === 'gifts';
+  $('spPostsTab').classList.toggle('active', !showGifts);
+  $('spPostsTab').setAttribute('aria-selected', String(!showGifts));
+  $('spGiftsTab').classList.toggle('active', showGifts);
+  $('spGiftsTab').setAttribute('aria-selected', String(showGifts));
+  $('spPostsSection').hidden = showGifts;
+  $('spGiftsSection').hidden = !showGifts;
+  if(showGifts) loadSocialProfileGifts(user);
+}
+
+function renderSocialProfileGifts(items){
+  if(!items.length){
+    $('spGiftsSection').innerHTML = `<div class="empty-box"><div class="udg-inventory-icon"><i class="cico cico-cards"></i></div><div class="title">Подарков пока нет</div><div class="desc">UDG-подарки пользователя появятся здесь.</div></div>`;
+    return;
+  }
+  $('spGiftsSection').innerHTML = `<div class="social-profile-gift-grid">${items.map((item, index) => `
+    <article class="social-profile-gift" data-profile-gift="${index}">
+      <div class="social-profile-gift-art">${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="${escapeHtml(item.model_name || 'UDG-подарок')}" loading="lazy">` : `<span class="udg-gift-no-image">${escapeHtml((item.model_name || item.gift_id || 'G')[0].toUpperCase())}</span>`}</div>
+      <div class="social-profile-gift-copy">
+        <div class="social-profile-gift-title">${escapeHtml(item.model_name || item.gift_id || 'UDG-подарок')}</div>
+        <div class="social-profile-gift-meta">${escapeHtml(item.collection_name || 'UDG')} · ${escapeHtml(item.background_name || item.background_id || 'Без фона')}</div>
+        <div class="social-profile-gift-foot">
+          ${item.listed ? `<div class="social-profile-gift-price">${Number(item.listing_price ?? item.price ?? 0).toLocaleString('ru-RU')} <span>FC</span></div>` : '<span class="social-profile-gift-meta">В коллекции</span>'}
+          ${item.listed ? '<span class="udg-gift-market-badge">НА РЫНКЕ</span>' : ''}
+        </div>
+      </div>
+    </article>`).join('')}</div>`;
+  $('spGiftsSection').querySelectorAll('[data-profile-gift]').forEach((card, index) => {
+    const item = items[index];
+    if(item.background_url) card.querySelector('.social-profile-gift-art').style.setProperty('--gift-background', `url("${item.background_url.replace(/["\\]/g, '\\$&')}")`);
+  });
+}
+
+async function loadSocialProfileGifts(user){
+  const section = $('spGiftsSection');
+  const userId = String(user.id);
+  if(socialProfileGiftCache.has(userId)){
+    renderSocialProfileGifts(socialProfileGiftCache.get(userId));
+    return;
+  }
+  section.innerHTML = '<div class="loader">Загружаем подарки…</div>';
+  try{
+    const response = await fetch(`${API}/api/udg/inventory/${encodeURIComponent(user.id)}`);
+    const data = await response.json();
+    if(!response.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить подарки');
+    if(!section.isConnected || $('socialProfileBody').dataset.userId !== userId) return;
+    const items = Array.isArray(data.items) ? data.items : [];
+    socialProfileGiftCache.set(userId, items);
+    renderSocialProfileGifts(items);
+  } catch(error){
+    if(section.isConnected && $('socialProfileBody').dataset.userId === userId) section.innerHTML = `<div class="empty-box"><div class="title">Не удалось загрузить подарки</div><div class="desc">${escapeHtml(error.message || 'Ошибка соединения')}</div></div>`;
+  }
 }
 $('socialProfileBack').addEventListener('click', showSocialListPanel);
 
