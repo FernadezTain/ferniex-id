@@ -434,7 +434,7 @@ body{
 @keyframes subscriptionEmojiPop{0%{opacity:0;transform:scale(.25) rotate(-24deg);}65%{opacity:1;transform:scale(1.22) rotate(7deg);}100%{transform:scale(1) rotate(0);}}
 @media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-status-card{padding:1.15rem;border-radius:17px;}.subscription-status-head{gap:.7rem;}.subscription-status-mark{width:48px;height:48px;flex-basis:48px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
 @media(prefers-reduced-motion:reduce){.subscription-status-card.active,.subscription-status-mark,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-status-mark{filter:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
-@media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions{animation:none;}}
+@media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions,.author-modal-banner,.author-modal-identity .author-modal-avatar,.author-modal-name,.author-modal-actions .btn{animation:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
 .plus-action.secondary{background:var(--field);border:1px solid var(--field-border);color:var(--ink);box-shadow:none;}
@@ -780,15 +780,18 @@ body:hover::-webkit-scrollbar-thumb{
 
 /* карточка автора / поиска */
 .author-modal{text-align:center;}
+.author-modal-banner{position:relative;height:112px;margin:-.95rem -1rem 0;overflow:hidden;border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);border-radius:18px;background:linear-gradient(125deg,color-mix(in srgb,var(--blob-pink) 68%,var(--card)),color-mix(in srgb,var(--blob-sage) 72%,var(--card)),color-mix(in srgb,var(--blob-pink) 50%,var(--card)));background-position:center;background-size:cover;isolation:isolate;animation:authorBannerIn .52s .08s cubic-bezier(.2,1.25,.4,1) both;}
+.author-modal-banner::after{position:absolute;inset:35% 0 0;z-index:-1;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--ink) 25%,transparent));content:'';}
+.author-modal-identity{position:relative;margin-top:-38px;}
 .author-modal-avatar{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;color:#fff;font-size:1.6rem;background-size:cover;background-position:center;margin:0 auto .9rem;}
-.author-modal-banner,.admin-user-profile-banner{position:relative;height:112px;margin:-1.9rem -1.8rem 0;overflow:hidden;border-radius:24px 24px 0 0;background:linear-gradient(135deg,var(--blob-pink),var(--blob-sage));background-position:center;background-size:cover;}
-.author-modal-banner img,.admin-user-profile-banner img{width:100%;height:100%;object-fit:cover;}
-.author-modal-avatar.has-photo,.admin-user-profile-avatar.has-photo{padding:0;overflow:hidden;}
-.author-modal-avatar img,.admin-user-profile-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;}
-.admin-user-profile-banner{margin:0 0 -36px;border-radius:15px;}
-.admin-user-profile-avatar{position:relative;display:grid;place-items:center;width:76px;height:76px;margin-left:1rem;border:4px solid var(--card);border-radius:50%;background:linear-gradient(135deg,#e9a49e,#e4bfa0);color:#fff;font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;}
-.author-modal-name{font-weight:700;font-size:1.05rem;margin-bottom:1.3rem;}
+.author-modal-identity .author-modal-avatar{border:4px solid var(--card);box-shadow:0 8px 22px -12px rgba(0,0,0,.72);animation:authorAvatarIn .48s .18s cubic-bezier(.2,1.35,.35,1) both;}
+.author-modal-name{font-weight:700;font-size:1.05rem;margin-bottom:1.3rem;animation:confirmTextIn .34s .24s both;}
 .author-modal-actions{display:flex;flex-direction:column;gap:.6rem;}
+.author-modal-actions .btn{animation:confirmTextIn .34s .3s both;}
+.author-modal-actions .btn:nth-child(2){animation-delay:.36s;}
+.author-modal-actions .btn:nth-child(3){animation-delay:.42s;}
+@keyframes authorBannerIn{from{opacity:0;transform:translateY(9px) scale(.97);filter:blur(5px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+@keyframes authorAvatarIn{from{opacity:0;transform:translateY(7px) scale(.72);}70%{opacity:1;transform:translateY(-2px) scale(1.06);}to{transform:translateY(0) scale(1);}}
 
 .search-input-wrap{margin-bottom:1rem;}
 .search-results{display:flex;flex-direction:column;gap:.5rem;max-height:340px;overflow-y:auto;}
@@ -973,6 +976,7 @@ body:hover::-webkit-scrollbar-thumb{
 /* --- modal --- */
 .modal-overlay{position:fixed;inset:0;background:rgba(24,20,16,0.42);z-index:50;display:none;align-items:center;justify-content:center;padding:max(1rem,var(--app-safe-top)) max(1rem,var(--app-safe-right)) max(1rem,var(--app-safe-bottom)) max(1rem,var(--app-safe-left));}
 .modal-overlay.active{display:flex;}
+.modal-overlay.author-active .modal-box{animation:confirmCardIn .42s cubic-bezier(.2,1.25,.4,1) both;}
 .modal-box{position:relative;z-index:1;background:var(--card);border-radius:24px;padding:1.9rem 1.8rem;max-width:440px;width:100%;max-height:min(88vh,calc(var(--tg-viewport-stable-height,100dvh) - var(--app-safe-top) - var(--app-safe-bottom) - 2rem));overflow-y:auto;overscroll-behavior:contain;box-shadow:0 30px 60px -20px rgba(60,40,20,0.3);animation:fadeUp .25s ease both;}
 .toast-stack{position:fixed;right:max(18px,var(--app-safe-right));bottom:calc(24px + var(--app-safe-bottom));z-index:120;display:flex;width:min(360px,calc(100vw - 32px));flex-direction:column;align-items:stretch;gap:.55rem;pointer-events:none;}
 .toast-card{position:relative;display:flex;align-items:center;gap:.7rem;overflow:hidden;padding:.72rem .85rem;border:1px solid color-mix(in srgb,var(--ink) 10%,var(--line));border-radius:15px;background:color-mix(in srgb,var(--card) 91%,transparent);color:var(--ink);box-shadow:0 14px 36px -18px rgba(0,0,0,.48);-webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);pointer-events:auto;animation:toastIn .28s cubic-bezier(.2,.9,.25,1.15) both;}
@@ -1918,10 +1922,12 @@ function escapeHtml(s){
 function closeModal(){
   $('genericModal').classList.remove('active');
   $('genericModal').classList.remove('confirm-active');
+  $('genericModal').classList.remove('author-active');
   $('genericModalBox').innerHTML = '';
 }
 function openModal(html){
   $('genericModal').classList.remove('confirm-active');
+  $('genericModal').classList.remove('author-active');
   $('genericModalBox').innerHTML = html;
   $('genericModal').classList.add('active');
 }
@@ -4967,6 +4973,7 @@ async function toggleLike(postId, btn){
 /* ---------- модалка автора поста: ава / ник / [добавить в друзья][открыть профиль][написать сообщение] ---------- */
 async function openAuthorModal(userId){
   openModal(`<div class="author-modal"><div class="loader">Загрузка…</div></div>`);
+  $('genericModal').classList.add('author-active');
   try{
     const res = await fetch(`${API}/api/social/profile/${userId}?viewerId=${currentUser.id}`);
     const data = await res.json();
@@ -4979,14 +4986,19 @@ function renderAuthorModal(user, isFriend){
   const avatarStyle = user.avatar_url ? `background-image:url('${user.avatar_url}')` : '';
   $('genericModalBox').innerHTML = `
     <div class="author-modal">
-      <div class="author-modal-avatar" style="${avatarStyle}">${user.avatar_url ? '' : escapeHtml((user.username||'?')[0].toUpperCase())}</div>
-      <div class="author-modal-name">${escapeHtml(user.username)}</div>
+      <div class="author-modal-banner" aria-hidden="true"></div>
+      <div class="author-modal-identity">
+        <div class="author-modal-avatar" style="${avatarStyle}">${user.avatar_url ? '' : escapeHtml((user.username||'?')[0].toUpperCase())}</div>
+        <div class="author-modal-name">${escapeHtml(user.username)}</div>
+      </div>
       <div class="author-modal-actions">
         ${isMe ? '' : `<button class="btn ${isFriend ? 'btn-outline' : 'btn-dark'}" id="authorFriendBtn">${isFriend ? 'В друзьях' : 'Добавить в друзья'}</button>`}
         <button class="btn btn-outline" id="authorProfileBtn">Открыть профиль</button>
         ${isMe ? '' : `<button class="btn btn-outline" id="authorMsgBtn">Написать сообщение</button>`}
       </div>
     </div>`;
+  const banner = $('genericModalBox').querySelector('.author-modal-banner');
+  if(user.banner_url) banner.style.backgroundImage = `url("${user.banner_url.replace(/["\\]/g, '\\$&')}")`;
   const friendBtn = $('authorFriendBtn');
   if(friendBtn) friendBtn.onclick = async () => {
     friendBtn.disabled = true;
