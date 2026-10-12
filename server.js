@@ -1564,7 +1564,7 @@ app.get('/api/admin/users', async (req, res) => {
   try {
     if (!await checkAdmin(adminId)) return res.json({ success: false, error: 'Нет доступа' });
     const r = await fetch(
-      `${SB_URL}/rest/v1/users?select=id,username,role,balance,created_at,telegram_id,avatar_url,banner_url&order=created_at.desc`,
+      `${SB_URL}/rest/v1/users?select=id,username,role,balance,created_at,telegram_id&order=created_at.desc`,
       { headers: sbHeaders }
     );
     const data = await r.json();
@@ -2661,6 +2661,185 @@ app.get('/api/udg/inventory/:userId', async (req, res) => {
   } catch (e) {
     console.error('UDG inventory error:', e);
     return res.status(502).json({ success: false, error: 'Не удалось загрузить инвентарь UDG', items: [] });
+  }
+});
+
+app.post('/api/udg/transfer/send-code', async (req, res) => {
+  try {
+    const sender = await authenticateSocialChat(req);
+    if (!sender) return res.status(401).json({ success: false, error: 'Требуется войти в аккаунт' });
+    const recipientId = String(req.body?.recipientId || '');
+    const uid = String(req.body?.uid || '');
+    if (!/^\d+$/.test(recipientId) || recipientId === String(sender.id) || !/^[a-f\d]{32}$/i.test(uid))
+      return res.status(400).json({ success: false, error: 'Некорректный получатель или UID подарка' });
+
+    const [senderResponse, recipientResponse] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(sender.id)}&select=id,username,telegram_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,telegram_id`, { headers: sbHeaders })
+    ]);
+    const [senders, recipients] = await Promise.all([senderResponse.json(), recipientResponse.json()]);
+    const senderAccount = senders[0];
+    const recipient = recipients[0];
+    if (!senderAccount?.telegram_id) return res.status(400).json({ success: false, error: 'Привяжите Telegram, чтобы подтвердить передачу' });
+    if (!recipient) return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+    if (!recipient.telegram_id) return res.status(400).json({ success: false, error: 'У получателя не привязан Telegram' });
+
+    const inventoryResult = await exchangeBotRequest(`/api/udg/inventory?telegram_id=${encodeURIComponent(senderAccount.telegram_id)}`);
+    if (!inventoryResult.data?.success) return res.status(inventoryResult.status).json(inventoryResult.data);
+    const gift = (inventoryResult.data.items || []).find(item => String(item.uid).toLowerCase() === uid.toLowerCase());
+    if (!gift) return res.status(404).json({ success: false, error: 'Подарок не найден в вашем инвентаре' });
+    if (gift.listed) return res.status(409).json({ success: false, error: 'Сначала снимите подарок с рынка' });
+    const [enrichedGift] = await enrichUdgGifts([gift]);
+    const giftPayload = publicUdgGift(enrichedGift);
+    const challengeId = randomBytes(24).toString('hex');
+    const code = String(randomInt(100000, 1000000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?sender_user_id=eq.${encodeURIComponent(sender.id)}&status=eq.pending`, {
+      method: 'DELETE', headers: sbHeaders
+    });
+    const insertResponse = await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        sender_user_id: sender.id,
+        recipient_user_id: recipient.id,
+        gift_uid: uid.toLowerCase(),
+        gift_payload: giftPayload,
+        code_hash: hashLoginCode(challengeId, code),
+        expires_at: expiresAt
+      })
+    });
+    if (!insertResponse.ok) throw new Error('Не удалось создать запрос на передачу подарка');
+
+    const sent = await sendTgMessage(senderAccount.telegram_id,
+      `🎁 <b>Подтверждение передачи подарка</b>\n\n` +
+      `<blockquote>Подарок: <b>${String(giftPayload.model_name || giftPayload.gift_id || 'UDG').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character])}</b>\n` +
+      `Получатель: <b>${String(recipient.username || 'Пользователь').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character])}</b></blockquote>\n\n` +
+      `Код подтверждения: <code>${code}</code>\n⏳ Код действует 10 минут.`
+    );
+    if (!sent) {
+      await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}`, { method: 'DELETE', headers: sbHeaders });
+      return res.status(502).json({ success: false, error: 'Бот не смог отправить код. Напишите ему в Telegram и повторите попытку.' });
+    }
+    return res.json({ success: true, challengeId, expiresAt });
+  } catch (error) {
+    console.error('[UDG gift transfer] code request failed:', error.message);
+    return res.status(500).json({ success: false, error: error.message || 'Не удалось отправить код' });
+  }
+});
+
+app.post('/api/udg/transfer/confirm', async (req, res) => {
+  let processingChallengeId = null;
+  let transferCompleted = false;
+  let transferConversation = null;
+  let transferPartner = null;
+  try {
+    const sender = await authenticateSocialChat(req);
+    if (!sender) return res.status(401).json({ success: false, error: 'Требуется войти в аккаунт' });
+    const challengeId = String(req.body?.challengeId || '');
+    const code = String(req.body?.code || '');
+    if (!/^[a-f\d]{48}$/i.test(challengeId) || !/^\d{6}$/.test(code))
+      return res.status(400).json({ success: false, error: 'Введите действительный 6-значный код' });
+
+    const challengeResponse = await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}&sender_user_id=eq.${encodeURIComponent(sender.id)}&status=eq.pending&select=*`, { headers: sbHeaders });
+    const challenges = await challengeResponse.json();
+    if (!challengeResponse.ok) throw new Error('Не удалось проверить код');
+    const challenge = challenges[0];
+    if (!challenge) return res.status(401).json({ success: false, error: 'Запрос истёк или уже использован. Начните передачу заново.' });
+    if (new Date(challenge.expires_at).getTime() <= Date.now() || Number(challenge.attempts) >= 5) {
+      await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}`, { method: 'DELETE', headers: sbHeaders });
+      return res.status(401).json({ success: false, error: 'Код истёк. Начните передачу заново.' });
+    }
+    if (!equalHex(challenge.code_hash, hashLoginCode(challengeId, code))) {
+      const attempts = Number(challenge.attempts) + 1;
+      const updateResponse = await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}&status=eq.pending&attempts=eq.${Number(challenge.attempts)}`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify(attempts >= 5 ? { attempts, status: 'completed' } : { attempts })
+      });
+      if (!updateResponse.ok) throw new Error('Не удалось обновить попытки проверки кода');
+      return res.status(401).json({ success: false, error: attempts >= 5 ? 'Лимит попыток исчерпан. Начните передачу заново.' : `Неверный код. Осталось попыток: ${5 - attempts}` });
+    }
+
+    const claimResponse = await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}&sender_user_id=eq.${encodeURIComponent(sender.id)}&status=eq.pending&attempts=lt.5`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({ status: 'processing' })
+    });
+    const claimed = await claimResponse.json();
+    if (!claimResponse.ok || !claimed.length) return res.status(409).json({ success: false, error: 'Этот код уже обрабатывается или использован' });
+    processingChallengeId = challengeId;
+
+    const [senderResponse, recipientResponse] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(sender.id)}&select=id,username,telegram_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.recipient_user_id)}&select=id,username,avatar_url,telegram_id`, { headers: sbHeaders })
+    ]);
+    const [senders, recipients] = await Promise.all([senderResponse.json(), recipientResponse.json()]);
+    const senderAccount = senders[0];
+    const recipient = recipients[0];
+    if (!senderAccount?.telegram_id || !recipient?.telegram_id) throw new Error('У отправителя или получателя больше не привязан Telegram');
+
+    const ids = [String(sender.id), String(recipient.id)].sort((left, right) => BigInt(left) < BigInt(right) ? -1 : 1);
+    const conversationInsert = await fetch(`${SB_URL}/rest/v1/social_conversations?on_conflict=participant_one,participant_two`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify({ participant_one: ids[0], participant_two: ids[1] })
+    });
+    if (!conversationInsert.ok) throw new Error('Не удалось открыть чат с получателем');
+    const conversationResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id,participant_one,participant_two,last_message_at,last_message_text,last_message_sender_id&limit=1`, { headers: sbHeaders });
+    const conversations = await conversationResponse.json();
+    const conversation = conversations[0];
+    if (!conversationResponse.ok || !conversation) throw new Error('Не удалось открыть чат с получателем');
+    transferConversation = conversation;
+    transferPartner = { id: recipient.id, username: recipient.username, avatar_url: recipient.avatar_url };
+
+    const transfer = await exchangeBotRequest('/api/udg/gift/transfer', 'POST', {
+      transfer_id: challengeId,
+      from_telegram_id: String(senderAccount.telegram_id),
+      to_telegram_id: String(recipient.telegram_id),
+      uid: challenge.gift_uid
+    });
+    if (!transfer.data?.success || transfer.status >= 400) {
+      await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}&status=eq.processing`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'pending' })
+      });
+      return res.status(transfer.status).json(transfer.data || { success: false, error: 'Не удалось передать подарок' });
+    }
+    transferCompleted = true;
+    await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${challengeId}&status=eq.processing`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ status: 'completed' })
+    });
+    processingChallengeId = null;
+
+    const giftPayload = { ...challenge.gift_payload, uid: challenge.gift_uid };
+    const messageResponse = await fetch(`${SB_URL}/rest/v1/rpc/send_social_gift_message`, {
+      method: 'POST', headers: sbHeaders,
+      body: JSON.stringify({
+        p_conversation_id: conversation.id,
+        p_sender_id: sender.id,
+        p_gift_payload: giftPayload
+      })
+    });
+    const messages = await messageResponse.json();
+    if (!messageResponse.ok || !Array.isArray(messages) || !messages[0]) {
+      console.error('[UDG gift transfer] gift moved, but chat event insert failed:', JSON.stringify(messages).slice(0, 500));
+      return res.json({ success: true, transferCompleted: true, conversation, partner: transferPartner, message: null, warning: 'Подарок передан, но сообщение не удалось сохранить. Обновите чат.' });
+    }
+
+    const notificationText = `🎁 <b>${String(sender.username || 'Пользователь').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character])} передал вам подарок</b>\n` +
+      `<blockquote>${String(giftPayload.model_name || giftPayload.gift_id || 'UDG').replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character])}</blockquote>`;
+    sendTgMessage(recipient.telegram_id, notificationText).catch(() => {});
+    return res.json({ success: true, conversation, partner: { id: recipient.id, username: recipient.username, avatar_url: recipient.avatar_url }, message: messages[0] });
+  } catch (error) {
+    console.error('[UDG gift transfer] confirmation failed:', error.message);
+    if (processingChallengeId) {
+      await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${processingChallengeId}&status=eq.processing`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ status: 'pending' })
+      }).catch(() => {});
+    }
+    if (transferCompleted) return res.json({ success: true, transferCompleted: true, conversation: transferConversation, partner: transferPartner, message: null, warning: 'Подарок передан, но сообщение не удалось сохранить. Обновите чат.' });
+    return res.status(500).json({ success: false, error: error.message || 'Не удалось подтвердить передачу' });
   }
 });
 
@@ -6124,7 +6303,7 @@ app.get('/api/social/chats/:conversationId/messages', async (req, res) => {
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
     const query = new URLSearchParams({
       conversation_id:`eq.${conversationId}`,
-      select:'id,conversation_id,sender_id,recipient_id,body,image_url,reply_to_message_id,created_at,delivered_at,read_at,deleted_at',
+      select:'id,conversation_id,sender_id,recipient_id,body,image_url,message_type,gift_payload,reply_to_message_id,created_at,delivered_at,read_at,deleted_at',
       order:'created_at.desc,id.desc',
       limit:'100'
     });
