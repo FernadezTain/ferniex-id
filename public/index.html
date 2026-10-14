@@ -310,6 +310,10 @@ body{
 .btn-danger-solid:hover{opacity:.9;}
 .btn-sm{padding:8px 14px;font-size:.76rem;}
 .btn:disabled{opacity:.5;cursor:default;}
+button:not(:disabled){transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .24s ease,filter .2s ease;}
+button:not(:disabled):active{transform:scale(.975);}
+button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transparent);outline-offset:3px;}
+@media(hover:hover) and (pointer:fine){button:not(:disabled):hover{filter:brightness(1.035);}}
 
 /* --- красивый пикер типа приложения (вместо select) --- */
 .type-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;}
@@ -872,6 +876,59 @@ body:hover::-webkit-scrollbar-thumb{
 .social-profile-gift-price span{color:var(--amber);font-size:.66rem;}
 .social-profile-gift .udg-gift-market-badge{font-size:.5rem;}
 @media(prefers-reduced-motion:reduce){.social-profile-section-slider{transition:none;}}
+
+@media (hover:hover) and (pointer:fine) and (min-width:901px){
+  .udg-balance-card,.subscription-status-card,.overview-account-grid{transition:transform .38s cubic-bezier(.22,1,.36,1),box-shadow .38s ease,border-color .32s ease;}
+  .udg-balance-card:hover,.subscription-status-card:hover,.overview-account-grid:hover{transform:translateY(-3px);box-shadow:0 18px 36px -24px rgba(20,16,10,.48);}
+  .udg-balance-card::after{position:absolute;top:-105px;right:13%;width:180px;height:180px;border-radius:50%;background:rgba(255,213,128,.12);content:'';filter:blur(12px);pointer-events:none;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .4s ease;}
+  .udg-balance-card:hover::after{transform:translate(-22px,18px) scale(1.25);opacity:.9;}
+  .udg-coin-mark{transition:transform .42s cubic-bezier(.22,1,.36,1),box-shadow .42s ease;}
+  .udg-balance-card:hover .udg-coin-mark{transform:rotate(-9deg) scale(1.1);box-shadow:0 16px 32px -13px rgba(135,82,20,.72);}
+  .subscription-status-mark{transition:transform .4s cubic-bezier(.22,1,.36,1),filter .4s ease;}
+  .subscription-status-card:hover .subscription-status-mark{transform:scale(1.14) rotate(12deg);filter:blur(1px) saturate(1.2);}
+  .overview-account-item{transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s ease;}
+  .overview-account-item:hover{transform:translateY(-2px) scale(1.012);box-shadow:0 10px 24px -18px rgba(28,20,16,.5);}
+}
+
+/* Админ-разделы получают выразительное появление на телефонах и компьютерах. */
+#section-admin>.panel,#section-adminapply>.panel,#section-admintickets>.panel,#section-adminapplies>.panel{animation:adminPanelReveal .48s cubic-bezier(.22,1,.36,1) both;}
+#section-admin>.panel:nth-child(2){animation-delay:.08s;}
+#section-admin .stat-box{animation:adminPanelReveal .42s cubic-bezier(.22,1,.36,1) both;}
+#section-admin .stat-box:nth-child(2){animation-delay:.035s;}
+#section-admin .stat-box:nth-child(3){animation-delay:.07s;}
+#section-admin .stat-box:nth-child(4){animation-delay:.105s;}
+#section-admin .stat-box:nth-child(5){animation-delay:.14s;}
+#section-admin .stat-box:nth-child(6){animation-delay:.175s;}
+.admin-table tbody tr{animation:adminPanelReveal .32s cubic-bezier(.22,1,.36,1) both;}
+.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease;}
+.admin-user-row:focus-visible{outline:2px solid color-mix(in srgb,var(--ink) 28%,transparent);outline-offset:-2px;}
+.admin-user-row:active,.ticket-row:active{transform:scale(.99);}
+@media(hover:hover) and (pointer:fine){
+  .admin-user-row:hover,.admin-table tbody tr:hover{transform:translateX(3px);box-shadow:inset 3px 0 color-mix(in srgb,var(--blob-pink) 78%,var(--red));}
+  .status-btn:hover{transform:translateY(-2px);box-shadow:0 10px 20px -15px rgba(25,20,15,.45);}
+  .timeline-item:hover{transform:translateX(2px);}
+}
+@keyframes adminPanelReveal{from{opacity:0;transform:translateY(12px) scale(.992);filter:blur(3px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+
+.api-log-row{display:flex;align-items:center;justify-content:space-between;width:100%;gap:1rem;padding:.85rem .5rem;border:0;border-bottom:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer;}
+.api-log-row:last-child{border-bottom:0;}
+.api-log-row-label{display:flex;min-width:0;align-items:center;gap:.65rem;}
+.api-log-row-label .cico{color:var(--muted);}
+.api-log-row:hover,.api-log-row:focus-visible{background:color-mix(in srgb,var(--field) 65%,transparent);}
+.api-log-row-date{flex:0 0 auto;color:var(--muted);font-size:.73rem;}
+.api-log-detail{display:flex;flex-direction:column;gap:.75rem;}
+.api-log-detail-hero{padding:1rem;border:1px solid var(--field-border);border-radius:16px;background:linear-gradient(125deg,color-mix(in srgb,var(--blob-pink) 20%,var(--card)),color-mix(in srgb,var(--blob-sage) 23%,var(--card)));}
+.api-log-detail-action{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;overflow-wrap:anywhere;}
+.api-log-detail-date{margin-top:.3rem;color:var(--muted);font-size:.75rem;}
+.api-log-detail-rows{display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--field) 45%,transparent);}
+.api-log-detail-row{display:grid;grid-template-columns:minmax(100px,.65fr) minmax(0,1.35fr);gap:.8rem;padding:.72rem .8rem;border-bottom:1px solid var(--line);font-size:.78rem;}
+.api-log-detail-row:last-child{border-bottom:0;}
+.api-log-detail-key{color:var(--muted);overflow-wrap:anywhere;}
+.api-log-detail-value{font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap;}
+@media(max-width:440px){.api-log-detail-row{grid-template-columns:1fr;gap:.25rem;}}
+@media(prefers-reduced-motion:reduce){
+  button:not(:disabled),.udg-balance-card,.subscription-status-card,.overview-account-grid,.udg-coin-mark,.subscription-status-mark,.overview-account-item,.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item,#section-admin>.panel,#section-admintickets>.panel,#section-adminapplies>.panel{transition:none!important;animation:none!important;}
+}
 .social-posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
 .social-posts-grid .grid-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--field);cursor:pointer;}
 .social-posts-grid .grid-photo img{width:100%;height:100%;object-fit:cover;display:block;}
@@ -1173,7 +1230,7 @@ body:hover::-webkit-scrollbar-thumb{
 }
 @keyframes desktopCardEnter{from{opacity:0;transform:translateY(9px) scale(.99);}to{opacity:1;transform:translateY(0) scale(1);}}
 @media(prefers-reduced-motion:reduce){
-  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.chat-row,.search-row,.social-profile-gift,.plan-card,.post-media img,.udg-gift-art img,.social-profile-gift-art img,.subscription-action-card h3{animation:none!important;transition:none!important;}
+  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.chat-row,.search-row,.social-profile-gift,.plan-card,.post-media img,.udg-gift-art img,.social-profile-gift-art img,.subscription-action-card h3,.admin-table tbody tr{animation:none!important;transition:none!important;}
 }
 
 /* --- живые hover-анимации карточек подписки (только для устройств с точным курсором) --- */
@@ -4111,7 +4168,7 @@ async function buyUdgGift(item){
     if(!res.ok || !data.success) throw new Error(data.error || 'Не удалось купить подарок');
     closeModal();
     showToastSafe(`Подарок куплен за ${Number(data.price).toLocaleString('ru-RU')} FC`);
-    await Promise.all([loadUdgMarket(true), loadUdgBalance(), loadUdgInventory()]);
+    await Promise.all([loadUdgMarket(true), loadUdgBalance(), loadUdgInventory(), loadUdgTransactions(true)]);
   } catch(error){
     closeModal();
     showToastSafe(error.message || 'Ошибка связи с сервером');
@@ -4128,6 +4185,7 @@ function renderUdgTransactions(transactions){
     buy_fc: ['Покупка FC', 'fc'],
     sell_fc: ['Продажа FC', 'sale'],
     buy_gift: ['Покупка подарка', 'gift'],
+    sell_gift: ['Продажа подарка', 'gift'],
     receive_gift: ['Получение подарка', 'gift']
   };
   container.innerHTML = `<div class="udg-transaction-list">${transactions.map(tx => {
@@ -4135,8 +4193,8 @@ function renderUdgTransactions(transactions){
     const failed = tx.status !== 'success';
     const isBuy = tx.type === 'buy_fc';
     const isSell = tx.type === 'sell_fc';
-    const amountLabel = tx.fc_amount ? `${isBuy ? '+' : isSell ? '−' : ''}${Number(tx.fc_amount).toLocaleString('ru-RU')} FC` : escapeHtml(tx.item_name || 'Подарок');
-    const amountClass = failed ? '' : isBuy || tx.type === 'receive_gift' ? 'up' : isSell || tx.type === 'buy_gift' ? 'down' : '';
+    const amountLabel = tx.fc_amount ? `${isBuy || tx.type === 'sell_gift' ? '+' : isSell || tx.type === 'buy_gift' ? '−' : ''}${Number(tx.fc_amount).toLocaleString('ru-RU')} FC` : escapeHtml(tx.item_name || 'Подарок');
+    const amountClass = failed ? '' : isBuy || tx.type === 'sell_gift' || tx.type === 'receive_gift' ? 'up' : isSell || tx.type === 'buy_gift' ? 'down' : '';
     const date = new Date(Number(tx.created_at) * 1000).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
     const details = [
       tx.rate ? `Курс ${Number(tx.rate).toLocaleString('ru-RU')} ¤/FC` : '',
@@ -4174,14 +4232,15 @@ function renderUdgTransactions(transactions){
 function transactionTypeLabel(type){
   return ({
     buy_fc:'Покупка FC', sell_fc:'Продажа FC',
-    buy_gift:'Покупка подарка', receive_gift:'Получение подарка'
+    buy_gift:'Покупка подарка', sell_gift:'Продажа подарка', receive_gift:'Получение подарка'
   })[type] || 'Операция UDG';
 }
 
 function transactionAmountText(tx){
   if(tx.fc_amount){
     if(tx.type === 'buy_fc') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
-    if(tx.type === 'sell_fc') return `−${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    if(tx.type === 'sell_fc' || tx.type === 'buy_gift') return `−${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    if(tx.type === 'sell_gift') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
     return `${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
   }
   return tx.item_name || 'Подарок';
@@ -6576,6 +6635,30 @@ function openEditKeyModal(keyId){
 }
 
 // логи запроса — грузятся сразу при открытии страницы ключа, прямо в блоке (без модалки), со ступенчатой анимацией строк
+function openApiKeyLogDetails(log){
+  const labels = {
+    ip:'IP-адрес', origin:'Источник', endpoint:'Маршрут', app:'Приложение', model:'Модель',
+    userId:'ID пользователя', username:'Логин', currency:'Валюта', amount:'Сумма', fields:'Запрошенные поля',
+    stream:'Потоковый ответ', type:'Тип', status:'Статус'
+  };
+  const meta = log.meta && typeof log.meta === 'object' ? log.meta : {};
+  const rows = Object.entries(meta).map(([key, value]) => {
+    const formatted = value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '—');
+    return `<div class="api-log-detail-row"><span class="api-log-detail-key">${escapeHtml(labels[key] || key.replaceAll('_', ' '))}</span><span class="api-log-detail-value">${escapeHtml(formatted)}</span></div>`;
+  }).join('');
+  const createdAt = log.created_at ? new Date(log.created_at) : null;
+  const date = createdAt && !Number.isNaN(createdAt.getTime())
+    ? createdAt.toLocaleString('ru-RU', { timeZone:'Europe/Moscow', dateStyle:'long', timeStyle:'medium' }) + ' МСК'
+    : 'Дата недоступна';
+  openModal(`<div class="api-log-detail">
+    <div class="modal-title">Детали события</div>
+    <div class="api-log-detail-hero"><div class="api-log-detail-action">${escapeHtml(log.action || 'Действие не указано')}</div><div class="api-log-detail-date">${escapeHtml(date)}</div></div>
+    ${rows ? `<div class="api-log-detail-rows">${rows}</div>` : '<div class="empty-box" style="padding:1rem 0;">Дополнительных данных нет</div>'}
+    <div class="modal-actions"><button type="button" class="btn btn-dark" id="apiLogDetailsClose">Закрыть</button></div>
+  </div>`);
+  $('apiLogDetailsClose').addEventListener('click', closeModal);
+}
+
 async function loadKeyLogsInline(keyId){
   const box = $('keyLogsBody');
   if(!box) return;
@@ -6591,11 +6674,14 @@ async function loadKeyLogsInline(keyId){
       box.innerHTML = `<div class="empty-box" style="padding:1.2rem 0;"><div class="desc">Запросов по этому ключу пока не было</div></div>`;
       return;
     }
-    box.innerHTML = `<div class="scroll-area" style="max-height:320px;">` + logs.map((l, i) => `
-      <div class="row-line log-row" style="animation-delay:${Math.min(i*40, 480)}ms;">
-        <div class="row-label">${escapeHtml(l.action || '—')}</div>
-        <div class="row-value" style="font-size:.76rem;">${l.created_at ? new Date(l.created_at).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'}) : '—'}</div>
-      </div>`).join('') + `</div>`;
+    box.innerHTML = `<div class="scroll-area" style="max-height:320px;">` + logs.map((log, index) => `
+      <button type="button" class="api-log-row log-row" data-api-log-index="${index}" style="animation-delay:${Math.min(index*40, 480)}ms;">
+        <span class="api-log-row-label"><i class="cico cico-list" aria-hidden="true"></i><b>${escapeHtml(log.action || 'Действие не указано')}</b></span>
+        <span class="api-log-row-date">${log.created_at ? escapeHtml(new Date(log.created_at).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})) : '—'}　›</span>
+      </button>`).join('') + `</div>`;
+    box.querySelectorAll('[data-api-log-index]').forEach(button => {
+      button.addEventListener('click', () => openApiKeyLogDetails(logs[Number(button.dataset.apiLogIndex)]));
+    });
   } catch(e){
     box.innerHTML = `<div class="empty-box" style="padding:1.2rem 0;"><div class="desc">Ошибка соединения</div></div>`;
   }
