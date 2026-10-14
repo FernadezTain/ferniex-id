@@ -5969,28 +5969,48 @@ async function uploadPostImage(userId, imageBase64, idx) {
   return `${SB_URL}/storage/v1/object/public/social_posts/${fileName}`;
 }
 
-// Лента: последние посты в случайном порядке (либо посты конкретного автора — свежие сверху)
+// Лента и страницы автора используют стабильную сортировку с пагинацией по позиции.
 app.get('/api/social/feed/:userId', async (req, res) => {
   const { userId } = req.params;
-  const { limit = 15, offset = 0, authorId } = req.query;
+  const { limit = 15, offset = 0, authorId, before } = req.query;
   try {
-    const url = authorId
-      ? `${SB_URL}/rest/v1/posts?author_id=eq.${authorId}&select=id,author_id,description,image_urls,created_at&order=created_at.desc&limit=100`
-      : `${SB_URL}/rest/v1/posts?select=id,author_id,description,image_urls,created_at&order=created_at.desc&limit=200`;
-    const postsRes = await fetch(url, { headers: sbHeaders });
-    let posts = await postsRes.json();
-    if (!Array.isArray(posts)) posts = [];
-
-    if (!authorId) {
-      // случайно тасуем ленту (Fisher-Yates), как в ВК/Инсте — без привязки к дате
-      for (let i = posts.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [posts[i], posts[j]] = [posts[j], posts[i]];
+    const requestedLimit = Number.parseInt(limit, 10);
+    const lim = Math.min(Math.max(Number.isInteger(requestedLimit) ? requestedLimit : 15, 1), 50);
+    const requestedOffset = Number.parseInt(offset, 10);
+    const off = Math.max(Number.isInteger(requestedOffset) ? requestedOffset : 0, 0);
+    let cursor = null;
+    if (before) {
+      try {
+        cursor = JSON.parse(before);
+      } catch {
+        return res.status(400).json({ success: false, error: 'Некорректная позиция ленты' });
+      }
+      if (
+        !cursor || typeof cursor.createdAt !== 'string'
+        || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(cursor.createdAt)
+        || !Number.isFinite(Date.parse(cursor.createdAt))
+        || !/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(String(cursor.id))
+      ) {
+        return res.status(400).json({ success: false, error: 'Некорректная позиция ленты' });
       }
     }
-    const off = parseInt(offset) || 0;
-    const lim = Math.min(parseInt(limit) || 15, 50);
-    const page = posts.slice(off, off + lim);
+
+    const query = new URLSearchParams({
+      select: 'id,author_id,description,image_urls,created_at',
+      order: 'created_at.desc,id.desc',
+      limit: String(lim + 1)
+    });
+    if (authorId) query.set('author_id', `eq.${authorId}`);
+    if (cursor) {
+      query.set('or', `(created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id}))`);
+    } else if (off) {
+      query.set('offset', String(off));
+    }
+    const postsRes = await fetch(`${SB_URL}/rest/v1/posts?${query}`, { headers: sbHeaders });
+    let posts = await postsRes.json();
+    if (!Array.isArray(posts)) posts = [];
+    const hasMore = posts.length > lim;
+    const page = posts.slice(0, lim);
     if (!page.length) return res.json({ success: true, posts: [], hasMore: false });
 
     const authorIds = [...new Set(page.map(p => p.author_id))];
@@ -6030,7 +6050,7 @@ app.get('/api/social/feed/:userId', async (req, res) => {
       likedByMe: myLikeSet.has(p.id),
       viewedByMe: myViewSet.has(p.id)
     }));
-    res.json({ success: true, posts: result, hasMore: off + lim < posts.length });
+    res.json({ success: true, posts: result, hasMore });
   } catch (e) {
     console.error('social feed error:', e);
     res.json({ success: false, posts: [], hasMore: false });
