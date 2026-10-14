@@ -16,7 +16,6 @@
     { "src": "/api/(.*)", "dest": "server.js" },
     { "src": "/udggift/(.*)", "dest": "server.js" },
     { "src": "/", "dest": "index.html" },
-    { "src": "/index.html", "dest": "index.html" },
     { "src": "/(.*)", "dest": "public/$1" }
   ]
 }
