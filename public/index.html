@@ -362,22 +362,26 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 .subscription-empty-state .plus-title{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(1.7rem, 3vw, 2.4rem);letter-spacing:-.06em;line-height:1.05;}
 .subscription-empty-state .plus-desc{max-width:560px;color:var(--muted);font-size:.9rem;line-height:1.6;}
 .subscription-toolbar{display:flex;flex-wrap:wrap;justify-content:center;gap:.7rem;margin-top:.4rem;}
-.subscription-status-card{position:relative;overflow:hidden;padding:1.6rem;border:1px solid var(--line);border-radius:20px;background:var(--field);}
-.subscription-status-card.active{border-color:transparent;background-size:250% 250%;animation:subscriptionGradient 8s ease infinite;}
-.subscription-status-card.plus{background-image:linear-gradient(125deg,#fff4d7,#f4b8a4,#f1d0c4,#fff4d7);}
-.subscription-status-card.pro{background-image:linear-gradient(125deg,#e8ddff,#b8c8ff,#d9c7ff,#e8ddff);}
-.subscription-status-card>*{position:relative;z-index:1;}
-.subscription-status-card.active .subscription-status-title{color:#241a1c;}
-.subscription-status-card.active .subscription-status-desc{color:rgba(36,26,28,.76);}
-.subscription-status-head{display:flex;align-items:flex-start;gap:1rem;}
-.subscription-status-mark{position:relative;isolation:isolate;display:grid;place-items:center;width:58px;height:58px;flex:0 0 58px;border:1px solid color-mix(in srgb,#df9f89 35%,transparent);border-radius:60% 40% 55% 45% / 50% 60% 40% 50%;background:linear-gradient(135deg,#ffe0c2 0%,#f1a88f 46%,#d66f7d 100%);filter:blur(2px);box-shadow:0 10px 25px -12px rgba(182,83,86,.52);animation:subscriptionBlob 8s ease-in-out infinite alternate;transition:transform .35s cubic-bezier(.22,1,.36,1);}
-.subscription-status-mark::before{content:'';position:absolute;inset:10px 13px;border-radius:inherit;background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(255,255,255,0) 68%);}
-.subscription-status-card.pro .subscription-status-mark{border-color:rgba(148,127,226,.42);background:linear-gradient(135deg,#e6dcff 0%,#a9b9ff 48%,#84d1df 100%);box-shadow:0 10px 25px -12px rgba(97,92,201,.58);}
-.subscription-status-card.pro .subscription-status-mark::before{background:linear-gradient(145deg,rgba(255,255,255,.8),rgba(255,255,255,0) 68%);}
-.subscription-status-card.plus .subscription-status-mark{animation-delay:-2.5s;}
-.subscription-status-card.active:hover .subscription-status-mark,.subscription-status-card.active:active .subscription-status-mark{transform:scale(1.08, .94) rotate(7deg);}
-.subscription-status-title{font-family:'Syne',sans-serif;font-size:clamp(1.1rem,2vw,1.45rem);font-weight:800;letter-spacing:-.04em;}
-.subscription-status-desc{margin-top:.35rem;color:color-mix(in srgb,var(--ink) 68%,var(--muted));font-size:.84rem;line-height:1.55;}
+.subscription-status-card{--status-accent:#87918d;position:relative;isolation:isolate;display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:1.1rem;min-height:150px;overflow:hidden;padding:1.35rem 1.5rem;border:1px solid color-mix(in srgb,var(--status-accent) 24%,var(--line));border-radius:24px;background:linear-gradient(130deg,color-mix(in srgb,var(--card) 90%,white),var(--card));box-shadow:0 16px 38px -30px rgba(24,20,16,.52);transform:translateZ(0);transition:transform .38s cubic-bezier(.22,1,.36,1),box-shadow .38s ease,border-color .3s ease;animation:subscriptionCardEnter .58s cubic-bezier(.22,1,.36,1) both;}
+.subscription-status-card::before{position:absolute;inset:0;z-index:-1;content:'';background:radial-gradient(circle at var(--pointer-x,82%) var(--pointer-y,18%),color-mix(in srgb,var(--status-accent) 28%,transparent),transparent 38%),radial-gradient(ellipse at 8% 110%,color-mix(in srgb,var(--status-accent) 17%,transparent),transparent 48%);opacity:.8;transition:opacity .35s ease;pointer-events:none;}
+.subscription-status-card::after{position:absolute;top:-65%;left:-65%;z-index:0;width:42%;height:230%;content:'';background:linear-gradient(90deg,transparent,rgba(255,255,255,.62),transparent);opacity:0;transform:rotate(18deg);pointer-events:none;}
+.subscription-status-card.none{--status-accent:#87918d;}
+.subscription-status-card.plus{--status-accent:#cf8950;background:linear-gradient(125deg,#fffaf2 0%,#fff0df 54%,#fbe4dc 100%);}
+.subscription-status-card.pro{--status-accent:#7968d8;background:linear-gradient(125deg,#f6f2ff 0%,#e9e3ff 52%,#e0edff 100%);}
+.subscription-status-card:hover{transform:translateY(-4px) scale(1.006);border-color:color-mix(in srgb,var(--status-accent) 48%,var(--line));box-shadow:0 24px 48px -28px color-mix(in srgb,var(--status-accent) 48%,transparent),0 0 0 1px rgba(255,255,255,.6) inset;}
+.subscription-status-card:hover::before{opacity:1;}
+.subscription-status-card:hover::after{opacity:1;animation:subscriptionStatusShine .9s cubic-bezier(.18,.67,.3,1) both;}
+.subscription-status-orb{position:relative;isolation:isolate;display:grid;place-items:center;width:68px;height:68px;border:1px solid rgba(255,255,255,.76);border-radius:50%;background:radial-gradient(circle at 29% 23%,rgba(255,255,255,.98) 0 4%,transparent 25%),linear-gradient(145deg,color-mix(in srgb,var(--status-accent) 22%,white),var(--status-accent) 58%,color-mix(in srgb,var(--status-accent) 55%,#5574d8));box-shadow:0 13px 28px -14px color-mix(in srgb,var(--status-accent) 86%,transparent),inset 0 1px 0 rgba(255,255,255,.8);animation:subscriptionOrbFloat 5.2s ease-in-out infinite;}
+.subscription-status-orb::before{position:absolute;inset:-7px;border:1px solid color-mix(in srgb,var(--status-accent) 38%,transparent);border-radius:50%;content:'';animation:subscriptionOrbOrbit 9s linear infinite;}
+.subscription-status-orb::after{position:absolute;inset:8px;border:1px solid rgba(255,255,255,.3);border-radius:50%;content:'';}
+.subscription-status-orb-symbol{position:relative;z-index:1;color:#fff;text-shadow:0 2px 10px color-mix(in srgb,var(--status-accent) 75%,transparent);font-size:1.7rem;font-weight:800;}
+.subscription-status-copy{min-width:0;}
+.subscription-status-eyebrow{display:flex;align-items:center;gap:.45rem;color:color-mix(in srgb,var(--status-accent) 82%,#302842);font-size:.62rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;}
+.subscription-status-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--status-accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--status-accent) 15%,transparent);animation:subscriptionStatusPulse 2s ease-in-out infinite;}
+.subscription-status-title{margin-top:.38rem;color:#211b29;font-family:'Syne',sans-serif;font-size:clamp(1.05rem,2vw,1.42rem);font-weight:800;letter-spacing:-.045em;line-height:1.15;}
+.subscription-status-desc{max-width:620px;margin-top:.4rem;color:rgba(42,36,48,.72);font-size:.8rem;line-height:1.55;}
+.subscription-status-badge{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.52rem .72rem;border:1px solid color-mix(in srgb,var(--status-accent) 24%,transparent);border-radius:999px;background:rgba(255,255,255,.58);box-shadow:0 6px 18px -14px color-mix(in srgb,var(--status-accent) 70%,transparent);color:color-mix(in srgb,var(--status-accent) 78%,#25202b);font-size:.62rem;font-weight:800;letter-spacing:.07em;white-space:nowrap;}
+.subscription-status-badge-icon{display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:color-mix(in srgb,var(--status-accent) 14%,white);font-size:.72rem;}
 .subscription-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:.75rem;margin-top:.85rem;}
 .subscription-action-card{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:.45rem;padding:1rem;border:1px solid var(--line);border-radius:16px;background:var(--card);}
 .subscription-action-card h3{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;}
@@ -470,13 +474,17 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 .subscription-result-emoji{font-size:2.4rem;line-height:1;animation:subscriptionEmojiPop .7s cubic-bezier(.2,1.7,.4,1) both;}
 .subscription-result-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;}
 .subscription-result-copy{max-width:360px;color:var(--muted);font-size:.82rem;line-height:1.55;}
-@keyframes subscriptionGradient{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
-@keyframes subscriptionBlob{0%{border-radius:60% 40% 55% 45% / 50% 60% 40% 50%;transform:translate3d(0,0,0) scale(1) rotate(0);}50%{border-radius:43% 57% 39% 61% / 58% 42% 58% 42%;transform:translate3d(2px,-3px,0) scale(1.05) rotate(8deg);}100%{border-radius:55% 45% 62% 38% / 42% 58% 44% 56%;transform:translate3d(-2px,2px,0) scale(.97) rotate(-5deg);}}
+@keyframes subscriptionCardEnter{from{opacity:0;transform:translateY(12px) scale(.985);}to{opacity:1;transform:translateY(0) scale(1);}}
+@keyframes subscriptionStatusShine{to{left:135%;}}
+@keyframes subscriptionOrbFloat{0%,100%{transform:translateY(0) rotate(-5deg);}50%{transform:translateY(-5px) rotate(5deg);}}
+@keyframes subscriptionOrbOrbit{to{transform:rotate(360deg);}}
+@keyframes subscriptionStatusPulse{0%,100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--status-accent) 14%,transparent);}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--status-accent) 5%,transparent);}}
 @keyframes subscriptionViewIn{from{opacity:0;transform:translateY(9px);}to{opacity:1;transform:translateY(0);}}
 @keyframes subscriptionShimmer{to{background-position:-220% 0;}}
 @keyframes subscriptionEmojiPop{0%{opacity:0;transform:scale(.25) rotate(-24deg);}65%{opacity:1;transform:scale(1.22) rotate(7deg);}100%{transform:scale(1) rotate(0);}}
-@media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-status-card{padding:1.15rem;border-radius:17px;}.subscription-status-head{gap:.7rem;}.subscription-status-mark{width:48px;height:48px;flex-basis:48px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
-@media(prefers-reduced-motion:reduce){.subscription-status-card.active,.subscription-status-mark,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-status-mark{filter:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
+@media(max-width:560px){.subscription-status-card{grid-template-columns:50px minmax(0,1fr);gap:.8rem;min-height:0;padding:1rem;border-radius:19px;}.subscription-status-orb{width:48px;height:48px;}.subscription-status-orb::before{inset:-5px;}.subscription-status-orb-symbol{font-size:1.3rem;}.subscription-status-title{font-size:1rem;}.subscription-status-desc{font-size:.74rem;}.subscription-status-badge{grid-column:2;justify-self:start;margin-top:-.1rem;padding:.42rem .62rem;font-size:.58rem;}}
+@media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
+@media(prefers-reduced-motion:reduce){.subscription-status-card,.subscription-status-card::after,.subscription-status-orb,.subscription-status-orb::before,.subscription-status-dot,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none!important;}.subscription-status-card,.subscription-status-card::before,.subscription-status-card::after,.subscription-status-orb,.subscription-status-orb::before,.subscription-bg-slider,.subscription-bg-body{transition:none!important;}}
 @media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions,.author-modal-banner,.author-modal-identity .author-modal-avatar,.author-modal-name,.author-modal-actions .btn{animation:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
@@ -878,14 +886,12 @@ body:hover::-webkit-scrollbar-thumb{
 @media(prefers-reduced-motion:reduce){.social-profile-section-slider{transition:none;}}
 
 @media (hover:hover) and (pointer:fine) and (min-width:901px){
-  .udg-balance-card,.subscription-status-card,.overview-account-grid{transition:transform .38s cubic-bezier(.22,1,.36,1),box-shadow .38s ease,border-color .32s ease;}
-  .udg-balance-card:hover,.subscription-status-card:hover,.overview-account-grid:hover{transform:translateY(-3px);box-shadow:0 18px 36px -24px rgba(20,16,10,.48);}
+  .udg-balance-card,.overview-account-grid{transition:transform .38s cubic-bezier(.22,1,.36,1),box-shadow .38s ease,border-color .32s ease;}
+  .udg-balance-card:hover,.overview-account-grid:hover{transform:translateY(-3px);box-shadow:0 18px 36px -24px rgba(20,16,10,.48);}
   .udg-balance-card::after{position:absolute;top:-105px;right:13%;width:180px;height:180px;border-radius:50%;background:rgba(255,213,128,.12);content:'';filter:blur(12px);pointer-events:none;transition:transform .7s cubic-bezier(.22,1,.36,1),opacity .4s ease;}
   .udg-balance-card:hover::after{transform:translate(-22px,18px) scale(1.25);opacity:.9;}
   .udg-coin-mark{transition:transform .42s cubic-bezier(.22,1,.36,1),box-shadow .42s ease;}
   .udg-balance-card:hover .udg-coin-mark{transform:rotate(-9deg) scale(1.1);box-shadow:0 16px 32px -13px rgba(135,82,20,.72);}
-  .subscription-status-mark{transition:transform .4s cubic-bezier(.22,1,.36,1),filter .4s ease;}
-  .subscription-status-card:hover .subscription-status-mark{transform:scale(1.14) rotate(12deg);filter:blur(1px) saturate(1.2);}
   .overview-account-item{transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s ease;}
   .overview-account-item:hover{transform:translateY(-2px) scale(1.012);box-shadow:0 10px 24px -18px rgba(28,20,16,.5);}
 }
@@ -933,7 +939,7 @@ body:hover::-webkit-scrollbar-thumb{
 .api-log-detail-value{font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap;}
 @media(max-width:440px){.api-log-detail-row{grid-template-columns:1fr;gap:.25rem;}}
 @media(prefers-reduced-motion:reduce){
-  button:not(:disabled),.udg-balance-card,.subscription-status-card,.overview-account-grid,.udg-coin-mark,.subscription-status-mark,.overview-account-item,.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item,#section-admin>.panel,#section-adminapply>.panel,#section-admintickets>.panel,#section-adminapplies>.panel,#section-admintickets .ticket-row,#section-adminapplies .ticket-row{transition:none!important;animation:none!important;}
+  button:not(:disabled),.udg-balance-card,.subscription-status-card,.overview-account-grid,.udg-coin-mark,.subscription-status-orb,.subscription-status-orb::before,.subscription-status-dot,.overview-account-item,.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item,#section-admin>.panel,#section-adminapply>.panel,#section-admintickets>.panel,#section-adminapplies>.panel,#section-admintickets .ticket-row,#section-adminapplies .ticket-row{transition:none!important;animation:none!important;}
 }
 .social-posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
 .social-posts-grid .grid-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--field);cursor:pointer;}
@@ -5133,12 +5139,29 @@ function renderSubscriptionCards(fpActive, proActive){
     : `${tier === 'plus' ? '<article class="subscription-action-card"><h3>Больше возможностей</h3><p>Перейди на Pro, чтобы открыть все функции Fernie+ Pro.</p><button type="button" class="btn btn-dark" data-subscription-checkout="pro">Улучшить до Pro</button></article>' : ''}
       <article class="subscription-action-card subscription-management-card"><h3>Оформление профиля</h3><p>Выбери фон, который будет отображаться в твоём профиле Telegram-бота.</p><button type="button" class="btn btn-outline subscription-interactive-button subscription-profile-button" id="profileBackgroundsOpen"><span class="subscription-button-icon" aria-hidden="true">✦</span><span>Фон профиля в боте</span><span class="subscription-button-arrow" aria-hidden="true">↗</span></button></article>
       <article class="subscription-action-card subscription-management-card"><h3>Управление подпиской</h3><p>Отключение сразу завершит доступ к Fernie+ и Pro.</p><button type="button" class="btn btn-danger subscription-interactive-button subscription-cancel-button" id="cancelSubscriptionButton"><span class="subscription-button-icon" aria-hidden="true">×</span><span>Отменить подписку</span><span class="subscription-button-arrow" aria-hidden="true">→</span></button></article>`;
-  body.innerHTML = `<section class="subscription-status-card ${tier === 'none' ? '' : `active ${tier}`}" aria-live="polite">
-    <div class="subscription-status-head">
-      <div class="subscription-status-mark" aria-hidden="true"></div>
-      <div><div class="subscription-status-title">${title}</div><div class="subscription-status-desc">${description}</div></div>
+  const statusEyebrow = tier === 'pro' ? 'FERNIE+ PRO' : tier === 'plus' ? 'FERNIE+' : 'СТАТУС ПОДПИСКИ';
+  const statusBadge = tier === 'none' ? 'НЕ АКТИВНА' : tier === 'pro' ? 'PRO АКТИВНА' : 'АКТИВНА';
+  const statusSymbol = tier === 'none' ? '·' : tier === 'pro' ? '✦' : '✧';
+  body.innerHTML = `<section class="subscription-status-card ${tier} ${tier === 'none' ? '' : 'active'}" data-tier="${tier}" aria-live="polite">
+    <div class="subscription-status-orb" aria-hidden="true"><span class="subscription-status-orb-symbol">${statusSymbol}</span></div>
+    <div class="subscription-status-copy">
+      <div class="subscription-status-eyebrow"><span class="subscription-status-dot"></span>${statusEyebrow}</div>
+      <div class="subscription-status-title">${title}</div>
+      <div class="subscription-status-desc">${description}</div>
     </div>
+    <div class="subscription-status-badge"><span class="subscription-status-badge-icon">${tier === 'none' ? '↗' : '✓'}</span>${statusBadge}</div>
   </section><div class="subscription-actions-grid">${actions}</div>`;
+  const statusCard = body.querySelector('.subscription-status-card');
+  statusCard?.addEventListener('pointermove', event => {
+    if(event.pointerType !== 'mouse') return;
+    const bounds = statusCard.getBoundingClientRect();
+    statusCard.style.setProperty('--pointer-x', `${((event.clientX - bounds.left) / bounds.width) * 100}%`);
+    statusCard.style.setProperty('--pointer-y', `${((event.clientY - bounds.top) / bounds.height) * 100}%`);
+  });
+  statusCard?.addEventListener('pointerleave', () => {
+    statusCard.style.removeProperty('--pointer-x');
+    statusCard.style.removeProperty('--pointer-y');
+  });
   body.querySelector('[data-subscription-checkout]')?.addEventListener('click', event => {
     const plan = event.currentTarget.dataset.subscriptionCheckout || 'fp';
     const checkoutUrl = new URL('https://www.ferniex.ru/oplatapodpiski.html');
