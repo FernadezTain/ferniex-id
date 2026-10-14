@@ -1149,6 +1149,33 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-pay-chip.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18);color:var(--ink);}
 .plan-ribbon{position:absolute;top:14px;right:-32px;transform:rotate(40deg);background:linear-gradient(120deg,#8a6be0,#5f7ce8);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 34px;z-index:2;box-shadow:0 3px 8px rgba(90,60,180,.25);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
 
+@media (hover:hover) and (pointer:fine) and (min-width:901px){
+  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.chat-row,.search-row,.social-profile-gift,.plan-card{
+    transition:transform .34s cubic-bezier(.22,1,.36,1),box-shadow .34s ease,border-color .3s ease,background-color .3s ease;
+  }
+  .panel:not(.hero-panel):hover,.stat-box:hover,.overview-account-item:hover,.overview-subscription:hover,.subscription-action-card:hover,.subscription-bg-item:hover,.game-card:hover,.item-card:hover,.post-card:hover,.udg-gift-card:hover,.udg-transaction:hover,.ticket-row:hover,.key-card:hover,.key-list-card:hover,.chat-row:hover,.search-row:hover,.social-profile-gift:hover,.plan-card:hover{
+    transform:translateY(-3px);
+    border-color:color-mix(in srgb,var(--ink) 22%,var(--line));
+    box-shadow:0 16px 32px -23px rgba(27,20,15,.44),0 0 0 1px color-mix(in srgb,var(--ink) 4%,transparent);
+  }
+  .post-card,.udg-gift-card,.social-profile-gift,.ticket-row,.key-list-card,.game-card,.item-card,.stat-box{animation:desktopCardEnter .42s cubic-bezier(.22,1,.36,1);}
+  #feedBody .post-card:nth-child(2){animation-delay:.035s;}
+  #feedBody .post-card:nth-child(3){animation-delay:.07s;}
+  #feedBody .post-card:nth-child(4){animation-delay:.105s;}
+  #feedBody .post-card:nth-child(5){animation-delay:.14s;}
+  #feedBody .post-card:nth-child(6){animation-delay:.175s;}
+  #feedBody .post-card:nth-child(7){animation-delay:.21s;}
+  .post-card:hover .post-media img,.udg-gift-card:hover .udg-gift-art img,.social-profile-gift:hover .social-profile-gift-art img{transform:scale(1.035);}
+  .post-media img,.udg-gift-art img,.social-profile-gift-art img{transition:transform .65s cubic-bezier(.22,1,.36,1);}
+  .overview-subscription:hover .overview-subscription-action{transform:rotate(12deg) scale(1.08);box-shadow:0 8px 18px -12px rgba(0,0,0,.4);}
+  .subscription-action-card:hover h3{transform:translateX(3px);}
+  .subscription-action-card h3{transition:transform .3s cubic-bezier(.22,1,.36,1);}
+}
+@keyframes desktopCardEnter{from{opacity:0;transform:translateY(9px) scale(.99);}to{opacity:1;transform:translateY(0) scale(1);}}
+@media(prefers-reduced-motion:reduce){
+  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.chat-row,.search-row,.social-profile-gift,.plan-card,.post-media img,.udg-gift-art img,.social-profile-gift-art img,.subscription-action-card h3{animation:none!important;transition:none!important;}
+}
+
 /* --- живые hover-анимации карточек подписки (только для устройств с точным курсором) --- */
 @media (hover:hover) and (pointer:fine){
   .plan-card:hover{transform:translateY(-6px);box-shadow:0 26px 44px -22px rgba(60,40,20,.28);border-color:#e2d3bc;}
@@ -5103,9 +5130,10 @@ async function loadThirdParty(){
 /* ══════════════════════════════════════════
    СОЦИАЛИЗАЦИЯ — Главная: лента постов, лайки, просмотры, друзья, поиск
    ══════════════════════════════════════════ */
-let socialFeedOffset = 0;
+let socialFeedCursor = null;
 let socialFeedHasMore = false;
 let socialFeedLoading = false;
+const socialFeedPostIds = new Set();
 const socialViewedPosts = new Set();
 
 const socialViewObserver = new IntersectionObserver((entries) => {
@@ -5169,26 +5197,42 @@ function renderPostCard(p){
 async function loadSocialFeed(reset){
   if(socialFeedLoading) return;
   socialFeedLoading = true;
-  if(reset){ socialFeedOffset = 0; $('feedBody').innerHTML = `<div class="loader">Загрузка…</div>`; }
+  if(reset){
+    socialFeedCursor = null;
+    socialFeedPostIds.clear();
+    $('feedBody').innerHTML = `<div class="loader">Загрузка…</div>`;
+  }
   try{
-    const res = await fetch(`${API}/api/social/feed/${currentUser.id}?offset=${socialFeedOffset}&limit=10`);
+    const query = new URLSearchParams({ limit:'10' });
+    if(socialFeedCursor) query.set('before', JSON.stringify(socialFeedCursor));
+    const res = await fetch(`${API}/api/social/feed/${encodeURIComponent(currentUser.id)}?${query}`);
     const data = await res.json();
     const posts = data.posts || [];
-    socialFeedHasMore = !!data.hasMore;
+    socialFeedHasMore = !!data.hasMore && posts.length > 0;
+    if(posts.length){
+      const lastPost = posts[posts.length - 1];
+      socialFeedCursor = { createdAt:lastPost.createdAt, id:lastPost.id };
+    }
     if(reset && !posts.length){
       $('feedBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('bars')}</div><div class="title">Пока пусто</div><div class="desc">Здесь появятся фото, которые опубликуют люди.</div></div>`;
     } else {
-      const html = posts.map(renderPostCard).join('');
+      const uniquePosts = posts.filter(post => {
+        const id = String(post.id);
+        if(socialFeedPostIds.has(id)) return false;
+        socialFeedPostIds.add(id);
+        return true;
+      });
+      const html = uniquePosts.map(renderPostCard).join('');
       if(reset) $('feedBody').innerHTML = html;
-      else $('feedBody').insertAdjacentHTML('beforeend', html);
+      else if(html) $('feedBody').insertAdjacentHTML('beforeend', html);
     }
-    socialFeedOffset += posts.length;
     $('feedLoadMoreWrap').style.display = socialFeedHasMore ? '' : 'none';
     attachFeedCardHandlers();
   } catch(e){
     if(reset) $('feedBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div></div>`;
+  } finally{
+    socialFeedLoading = false;
   }
-  socialFeedLoading = false;
 }
 $('feedLoadMoreBtn').addEventListener('click', () => loadSocialFeed(false));
 
