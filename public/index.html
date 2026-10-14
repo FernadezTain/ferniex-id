@@ -379,6 +379,34 @@ body{
 .subscription-action-card h3{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;}
 .subscription-action-card p{flex:1;color:var(--muted);font-size:.75rem;line-height:1.5;}
 .subscription-action-card .btn{width:100%;margin-top:.25rem;}
+.subscription-button-icon,.subscription-button-arrow{display:none;}
+@media (hover:hover) and (pointer:fine) and (min-width:901px){
+  .subscription-action-card .subscription-interactive-button{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:.55rem;overflow:hidden;border:1px solid transparent;transform:translateZ(0);transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s ease,color .25s ease,background .35s ease,border-color .35s ease;}
+  .subscription-action-card .subscription-interactive-button::before{position:absolute;inset:-40% auto -40% -55%;z-index:1;width:38%;content:'';background:linear-gradient(105deg,transparent,rgba(255,255,255,.7),transparent);transform:translateX(-220%) rotate(14deg);}
+  .subscription-action-card .subscription-interactive-button::after{position:absolute;inset:0;z-index:0;border-radius:inherit;content:'';opacity:0;transition:opacity .35s ease;}
+  .subscription-button-icon,.subscription-button-arrow{position:relative;z-index:2;display:inline-grid;place-items:center;flex:0 0 auto;}
+  .subscription-button-icon{font-size:1rem;}
+  .subscription-button-arrow{font-size:1rem;opacity:.65;transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .25s ease;}
+  .subscription-profile-button{background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(115deg,#a9a2ff,#ffc7de,#9ee5e2,#a9a2ff) border-box;background-size:100% 100%,260% 100%;animation:subscriptionButtonBorderFlow 8s linear infinite;}
+  .subscription-profile-button::after{background:radial-gradient(ellipse at 50% 130%,rgba(172,157,255,.4),transparent 68%);}
+  .subscription-cancel-button{background:linear-gradient(var(--card),var(--card)) padding-box,linear-gradient(115deg,#ffb2a9,#ff7181,#ffc3ab,#ff7181) border-box;background-size:100% 100%,240% 100%;animation:subscriptionButtonBorderFlow 7s linear infinite reverse;}
+  .subscription-cancel-button::after{background:radial-gradient(ellipse at 50% 130%,rgba(226,86,79,.26),transparent 68%);}
+  .subscription-interactive-button:hover{transform:translateY(-3px) scale(1.025);}
+  .subscription-profile-button:hover{color:#51458e;box-shadow:0 12px 28px -17px rgba(133,111,239,.72),0 0 0 4px rgba(173,158,255,.13);}
+  .subscription-cancel-button:hover{color:#b8333d;background-color:#fff7f5;box-shadow:0 12px 28px -17px rgba(226,86,79,.58),0 0 0 4px rgba(226,86,79,.09);}
+  .subscription-interactive-button:hover::before,.subscription-interactive-button:focus-visible::before{animation:subscriptionButtonShine .85s cubic-bezier(.18,.67,.3,1) both;}
+  .subscription-interactive-button:hover::after,.subscription-interactive-button:focus-visible::after{opacity:1;}
+  .subscription-interactive-button:hover .subscription-button-icon{animation:subscriptionButtonIconPop .55s cubic-bezier(.2,1.5,.4,1) both;}
+  .subscription-interactive-button:hover .subscription-button-arrow{transform:translateX(4px) rotate(-8deg);opacity:1;}
+  .subscription-cancel-button:hover .subscription-button-icon{animation:subscriptionButtonWarning .55s ease both;}
+  .subscription-interactive-button:active{transform:translateY(0) scale(.97);}
+  .subscription-interactive-button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 28%,transparent);outline-offset:4px;}
+}
+@keyframes subscriptionButtonBorderFlow{to{background-position:0 0,260% 0;}}
+@keyframes subscriptionButtonShine{to{transform:translateX(570%) rotate(14deg);}}
+@keyframes subscriptionButtonIconPop{45%{transform:translateY(-4px) rotate(-12deg) scale(1.25);}100%{transform:translateY(0) rotate(0) scale(1);}}
+@keyframes subscriptionButtonWarning{35%{transform:rotate(-14deg) scale(1.22);}70%{transform:rotate(10deg) scale(1.12);}100%{transform:rotate(0) scale(1);}}
+@media(prefers-reduced-motion:reduce){.subscription-profile-button,.subscription-cancel-button,.subscription-action-card .subscription-interactive-button::before,.subscription-action-card .subscription-interactive-button::after,.subscription-interactive-button .subscription-button-icon,.subscription-interactive-button .subscription-button-arrow{animation:none!important;transition:none!important;}}
 .subscription-subview{animation:subscriptionViewIn .28s cubic-bezier(.2,.8,.2,1) both;}
 .subscription-subview[hidden]{display:none;}
 .subscription-back{display:inline-flex;align-items:center;gap:.45rem;margin-bottom:1rem;padding:.65rem .9rem;border:1px solid var(--field-border);border-radius:999px;background:var(--field);color:var(--ink);font:700 .8rem Inter,sans-serif;cursor:pointer;}
@@ -4996,8 +5024,8 @@ function renderSubscriptionCards(fpActive, proActive){
   const actions = tier === 'none'
     ? `<article class="subscription-action-card"><h3>Оформить Fernie+</h3><p>Открой дополнительные функции и настройку профиля в боте.</p><button type="button" class="btn btn-dark" data-subscription-checkout="fp">Оформить подписку</button></article>`
     : `${tier === 'plus' ? '<article class="subscription-action-card"><h3>Больше возможностей</h3><p>Перейди на Pro, чтобы открыть все функции Fernie+ Pro.</p><button type="button" class="btn btn-dark" data-subscription-checkout="pro">Улучшить до Pro</button></article>' : ''}
-      <article class="subscription-action-card"><h3>Оформление профиля</h3><p>Выбери фон, который будет отображаться в твоём профиле Telegram-бота.</p><button type="button" class="btn btn-outline" id="profileBackgroundsOpen">Фон профиля в боте</button></article>
-      <article class="subscription-action-card"><h3>Управление подпиской</h3><p>Отключение сразу завершит доступ к Fernie+ и Pro.</p><button type="button" class="btn btn-danger" id="cancelSubscriptionButton">Отменить подписку</button></article>`;
+      <article class="subscription-action-card"><h3>Оформление профиля</h3><p>Выбери фон, который будет отображаться в твоём профиле Telegram-бота.</p><button type="button" class="btn btn-outline subscription-interactive-button subscription-profile-button" id="profileBackgroundsOpen"><span class="subscription-button-icon" aria-hidden="true">✦</span><span>Фон профиля в боте</span><span class="subscription-button-arrow" aria-hidden="true">↗</span></button></article>
+      <article class="subscription-action-card"><h3>Управление подпиской</h3><p>Отключение сразу завершит доступ к Fernie+ и Pro.</p><button type="button" class="btn btn-danger subscription-interactive-button subscription-cancel-button" id="cancelSubscriptionButton"><span class="subscription-button-icon" aria-hidden="true">×</span><span>Отменить подписку</span><span class="subscription-button-arrow" aria-hidden="true">→</span></button></article>`;
   body.innerHTML = `<section class="subscription-status-card ${tier === 'none' ? '' : `active ${tier}`}" aria-live="polite">
     <div class="subscription-status-head">
       <div class="subscription-status-mark" aria-hidden="true"></div>
