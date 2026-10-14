@@ -6,13 +6,15 @@
       "use": "@vercel/node"
     },
     { "src": "*.html", "use": "@vercel/static" },
-    { "src": "fernieid-sdk.js", "use": "@vercel/static" }
+    { "src": "fernieid-sdk.js", "use": "@vercel/static" },
+    { "src": "public/**", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "server.js" },
     { "src": "/udggift/(.*)", "dest": "server.js" },
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/index.html", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+    { "src": "/yandex_b10fd0bef87d19e4\\.html", "dest": "/yandex_b10fd0bef87d19e4.html" },
+    { "src": "/", "dest": "/public/index.html" },
+    { "src": "/index.html", "dest": "/public/index.html" },
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }
