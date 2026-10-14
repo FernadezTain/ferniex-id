@@ -326,10 +326,12 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 .type-option.active .cico,.type-option.active .type-option-label{color:var(--ink-contrast);}
 
 /* --- модалка подтверждения (замена window.confirm) --- */
+.modal-overlay.active{animation:modalOverlayFadeIn .36s ease both;}
 .modal-overlay.confirm-active{isolation:isolate;overflow:hidden;}
-.modal-overlay.confirm-active::before{content:'';position:absolute;inset:-35%;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 22% 34%,rgba(226,86,79,.28),transparent 38%),radial-gradient(ellipse at 76% 63%,rgba(233,164,158,.3),transparent 40%),radial-gradient(ellipse at 55% 12%,rgba(201,138,43,.17),transparent 34%);filter:blur(24px);animation:confirmAurora 9s ease-in-out infinite alternate;}
-.modal-overlay.confirm-active::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 28%,rgba(24,20,16,.17) 100%);animation:confirmBackdropPulse 4.8s ease-in-out infinite;}
-.modal-overlay.confirm-active .modal-box{animation:confirmCardIn .42s cubic-bezier(.2,1.25,.4,1) both;}
+.modal-overlay.confirm-active::before{content:'';position:absolute;inset:-35%;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 22% 34%,rgba(226,86,79,.32),transparent 38%),radial-gradient(ellipse at 76% 63%,rgba(233,164,158,.34),transparent 40%),radial-gradient(ellipse at 55% 12%,rgba(201,138,43,.2),transparent 34%);filter:blur(24px);animation:confirmAurora 9s ease-in-out .65s infinite alternate,confirmAuroraIn .85s cubic-bezier(.22,1,.36,1) both;}
+.modal-overlay.confirm-active::after{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 28%,rgba(24,20,16,.2) 100%);opacity:0;animation:confirmBackdropIn .7s ease both,confirmBackdropPulse 4.8s ease-in-out .7s infinite;}
+.modal-overlay.confirm-active .modal-box{animation:confirmCardIn .48s cubic-bezier(.2,1.25,.4,1) both;}
+.modal-overlay.confirm-active .modal-box::before{position:absolute;inset:0;z-index:-1;border:1px solid rgba(255,255,255,.08);border-radius:inherit;content:'';pointer-events:none;}
 .confirm-ico{position:relative;isolation:isolate;width:58px;height:58px;border-radius:19px;background:linear-gradient(135deg,#fff3f1,#fbeceb,#fff5e8);background-size:200% 200%;color:var(--red);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;box-shadow:0 12px 26px -15px rgba(226,86,79,.62);animation:confirmIconGlow 5s ease-in-out infinite;}
 .confirm-ico::before{content:'';position:absolute;inset:-7px;z-index:-1;border:1px solid rgba(226,86,79,.34);border-radius:24px;animation:confirmRing 2.3s cubic-bezier(.2,.7,.3,1) infinite;}
 .confirm-ico::after{content:'';position:absolute;inset:-15px;z-index:-2;border:1px solid rgba(226,86,79,.16);border-radius:30px;animation:confirmRing 2.3s .55s cubic-bezier(.2,.7,.3,1) infinite;}
@@ -338,11 +340,22 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 .confirm-ico .cico-warn::before{left:47%;top:38%;width:2px;height:6px;background:#fff;}
 .confirm-ico .cico-warn::after{left:47%;top:72%;width:2px;height:2px;background:#fff;}
 .confirm-desc{text-align:center;color:var(--muted);font-size:.86rem;line-height:1.55;margin:.4rem 0 1.4rem;}
+.confirm-active .modal-actions .btn{position:relative;overflow:hidden;transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease,background .28s ease,border-color .28s ease;}
+.confirm-active .modal-actions .btn::after{position:absolute;inset:0;content:'';background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.24) 48%,transparent 70%);transform:translateX(-130%);pointer-events:none;}
+.confirm-active .modal-actions .btn:hover::after,.confirm-active .modal-actions .btn:focus-visible::after{animation:confirmButtonShine .75s ease both;}
+.confirm-active .modal-actions .btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px -15px rgba(0,0,0,.58);}
+.confirm-active .modal-actions .btn:active{transform:scale(.97);}
+.confirm-active .modal-actions .btn-danger-solid{background:linear-gradient(115deg,#ee625b,#d9434d,#ee625b);background-size:220% 100%;transition:transform .28s cubic-bezier(.22,1,.36,1),box-shadow .28s ease,background-position .45s ease;}
+.confirm-active .modal-actions .btn-danger-solid:hover{background-position:100% 0;box-shadow:0 12px 26px -14px rgba(226,65,73,.75);}
 .confirm-active .modal-title{animation:confirmTextIn .34s .08s both;}
 .confirm-active .confirm-desc{animation:confirmTextIn .34s .14s both;}
 .confirm-active .modal-actions{animation:confirmTextIn .34s .2s both;}
-@keyframes confirmAurora{0%{transform:translate3d(-3%,1%,0) rotate(0deg) scale(.96);}50%{transform:translate3d(3%,-2%,0) rotate(8deg) scale(1.04);}100%{transform:translate3d(-1%,3%,0) rotate(-6deg) scale(1.08);}}
-@keyframes confirmBackdropPulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+@keyframes modalOverlayFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes confirmAuroraIn{from{opacity:0;}to{opacity:.88;}}
+@keyframes confirmAurora{0%{opacity:.58;transform:translate3d(-3%,1%,0) rotate(0deg) scale(.96);}50%{opacity:.9;transform:translate3d(3%,-2%,0) rotate(8deg) scale(1.04);}100%{opacity:.68;transform:translate3d(-1%,3%,0) rotate(-6deg) scale(1.08);}}
+@keyframes confirmBackdropIn{from{opacity:0;}to{opacity:1;}}
+@keyframes confirmBackdropPulse{0%,100%{opacity:.72;}50%{opacity:1;}}
+@keyframes confirmButtonShine{to{transform:translateX(135%);}}
 @keyframes confirmCardIn{from{opacity:0;transform:translateY(20px) scale(.94);}to{opacity:1;transform:translateY(0) scale(1);}}
 @keyframes confirmIconGlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 @keyframes confirmRing{0%{opacity:.7;transform:scale(.84);}80%,100%{opacity:0;transform:scale(1.32);}}
@@ -479,7 +492,7 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 @keyframes udgBalanceFlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
 @keyframes udgCoinFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
 @media(prefers-reduced-motion:reduce){.udg-balance-card,.udg-coin-mark,.subscription-status-card.active,.subscription-status-mark,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-status-mark{filter:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
-@media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions,.author-modal-banner,.author-modal-identity .author-modal-avatar,.author-modal-name,.author-modal-actions .btn{animation:none;}}
+@media(prefers-reduced-motion:reduce){.modal-overlay.active,.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions,.confirm-active .modal-actions .btn,.author-modal-banner,.author-modal-identity .author-modal-avatar,.author-modal-name,.author-modal-actions .btn{animation:none;transition:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
 .plus-action.secondary{background:var(--field);border:1px solid var(--field-border);color:var(--ink);box-shadow:none;}
