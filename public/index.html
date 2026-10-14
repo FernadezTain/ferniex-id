@@ -313,7 +313,7 @@ body{
 button:not(:disabled){transition:transform .2s cubic-bezier(.22,1,.36,1),box-shadow .24s ease,filter .2s ease;}
 button:not(:disabled):active{transform:scale(.975);}
 button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transparent);outline-offset:3px;}
-@media(hover:hover) and (pointer:fine){button:not(:disabled):hover{filter:brightness(1.035);}}
+@media(hover:hover) and (pointer:fine){button:not(:disabled):hover{filter:brightness(1.055);}}
 
 /* --- красивый пикер типа приложения (вместо select) --- */
 .type-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;}
@@ -476,7 +476,9 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 @keyframes subscriptionShimmer{to{background-position:-220% 0;}}
 @keyframes subscriptionEmojiPop{0%{opacity:0;transform:scale(.25) rotate(-24deg);}65%{opacity:1;transform:scale(1.22) rotate(7deg);}100%{transform:scale(1) rotate(0);}}
 @media(max-width:440px){.subscription-bg-grid{grid-template-columns:1fr;}.subscription-bg-image{height:180px;}.subscription-status-card{padding:1.15rem;border-radius:17px;}.subscription-status-head{gap:.7rem;}.subscription-status-mark{width:48px;height:48px;flex-basis:48px;}.subscription-bg-tab{font-size:.7rem;padding-inline:.2rem;}.subscription-action-card{padding:.9rem;}}
-@media(prefers-reduced-motion:reduce){.subscription-status-card.active,.subscription-status-mark,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-status-mark{filter:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
+@keyframes udgBalanceFlow{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes udgCoinFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@media(prefers-reduced-motion:reduce){.udg-balance-card,.udg-coin-mark,.subscription-status-card.active,.subscription-status-mark,.subscription-bg-skeleton,.subscription-bg-spinner,.subscription-result-emoji{animation:none;}.subscription-status-mark{filter:none;}.subscription-bg-slider,.subscription-bg-body{transition:none;}}
 @media(prefers-reduced-motion:reduce){.modal-overlay.confirm-active::before,.modal-overlay.confirm-active::after,.confirm-active .modal-box,.confirm-ico,.confirm-ico::before,.confirm-ico::after,.confirm-ico .cico,.confirm-active .modal-title,.confirm-active .confirm-desc,.confirm-active .modal-actions,.author-modal-banner,.author-modal-identity .author-modal-avatar,.author-modal-name,.author-modal-actions .btn{animation:none;}}
 .plus-action{padding:13px 18px;border:none;border-radius:999px;background:linear-gradient(120deg,#e2914f,#e2564f);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:800;cursor:pointer;box-shadow:0 15px 28px -16px rgba(226,86,79,.5);transition:transform .16s ease, opacity .2s ease, box-shadow .2s ease;}
 .plus-action:hover{opacity:.96;transform:translateY(-1px);box-shadow:0 18px 30px -16px rgba(226,86,79,.55);}
@@ -576,13 +578,13 @@ body:hover::-webkit-scrollbar-thumb{
 .udgtab-panel{display:none;}
 .udgtab-panel.active{display:block;animation:fadeUp .24s ease both;}
 .udgtab-panel[hidden]{display:none;}
-.udg-balance-card{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:164px;overflow:hidden;padding:1.5rem 1.7rem;border:1px solid color-mix(in srgb,var(--blob-pink) 35%,var(--line));border-radius:22px;background:linear-gradient(120deg,color-mix(in srgb,var(--blob-pink) 27%,var(--card)),color-mix(in srgb,var(--blob-sage) 34%,var(--card)));}
+.udg-balance-card{position:relative;display:flex;align-items:center;justify-content:space-between;min-height:164px;overflow:hidden;padding:1.5rem 1.7rem;border:1px solid color-mix(in srgb,var(--blob-pink) 35%,var(--line));border-radius:22px;background:linear-gradient(120deg,color-mix(in srgb,var(--blob-pink) 27%,var(--card)),color-mix(in srgb,var(--blob-sage) 34%,var(--card)));background-size:180% 180%;animation:udgBalanceFlow 16s ease-in-out infinite;}
 .udg-balance-card::after{content:'';position:absolute;width:220px;height:220px;right:44px;top:-145px;border-radius:50%;background:color-mix(in srgb,var(--blob-pink) 34%,transparent);filter:blur(3px);}
 .udg-balance-copy,.udg-coin-mark{position:relative;z-index:1;}
 .udg-state-kicker{display:block;font-size:.65rem;font-weight:800;letter-spacing:1.4px;color:var(--muted);}
 .udg-balance-label{margin-top:.5rem;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;}
 .udg-balance-value{margin-top:.2rem;font-family:'Syne',sans-serif;font-size:clamp(1.8rem,4vw,2.5rem);font-weight:800;letter-spacing:-1.5px;line-height:1.15;}
-.udg-coin-mark{display:grid;place-items:center;width:72px;height:72px;border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:50%;background:linear-gradient(145deg,#ffe3a2,#e9a44f);box-shadow:0 12px 26px -15px rgba(135,82,20,.55);color:#fff;font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;}
+.udg-coin-mark{display:grid;place-items:center;width:72px;height:72px;border:1px solid color-mix(in srgb,var(--amber) 35%,transparent);border-radius:50%;background:linear-gradient(145deg,#ffe3a2,#e9a44f);box-shadow:0 12px 26px -15px rgba(135,82,20,.55);color:#fff;font-family:'Syne',sans-serif;font-size:1.8rem;font-weight:800;animation:udgCoinFloat 5s ease-in-out infinite;}
 .udg-inventory-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1.8rem 0 .8rem;}
 .udg-inventory-state,.udg-workspace-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:210px;padding:1.5rem;text-align:center;border:1px dashed var(--field-border);border-radius:18px;background:color-mix(in srgb,var(--field) 62%,transparent);}
 .udg-inventory-icon,.udg-state-mark{display:grid;place-items:center;width:48px;height:48px;margin-bottom:.85rem;border:1px solid var(--field-border);border-radius:15px;background:var(--card);color:var(--muted);}
@@ -900,6 +902,12 @@ body:hover::-webkit-scrollbar-thumb{
 #section-admin .stat-box:nth-child(5){animation-delay:.14s;}
 #section-admin .stat-box:nth-child(6){animation-delay:.175s;}
 .admin-table tbody tr{animation:adminPanelReveal .32s cubic-bezier(.22,1,.36,1) both;}
+#section-admintickets .ticket-row,#section-adminapplies .ticket-row{animation:adminPanelReveal .36s cubic-bezier(.22,1,.36,1) both;}
+#section-admintickets .ticket-row:nth-child(2),#section-adminapplies .ticket-row:nth-child(2){animation-delay:.04s;}
+#section-admintickets .ticket-row:nth-child(3),#section-adminapplies .ticket-row:nth-child(3){animation-delay:.08s;}
+#section-admintickets .ticket-row:nth-child(4),#section-adminapplies .ticket-row:nth-child(4){animation-delay:.12s;}
+#section-admin .admin-table thead{position:sticky;top:0;z-index:2;background:var(--card);}
+#section-admin .admin-table tbody tr:focus-visible{background:color-mix(in srgb,var(--blob-pink) 16%,var(--field));}
 .admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item{transition:background-color .2s ease,color .2s ease,border-color .2s ease,transform .24s cubic-bezier(.22,1,.36,1),box-shadow .24s ease;}
 .admin-user-row:focus-visible{outline:2px solid color-mix(in srgb,var(--ink) 28%,transparent);outline-offset:-2px;}
 .admin-user-row:active,.ticket-row:active{transform:scale(.99);}
@@ -927,7 +935,7 @@ body:hover::-webkit-scrollbar-thumb{
 .api-log-detail-value{font-weight:650;overflow-wrap:anywhere;white-space:pre-wrap;}
 @media(max-width:440px){.api-log-detail-row{grid-template-columns:1fr;gap:.25rem;}}
 @media(prefers-reduced-motion:reduce){
-  button:not(:disabled),.udg-balance-card,.subscription-status-card,.overview-account-grid,.udg-coin-mark,.subscription-status-mark,.overview-account-item,.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item,#section-admin>.panel,#section-admintickets>.panel,#section-adminapplies>.panel{transition:none!important;animation:none!important;}
+  button:not(:disabled),.udg-balance-card,.subscription-status-card,.overview-account-grid,.udg-coin-mark,.subscription-status-mark,.overview-account-item,.admin-user-row,.admin-table tbody tr,.status-btn,.timeline-item,#section-admin>.panel,#section-adminapply>.panel,#section-admintickets>.panel,#section-adminapplies>.panel,#section-admintickets .ticket-row,#section-adminapplies .ticket-row{transition:none!important;animation:none!important;}
 }
 .social-posts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
 .social-posts-grid .grid-photo{aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--field);cursor:pointer;}
@@ -1088,6 +1096,10 @@ body:hover::-webkit-scrollbar-thumb{
 .key-show-btn:hover{color:var(--ink);}
 .key-list-card{padding:1rem 1.2rem;border-radius:16px;background:var(--field);border:1px solid var(--field-border);margin-bottom:.7rem;cursor:pointer;transition:border-color .15s;}
 .key-list-card:hover{border-color:color-mix(in srgb, var(--ink) 35%, var(--field-border));}
+.key-list-card{animation:adminPanelReveal .38s cubic-bezier(.22,1,.36,1) both;}
+.key-list-card:nth-child(2){animation-delay:.04s;}
+.key-list-card:nth-child(3){animation-delay:.08s;}
+.key-list-card:nth-child(4){animation-delay:.12s;}
 .key-list-card:last-child{margin-bottom:0;}
 
 /* ---------- профиль: баннер / аватар / темы ---------- */
@@ -1207,15 +1219,15 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-ribbon{position:absolute;top:14px;right:-32px;transform:rotate(40deg);background:linear-gradient(120deg,#8a6be0,#5f7ce8);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 34px;z-index:2;box-shadow:0 3px 8px rgba(90,60,180,.25);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
 
 @media (hover:hover) and (pointer:fine) and (min-width:901px){
-  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.chat-row,.search-row,.social-profile-gift,.plan-card{
+  .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.key-value-box,.chat-row,.search-row,.social-profile-gift,.plan-card,.api-log-row{
     transition:transform .34s cubic-bezier(.22,1,.36,1),box-shadow .34s ease,border-color .3s ease,background-color .3s ease;
   }
-  .panel:not(.hero-panel):hover,.stat-box:hover,.overview-account-item:hover,.overview-subscription:hover,.subscription-action-card:hover,.subscription-bg-item:hover,.game-card:hover,.item-card:hover,.post-card:hover,.udg-gift-card:hover,.udg-transaction:hover,.ticket-row:hover,.key-card:hover,.key-list-card:hover,.chat-row:hover,.search-row:hover,.social-profile-gift:hover,.plan-card:hover{
+  .panel:not(.hero-panel):hover,.stat-box:hover,.overview-account-item:hover,.overview-subscription:hover,.subscription-action-card:hover,.subscription-bg-item:hover,.game-card:hover,.item-card:hover,.post-card:hover,.udg-gift-card:hover,.udg-transaction:hover,.ticket-row:hover,.key-card:hover,.key-list-card:hover,.key-value-box:hover,.chat-row:hover,.search-row:hover,.social-profile-gift:hover,.plan-card:hover,.api-log-row:hover{
     transform:translateY(-3px);
     border-color:color-mix(in srgb,var(--ink) 22%,var(--line));
     box-shadow:0 16px 32px -23px rgba(27,20,15,.44),0 0 0 1px color-mix(in srgb,var(--ink) 4%,transparent);
   }
-  .post-card,.udg-gift-card,.social-profile-gift,.ticket-row,.key-list-card,.game-card,.item-card,.stat-box{animation:desktopCardEnter .42s cubic-bezier(.22,1,.36,1);}
+  .post-card,.udg-gift-card,.social-profile-gift,.ticket-row,.key-card,.key-list-card,.game-card,.item-card,.stat-box{animation:desktopCardEnter .42s cubic-bezier(.22,1,.36,1);}
   #feedBody .post-card:nth-child(2){animation-delay:.035s;}
   #feedBody .post-card:nth-child(3){animation-delay:.07s;}
   #feedBody .post-card:nth-child(4){animation-delay:.105s;}
@@ -4184,6 +4196,8 @@ function renderUdgTransactions(transactions){
   const labels = {
     buy_fc: ['Покупка FC', 'fc'],
     sell_fc: ['Продажа FC', 'sale'],
+    send_fc: ['Отправка FC', 'sale'],
+    receive_fc: ['Получение FC', 'fc'],
     buy_gift: ['Покупка подарка', 'gift'],
     sell_gift: ['Продажа подарка', 'gift'],
     receive_gift: ['Получение подарка', 'gift']
@@ -4193,8 +4207,10 @@ function renderUdgTransactions(transactions){
     const failed = tx.status !== 'success';
     const isBuy = tx.type === 'buy_fc';
     const isSell = tx.type === 'sell_fc';
-    const amountLabel = tx.fc_amount ? `${isBuy || tx.type === 'sell_gift' ? '+' : isSell || tx.type === 'buy_gift' ? '−' : ''}${Number(tx.fc_amount).toLocaleString('ru-RU')} FC` : escapeHtml(tx.item_name || 'Подарок');
-    const amountClass = failed ? '' : isBuy || tx.type === 'sell_gift' || tx.type === 'receive_gift' ? 'up' : isSell || tx.type === 'buy_gift' ? 'down' : '';
+    const isCredit = isBuy || tx.type === 'receive_fc' || tx.type === 'sell_gift' || tx.type === 'receive_gift';
+    const isDebit = isSell || tx.type === 'send_fc' || tx.type === 'buy_gift';
+    const amountLabel = tx.fc_amount ? `${isCredit ? '+' : isDebit ? '−' : ''}${Number(tx.fc_amount).toLocaleString('ru-RU')} FC` : escapeHtml(tx.item_name || 'Подарок');
+    const amountClass = failed ? '' : isCredit ? 'up' : isDebit ? 'down' : '';
     const date = new Date(Number(tx.created_at) * 1000).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
     const details = [
       tx.rate ? `Курс ${Number(tx.rate).toLocaleString('ru-RU')} ¤/FC` : '',
@@ -4231,16 +4247,16 @@ function renderUdgTransactions(transactions){
 
 function transactionTypeLabel(type){
   return ({
-    buy_fc:'Покупка FC', sell_fc:'Продажа FC',
-    buy_gift:'Покупка подарка', sell_gift:'Продажа подарка', receive_gift:'Получение подарка'
+    buy_fc:'Покупка FC', sell_fc:'Продажа FC', send_fc:'Перевод FC отправлен', receive_fc:'Перевод FC получен',
+    buy_gift:'Покупка подарка', sell_gift:'Продажа подарка', send_gift:'Подарок передан', receive_gift:'Получение подарка'
   })[type] || 'Операция UDG';
 }
 
 function transactionAmountText(tx){
   if(tx.fc_amount){
     if(tx.type === 'buy_fc') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
-    if(tx.type === 'sell_fc' || tx.type === 'buy_gift') return `−${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
-    if(tx.type === 'sell_gift') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    if(tx.type === 'sell_fc' || tx.type === 'send_fc' || tx.type === 'buy_gift') return `−${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
+    if(tx.type === 'receive_fc' || tx.type === 'sell_gift') return `+${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
     return `${Number(tx.fc_amount).toLocaleString('ru-RU')} FC`;
   }
   return tx.item_name || 'Подарок';
