@@ -660,6 +660,30 @@ body:hover::-webkit-scrollbar-thumb{
 @keyframes udgAreaReveal{to{opacity:.17;}}
 @media(prefers-reduced-motion:reduce){.udg-candle-wick,.udg-candle-body,.udg-chart-line,.udg-chart-fill{animation-duration:.01ms;animation-delay:0ms;}}
 .udg-exchange-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.78rem;letter-spacing:.02em;}
+.udg-recent-trades{position:relative;margin-top:1.15rem;padding:1rem;border:1px solid color-mix(in srgb,var(--field-border) 80%,transparent);border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--card) 90%,transparent),color-mix(in srgb,var(--field) 78%,transparent));overflow:hidden;isolation:isolate;}
+.udg-recent-trades::before{position:absolute;z-index:-1;inset:-70% auto auto -18%;width:55%;height:170%;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--sage) 20%,transparent),transparent 70%);content:"";animation:udgTradesAura 8s ease-in-out infinite alternate;pointer-events:none;}
+.udg-recent-trades-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.65rem;}
+.udg-recent-trades-head h3{margin:.22rem 0 0;color:var(--ink);font-family:'Syne',sans-serif;font-size:1.05rem;letter-spacing:-.025em;}
+.udg-trades-live{display:inline-flex;align-items:center;gap:.4rem;padding:.34rem .58rem;border:1px solid color-mix(in srgb,var(--success) 24%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--success) 7%,var(--card));color:var(--success);font-size:.62rem;font-weight:900;letter-spacing:.12em;}
+.udg-trades-live i{width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 0 color-mix(in srgb,var(--success) 40%,transparent);animation:udgTradesPulse 1.8s ease-out infinite;}
+.udg-recent-trades-list{display:grid;gap:.42rem;}
+.udg-trade-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:.7rem;min-height:58px;padding:.55rem .65rem;border:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:14px;background:color-mix(in srgb,var(--card) 74%,transparent);transition:background .25s,border-color .25s,box-shadow .25s;}
+.udg-trade-row:hover{border-color:color-mix(in srgb,var(--ink) 15%,var(--line));background:var(--card);box-shadow:0 8px 22px -18px color-mix(in srgb,var(--ink) 38%,transparent);}
+.udg-trade-side{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;font-size:1rem;font-weight:900;}
+.udg-trade-row.buy .udg-trade-side{background:color-mix(in srgb,var(--success) 12%,var(--card));color:var(--success);}
+.udg-trade-row.sell .udg-trade-side{background:color-mix(in srgb,var(--danger) 10%,var(--card));color:var(--danger);}
+.udg-trade-main{min-width:0;}
+.udg-trade-user{overflow:hidden;color:var(--ink);font-size:.78rem;font-weight:800;text-overflow:ellipsis;white-space:nowrap;}
+.udg-trade-detail{margin-top:.2rem;color:var(--muted);font-size:.68rem;}
+.udg-trade-amount{text-align:right;white-space:nowrap;}
+.udg-trade-amount strong{display:block;color:var(--ink);font-size:.76rem;font-weight:850;}
+.udg-trade-amount span{display:block;margin-top:.2rem;color:var(--muted);font-size:.63rem;}
+.udg-trades-state{padding:.95rem .6rem;color:var(--muted);font-size:.78rem;text-align:center;}
+@keyframes udgTradesPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--success) 38%,transparent);}70%,100%{box-shadow:0 0 0 7px transparent;}}
+@keyframes udgTradesAura{from{transform:translate3d(-5%,0,0) scale(.9);opacity:.52;}to{transform:translate3d(25%,8%,0) scale(1.16);opacity:.9;}}
+@keyframes udgTradeEnter{from{opacity:0;transform:translateY(12px) scale(.985);filter:blur(4px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+@media(max-width:520px){.udg-recent-trades{padding:.8rem;border-radius:15px;}.udg-trade-row{grid-template-columns:32px minmax(0,1fr) auto;gap:.55rem;padding:.5rem;}.udg-trade-side{width:30px;height:30px;border-radius:9px;}.udg-trade-user{font-size:.73rem;}.udg-trade-detail{font-size:.62rem;}.udg-trade-amount strong{font-size:.7rem;}}
+@media(prefers-reduced-motion:reduce){.udg-recent-trades::before,.udg-trades-live i{animation:none;}.udg-trade-row{transition:none;}}
 .udg-my-tabs{display:flex;gap:.45rem;margin:1.5rem 0 1rem;padding:4px;border:1px solid var(--field-border);border-radius:999px;background:var(--field);width:fit-content;}
 .udg-my-tab{padding:.55rem .95rem;border:0;border-radius:999px;background:transparent;color:var(--muted);font:700 .78rem Inter,sans-serif;cursor:pointer;}
 .udg-my-tab.active{background:var(--card);color:var(--ink);box-shadow:0 2px 8px rgba(20,16,10,.08);}
@@ -1840,6 +1864,19 @@ html,body{touch-action:manipulation;}
                 <span id="udgExchangeHigh">max —</span>
                 <span id="udgExchangeVolume">vol —</span>
               </div>
+
+              <section class="udg-recent-trades" aria-labelledby="udgRecentTradesTitle">
+                <div class="udg-recent-trades-head">
+                  <div>
+                    <span class="udg-state-kicker">АКТИВНОСТЬ РЫНКА</span>
+                    <h3 id="udgRecentTradesTitle">Последние сделки</h3>
+                  </div>
+                  <span class="udg-trades-live"><i></i> LIVE</span>
+                </div>
+                <div class="udg-recent-trades-list" id="udgRecentTradesList" aria-live="polite" aria-relevant="additions text">
+                  <div class="udg-trades-state">Загружаем сделки…</div>
+                </div>
+              </section>
             </div>
           </div>
 
@@ -2140,6 +2177,7 @@ let pendingLoginChallenge = null;
 
 let currentUser = null; // {id, username, role, telegramLinked, telegram_id, avatar_url, banner_url, theme}
 let exchangeMarketData = null;
+let recentTradesLoading = false;
 let exchangeChartVisibleCandles = null;
 let exchangeChartScrollRatio = 1;
 
@@ -3214,10 +3252,104 @@ function switchSection(name){
   window.scrollTo(0, 0);
 }
 
+async function loadRecentExchangeTrades(){
+  const list = $('udgRecentTradesList');
+  if(!list || recentTradesLoading) return;
+  recentTradesLoading = true;
+  try{
+    const response = await fetch(`${API}/api/exchange/recent-trades`);
+    const data = await response.json();
+    if(!response.ok || !data.success) throw new Error(data.error || 'Не удалось загрузить сделки');
+    const trades = Array.isArray(data.trades) ? data.trades.slice(0, 5) : [];
+    if(!trades.length){
+      list.replaceChildren(Object.assign(document.createElement('div'), { className:'udg-trades-state', textContent:'Пока сделок нет — здесь появятся последние покупки и продажи FC.' }));
+      return;
+    }
+
+    list.querySelector('.udg-trades-state')?.remove();
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const oldRows = new Map([...list.querySelectorAll('.udg-trade-row')].map(row => [row.dataset.tradeId, row]));
+    const oldPositions = new Map([...oldRows].map(([id, row]) => [id, row.getBoundingClientRect()]));
+    const retainedIds = new Set();
+
+    for(const trade of trades){
+      const id = String(trade.id);
+      retainedIds.add(id);
+      let row = oldRows.get(id);
+      const isNew = !row;
+      if(!row){
+        row = document.createElement('article');
+        row.className = 'udg-trade-row';
+        row.dataset.tradeId = id;
+        const sideIcon = document.createElement('span');
+        sideIcon.className = 'udg-trade-side';
+        sideIcon.setAttribute('aria-hidden', 'true');
+        const main = document.createElement('div');
+        main.className = 'udg-trade-main';
+        const user = document.createElement('div');
+        user.className = 'udg-trade-user';
+        const detail = document.createElement('div');
+        detail.className = 'udg-trade-detail';
+        main.append(user, detail);
+        const amount = document.createElement('div');
+        amount.className = 'udg-trade-amount';
+        const amountValue = document.createElement('strong');
+        const time = document.createElement('span');
+        amount.append(amountValue, time);
+        row.append(sideIcon, main, amount);
+        row._tradeElements = { sideIcon, user, detail, amountValue, time };
+      }
+
+      const side = trade.side === 'buy' ? 'buy' : 'sell';
+      const elements = row._tradeElements;
+      row.classList.toggle('buy', side === 'buy');
+      row.classList.toggle('sell', side === 'sell');
+      elements.sideIcon.textContent = side === 'buy' ? '↗' : '↘';
+      elements.user.textContent = String(trade.username || 'Игрок');
+      elements.detail.textContent = `${side === 'buy' ? 'Купил' : 'Продал'} ${Number(trade.amount).toLocaleString('ru-RU')} FC · курс ${Number(trade.price).toLocaleString('ru-RU')} ¤`;
+      elements.amountValue.textContent = `${Number(trade.amount).toLocaleString('ru-RU')} FC`;
+      elements.time.textContent = new Date(Number(trade.created_at) * 1000).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+      elements.time.dateTime = new Date(Number(trade.created_at) * 1000).toISOString();
+      list.append(row);
+
+      if(!reduceMotion){
+        const previous = oldPositions.get(id);
+        if(isNew){
+          row.animate([
+            { opacity:0, transform:'translateY(12px) scale(.985)', filter:'blur(4px)' },
+            { opacity:1, transform:'translateY(0) scale(1)', filter:'blur(0)' }
+          ], { duration:520, easing:'cubic-bezier(.2,.8,.2,1)' });
+        } else if(previous){
+          const current = row.getBoundingClientRect();
+          const deltaY = previous.top - current.top;
+          if(deltaY) row.animate([{ transform:`translateY(${deltaY}px)` }, { transform:'translateY(0)' }], { duration:420, easing:'cubic-bezier(.2,.8,.2,1)' });
+        }
+      }
+    }
+
+    for(const [id, row] of oldRows){
+      if(retainedIds.has(id)) continue;
+      if(reduceMotion){ row.remove(); continue; }
+      const animation = row.animate([
+        { opacity:1, transform:'translateY(0)', maxHeight:'80px' },
+        { opacity:0, transform:'translateY(-8px)', maxHeight:'0px' }
+      ], { duration:260, easing:'ease-in', fill:'forwards' });
+      animation.onfinish = () => row.remove();
+    }
+  } catch(error){
+    if(!list.querySelector('.udg-trade-row')){
+      list.replaceChildren(Object.assign(document.createElement('div'), { className:'udg-trades-state', textContent:'Лента сделок временно недоступна.' }));
+    }
+  } finally {
+    recentTradesLoading = false;
+  }
+}
+
 async function loadExchangeMarket(refresh = false, redraw = false){
   const chartEl = $('udgExchangeChart');
   const refreshButton = $('udgExchangeRefresh');
   if(!chartEl) return;
+  void loadRecentExchangeTrades();
   try{
     if(refreshButton && refresh){ refreshButton.disabled = true; refreshButton.textContent = 'Проверяю…'; }
     let data = exchangeMarketData;
@@ -3510,6 +3642,7 @@ async function submitExchangeTrade(side){
     showExchangeTransactionResult(returnedId, true, details);
     loadUdgBalance();
     loadUdgTransactions(true);
+    void loadRecentExchangeTrades();
     loadExchangeMarket();
   } catch{
     let operation = null;
@@ -3521,6 +3654,7 @@ async function submitExchangeTrade(side){
     if(operation?.status === 'success'){
       showExchangeTransactionResult(transactionId, true, `${side === 'buy' ? 'Покупка' : 'Продажа'} ${Number(operation.fc_amount).toLocaleString('ru-RU')} FC завершена.`);
       loadUdgBalance();
+      void loadRecentExchangeTrades();
       loadExchangeMarket();
     } else if(operation){
       showExchangeTransactionResult(transactionId, false, operation.details || 'Операция отклонена.');
