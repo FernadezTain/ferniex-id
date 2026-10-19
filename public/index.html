@@ -3467,8 +3467,17 @@ function updateExchangeTradePreview(side){
     preview.textContent = 'Введите целое количество FC больше нуля.';
     return;
   }
-  const gross = amount * Number(exchangeMarketData.rate);
-  const fee = Math.ceil(gross * Number(exchangeMarketData.fee_percent) / 100);
+  const fcReserve = BigInt(exchangeMarketData.fc_reserve || 0);
+  const fernikReserve = BigInt(exchangeMarketData.fernik_reserve || 0);
+  const fcAmount = BigInt(amount);
+  if(side === 'buy' && fcAmount >= fcReserve){
+    preview.textContent = 'В пуле недостаточно FC для такой покупки.';
+    return;
+  }
+  const gross = side === 'buy'
+    ? (fernikReserve * fcAmount + fcReserve - fcAmount - 1n) / (fcReserve - fcAmount)
+    : fernikReserve * fcAmount / (fcReserve + fcAmount);
+  const fee = (gross * 250n + 9999n) / 10000n;
   const total = side === 'buy' ? gross + fee : gross - fee;
   preview.innerHTML = `Комиссия: <b>${fee.toLocaleString('ru-RU')} ферников</b><br>${side === 'buy' ? 'К оплате' : 'К получению'}: <b>${total.toLocaleString('ru-RU')} ферников</b>`;
 }
@@ -3501,6 +3510,7 @@ async function submitExchangeTrade(side){
     showExchangeTransactionResult(returnedId, true, details);
     loadUdgBalance();
     loadUdgTransactions(true);
+    loadExchangeMarket();
   } catch{
     let operation = null;
     try{
@@ -3511,6 +3521,7 @@ async function submitExchangeTrade(side){
     if(operation?.status === 'success'){
       showExchangeTransactionResult(transactionId, true, `${side === 'buy' ? 'Покупка' : 'Продажа'} ${Number(operation.fc_amount).toLocaleString('ru-RU')} FC завершена.`);
       loadUdgBalance();
+      loadExchangeMarket();
     } else if(operation){
       showExchangeTransactionResult(transactionId, false, operation.details || 'Операция отклонена.');
     } else {
