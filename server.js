@@ -2452,6 +2452,16 @@ app.get('/api/exchange/summary', async (req, res) => {
   }
 });
 
+app.get('/api/exchange/recent-trades', async (req, res) => {
+  try {
+    const result = await exchangeBotRequest('/api/exchange/recent-trades');
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange recent trades error:', e);
+    return res.status(502).json({ success: false, error: 'Не удалось загрузить сделки биржи', trades: [] });
+  }
+});
+
 app.get('/api/exchange/transactions/:userId', async (req, res) => {
   try {
     const telegramId = await resolveTelegramId(req.params.userId);
