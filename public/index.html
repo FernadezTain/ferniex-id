@@ -233,6 +233,31 @@ body{
 .dash-section{display:none;flex-direction:column;gap:1.1rem;animation:fadeUp .25s ease both;}
 .dash-section.active{display:flex;}
 
+.api-outage-card{position:relative;isolation:isolate;display:flex;align-items:center;gap:1.15rem;min-height:142px;padding:1.35rem 1.55rem;overflow:hidden;border:1px solid rgba(178,104,63,.2);border-radius:22px;background:linear-gradient(112deg,#fff8ed 0%,#f7e8dc 36%,#ece9dc 68%,#f4e4e0 100%);background-size:220% 220%;box-shadow:0 18px 42px -32px rgba(119,71,46,.55);animation:apiOutageGradient 16s ease-in-out infinite,apiOutageEnter .55s cubic-bezier(.2,.75,.25,1) both;}
+.api-outage-card::before,.api-outage-card::after{content:'';position:absolute;z-index:-1;pointer-events:none;border-radius:50%;}
+.api-outage-card::before{width:250px;height:250px;top:-175px;right:7%;background:rgba(245,174,130,.44);filter:blur(22px);animation:apiOutageOrb 8s ease-in-out infinite alternate;}
+.api-outage-card::after{width:210px;height:210px;right:24%;bottom:-178px;background:rgba(183,202,161,.42);filter:blur(22px);animation:apiOutageOrb 10s ease-in-out -3s infinite alternate-reverse;}
+.api-outage-icon{position:relative;display:grid;place-items:center;width:54px;height:54px;flex:0 0 54px;border:1px solid rgba(173,102,65,.18);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(255,238,222,.76));color:#a44f36;box-shadow:0 8px 22px -14px rgba(129,64,43,.7);animation:apiOutageFloat 4s ease-in-out infinite;}
+.api-outage-icon::after{content:'';position:absolute;inset:-5px;border:1px solid rgba(183,106,69,.22);border-radius:22px;animation:apiOutageRing 3.4s ease-out infinite;}
+.api-outage-icon svg{width:25px;height:25px;}
+.api-outage-copy{position:relative;z-index:1;min-width:0;}
+.api-outage-label{display:flex;align-items:center;gap:.48rem;margin-bottom:.42rem;color:#9b6047;font-size:.65rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;}
+.api-outage-dot{position:relative;width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:#d47a52;box-shadow:0 0 0 4px rgba(212,122,82,.13);}
+.api-outage-dot::after{content:'';position:absolute;inset:-4px;border:1px solid rgba(212,122,82,.5);border-radius:50%;animation:apiOutagePulse 2s ease-out infinite;}
+.api-outage-title{color:#35241f;font-family:'Syne',sans-serif;font-size:clamp(1.05rem,2.1vw,1.35rem);font-weight:800;letter-spacing:-.035em;line-height:1.2;}
+.api-outage-description{max-width:740px;margin-top:.42rem;color:#68564e;font-size:.81rem;line-height:1.55;}
+.api-outage-chip{position:relative;z-index:1;display:inline-flex;align-items:center;gap:.42rem;flex:0 0 auto;margin-left:auto;padding:.58rem .78rem;border:1px solid rgba(164,95,64,.15);border-radius:999px;background:rgba(255,255,255,.57);color:#81523e;font-size:.68rem;font-weight:700;white-space:nowrap;backdrop-filter:blur(8px);}
+.api-outage-chip span{font-size:.9rem;animation:apiOutageWrench 5s ease-in-out infinite;}
+@keyframes apiOutageGradient{0%,100%{background-position:0% 50%;}50%{background-position:100% 50%;}}
+@keyframes apiOutageEnter{from{opacity:0;transform:translateY(12px) scale(.985);filter:blur(5px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
+@keyframes apiOutageOrb{from{transform:translate3d(-12px,5px,0) scale(.88);opacity:.58;}to{transform:translate3d(18px,15px,0) scale(1.15);opacity:.95;}}
+@keyframes apiOutageFloat{0%,100%{transform:translateY(0) rotate(-2deg);}50%{transform:translateY(-4px) rotate(2deg);}}
+@keyframes apiOutageRing{0%{opacity:.6;transform:scale(.88);}80%,100%{opacity:0;transform:scale(1.3);}}
+@keyframes apiOutagePulse{0%{opacity:.8;transform:scale(.7);}100%{opacity:0;transform:scale(1.8);}}
+@keyframes apiOutageWrench{0%,84%,100%{transform:rotate(0);}88%{transform:rotate(-18deg);}92%{transform:rotate(14deg);}96%{transform:rotate(-8deg);}}
+@media(max-width:620px){.api-outage-card{align-items:flex-start;gap:.9rem;padding:1.05rem;border-radius:18px;}.api-outage-icon{width:46px;height:46px;flex-basis:46px;border-radius:15px;}.api-outage-icon::after{border-radius:19px;}.api-outage-icon svg{width:22px;height:22px;}.api-outage-label{font-size:.58rem;letter-spacing:.1em;}.api-outage-description{font-size:.76rem;}.api-outage-chip{position:absolute;right:.85rem;top:.85rem;padding:.42rem .58rem;font-size:.61rem;}.api-outage-copy{padding-top:2.1rem;}}
+@media(prefers-reduced-motion:reduce){.api-outage-card,.api-outage-card::before,.api-outage-card::after,.api-outage-icon,.api-outage-icon::after,.api-outage-dot::after,.api-outage-chip span{animation:none;}}
+
 .panel{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:1.6rem 1.75rem;}
 .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;gap:1rem;flex-wrap:wrap;}
 .panel-title{font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem;letter-spacing:-.3px;display:flex;align-items:center;}
@@ -2014,6 +2039,17 @@ html,body{touch-action:manipulation;}
 
       <!-- API-КЛЮЧИ -->
       <div class="dash-section" id="section-apikeys">
+        <div class="api-outage-card" role="status" aria-live="polite">
+          <div class="api-outage-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 21 19a1.2 1.2 0 0 1-1.05 1.8H4.05A1.2 1.2 0 0 1 3 19l9-15.8Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg>
+          </div>
+          <div class="api-outage-copy">
+            <div class="api-outage-label"><span class="api-outage-dot"></span>Временное ограничение</div>
+            <div class="api-outage-title">AI-запросы через API сейчас недоступны</div>
+            <div class="api-outage-description">Мы уже разбираемся с работой AI API. Создание, просмотр и управление API-ключами остаются доступны.</div>
+          </div>
+          <div class="api-outage-chip"><span aria-hidden="true">🛠</span>Уже чиним</div>
+        </div>
         <div class="panel" id="apiKeysListPanel">
           <div class="panel-head">
             <div><div class="panel-title"><i class="cico cico-key ic"></i>API-ключи</div><div class="panel-sub">Ключи для сторонних интеграций с твоим аккаунтом</div></div>
