@@ -54,8 +54,11 @@ function sanitizeLog(body) {
   if (safe.code) safe.code = '***';
   if (safe.sessionToken) safe.sessionToken = '***';
   if (safe.challengeId) safe.challengeId = '***';
-  if (safe.key) safe.key = safe.key.slice(0, 12) + '...';
-  if (safe.apiKey) safe.apiKey = safe.apiKey.slice(0, 12) + '...';
+  if (typeof safe.key === 'string') safe.key = safe.key.slice(0, 12) + '...';
+  else if (safe.key && typeof safe.key === 'object' && typeof safe.key.key === 'string') {
+    safe.key = { ...safe.key, key: safe.key.key.slice(0, 12) + '...' };
+  }
+  if (typeof safe.apiKey === 'string') safe.apiKey = safe.apiKey.slice(0, 12) + '...';
   if (safe.imageBase64) safe.imageBase64 = `[image, ${Math.round(safe.imageBase64.length / 1024)}kb]`;
   if (safe.imageUrl && safe.imageUrl.startsWith('data:')) safe.imageUrl = `[image, ${Math.round(safe.imageUrl.length / 1024)}kb]`;
   return safe;
