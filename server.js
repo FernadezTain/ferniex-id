@@ -2241,9 +2241,11 @@ app.get('/api/dc/:userId', async (req, res) => {
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, dc: 0, error: 'Telegram не привязан' });
 
-    const botRes = await fetch(`${BOT_URL}/api/dc?telegram_id=${users[0].telegram_id}`);
-    const botData = await botRes.json();
-    res.json({ success: true, dc: Number(botData.dc ?? botData.balance ?? 0) });
+    const { status, data } = await fetchFernieService(
+      `/api/dc?telegram_id=${encodeURIComponent(users[0].telegram_id)}`
+    );
+    if (!data.success) return res.status(status).json(data);
+    res.json({ success: true, dc: Number(data.dc ?? data.balance ?? 0) });
   } catch (e) {
     console.error('dc error:', e);
     res.json({ success: false, dc: 0, error: e.message });
