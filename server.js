@@ -4642,10 +4642,7 @@ app.post('/api/trackr/library/clear', async (req, res) => {
 
 // Хелпер: генерация ключа
 function generateApiKey() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let key = 'fid_';
-  for (let i = 0; i < 40; i++) key += chars[Math.floor(Math.random() * chars.length)];
-  return key;
+  return `fid_${randomBytes(30).toString('base64url')}`;
 }
 
 // Хелпер: логирование действия с API-ключом
@@ -4703,6 +4700,7 @@ app.post('/api/apikeys/create', async (req, res) => {
         type: type || 'other',
         app_name: appName || '',
         status: 'active',
+        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         requests_total: 0,
         requests_today: 0,
         last_used_at: null,
@@ -4710,6 +4708,10 @@ app.post('/api/apikeys/create', async (req, res) => {
       })
     });
     const rows = await insertRes.json();
+    if (!insertRes.ok || !rows[0]) {
+      console.error('API key insert failed:', JSON.stringify(rows).slice(0, 300));
+      return res.status(502).json({ success: false, error: 'Не удалось сохранить API-ключ' });
+    }
     const created = rows[0];
     await logApiKeyAction(created.id, userId, 'created', { name, type, appName });
     res.json({ success: true, key: created });
