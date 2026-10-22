@@ -3754,6 +3754,7 @@ ${AURIN_FORMAT_INSTRUCTIONS}
 // Персона по умолчанию, если клиент не прислал persona (например внешний F-API)
 const AURIN_PERSONAS = {
   'aurin-lite':   AURIN_LITE_SYSTEM,
+  'aurin-medium': AURIN_MEDIUM_SYSTEM,
   'mistral-medium': AURIN_MEDIUM_SYSTEM,
   'aurin':        AURIN_SYSTEM,
   'aurin-pro':    AURIN_PRO_SYSTEM,
@@ -3761,17 +3762,18 @@ const AURIN_PERSONAS = {
 };
 
 const MODEL_MAP = {
-  'aurin-lite':      'mistral-small-latest',
-  'mistral-medium':  'mistral-medium-latest',
-  'aurin':           'mistral-large-latest',
-  'aurin-pro':       'mistral-large-latest',
-  'aurin-custom':    'mistral-medium-latest',
+  'aurin-lite':      'mistral-small-2603',
+  'aurin-medium':    'mistral-medium-3-5',
+  'mistral-medium':  'mistral-medium-3-5',
+  'aurin':           'mistral-large-4',
+  'aurin-pro':       'mistral-large-4',
+  'aurin-custom':    'mistral-medium-3-5',
 };
 function pickAurinPersona(persona, apiModel) {
   if (persona && AURIN_PERSONAS[persona]) return AURIN_PERSONAS[persona];
   // Фолбэк по имени модели Mistral, если persona не прислали (внешние F-API запросы)
-  if (apiModel === 'mistral-small-latest') return AURIN_LITE_SYSTEM;
-  if (apiModel === 'mistral-medium-latest') return AURIN_MEDIUM_SYSTEM;
+  if (apiModel === 'mistral-small-2603') return AURIN_LITE_SYSTEM;
+  if (apiModel === 'mistral-medium-3-5') return AURIN_MEDIUM_SYSTEM;
   return AURIN_SYSTEM; // mistral-large-latest и всё остальное — базовый Aurin
 }
 // ══════════════════════════════════════════
@@ -4141,7 +4143,7 @@ app.post('/api/chat', async (req, res) => {
   let messages = req.body.messages;
 
   const apiModel = MODEL_MAP[requestedModelId] || requestedModelId;
-  const KNOWN_MISTRAL_MODELS = ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'];
+  const KNOWN_MISTRAL_MODELS = ['mistral-small-2603', 'mistral-medium-3-5', 'mistral-large-4'];
   if (!KNOWN_MISTRAL_MODELS.includes(apiModel)) {
     return res.status(400).json({
       error: { message: 'Указанной модели не существует. Проверьте актуальные модели на сайте https://fernieai-developers.vercel.app', code: 'invalid_model' }
@@ -4163,6 +4165,10 @@ app.post('/api/chat', async (req, res) => {
     return res.status(503).json({ error: { message: 'Не удалось проверить API-ключ' } });
   }
 
+  if (requestedModelId === 'aurin-pro' && !(await hasFerniePlus(apiKeyRow.user_id))) {
+    return res.status(403).json({ error: { message: 'Aurin Pro доступен только с активной Fernie+.' } });
+  }
+
   const DATE_NOTICE = `Текущая дата: ${getCurrentDateStr()}. Это реальная, достоверная дата — НЕ подвергай её сомнению и не "исправляй" на более раннюю. Если в результатах поиска или документах встречаются даты 2025, 2026 года и позже — это нормально и правдиво, не пиши, что они "невозможны" или "ошибочны". Твои собственные знания могли устареть: если факты из поиска расходятся с тем, что ты помнишь — доверяй результатам поиска, а не своей внутренней памяти.`;
 
   if (Array.isArray(messages)) {
@@ -4176,7 +4182,7 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const defenderDisabled = requestedModelId === 'aurin-custom' || apiModel === 'mistral-medium-latest';
+  const defenderDisabled = requestedModelId === 'aurin-custom' || apiModel === 'mistral-medium-3-5';
   if (!req.body.lite_mode && !defenderDisabled && containsJailbreak(messages)) {
     const userIdInfo = req.body.userId || 'unknown';
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
@@ -4184,7 +4190,7 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: { message: 'Запрос нарушает правила безопасности FernieX-AI.', code: 'jailbreak_detected' } });
   }
 
-  const userId = req.body.userId || null;
+  const userId = req.body.userId || apiKeyRow.user_id || null;
   const usageIdentifier = userId ? String(userId) : `key_${apiKeyRow.id}`;
   const TOKEN_LIMIT_ANON = 50000;
 
@@ -4219,6 +4225,16 @@ app.post('/api/chat', async (req, res) => {
   let totalTokensUsed = 0;
   let sseStarted = false;
 
+  function sendStatus(tool, url = null) {
+    if (!wantsStream) return;
+    if (!sseStarted) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      sseStarted = true;
+    }
+    res.write(`data: ${JSON.stringify({ status: { tool, url } })}\n\n`);
+  }
   function sendChunk(deltaText) {
     if (!deltaText || !wantsStream) return;
     if (!sseStarted) {
@@ -4354,9 +4370,11 @@ app.post('/api/chat', async (req, res) => {
       const userQuestion = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
       if (toolName === 'netsearch') {
+        sendStatus('netsearch');
         toolResultText = await serverWebSearch(inner);
         followupUserContent = `Сегодняшняя дата: ${getCurrentDateStr()}. Вот результаты поиска:\n${toolResultText}\n\nЭто актуальные данные на сегодня — доверяй датам и фактам в них, даже если они не совпадают с твоей внутренней памятью. НЕ исправляй и не подвергай сомнению даты из результатов поиска. Ответь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
       } else if (toolName === 'webfetch') {
+        sendStatus('webfetch', inner);
         toolResultText = await serverWebFetch(inner);
         if (toolResultText === UNREADABLE_VIDEO_MARKER) {
           // Видео-хостинг: там нет читаемого текста — не отправляем это модели вообще,
@@ -4369,9 +4387,11 @@ app.post('/api/chat', async (req, res) => {
         const parts = inner.split('|');
         const fetchUrl = (parts[0] || '').trim();
         const searchQuery = (parts[1] || '').trim();
+        sendStatus('docsearch', fetchUrl);
         toolResultText = await serverDocSearch(fetchUrl, searchQuery);
         followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
       } else if (toolName === 'imgsearch') {
+          sendStatus('imgsearch');
         // aurin-pro — исключение (мусорная неиспользуемая модель, фильтр на неё не действует)
         const nsfwFilterActive = requestedModelId !== 'aurin-pro';
         if (nsfwFilterActive && isNsfwQuery(inner)) {
