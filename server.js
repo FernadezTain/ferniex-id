@@ -4646,16 +4646,11 @@ function generateApiKey() {
 }
 
 function isApiKeyActive(apiKey) {
-  if (apiKey?.status !== 'active') return false;
-  if (!apiKey.expires_at) return true;
-  const expiresAt = Date.parse(apiKey.expires_at);
-  return Number.isFinite(expiresAt) && expiresAt > Date.now();
+  return apiKey?.status === 'active';
 }
 
 function getApiKeyDisplayStatus(apiKey) {
-  if (apiKey?.status !== 'active') return apiKey?.status || 'inactive';
-  if (apiKey.expires_at && !isApiKeyActive(apiKey)) return 'expired';
-  return 'active';
+  return isApiKeyActive(apiKey) ? 'active' : 'inactive';
 }
 
 // Хелпер: логирование действия с API-ключом
@@ -4723,7 +4718,7 @@ app.post('/api/apikeys/create', async (req, res) => {
         type: type || 'other',
         app_name: appName || '',
         status: 'active',
-        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: null,
         requests_total: 0,
         requests_today: 0,
         last_used_at: null,
