@@ -3,6 +3,7 @@ import fetch from "node-fetch";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import cors from "cors";
+import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 
 dotenv.config();
 
@@ -66,6 +67,45 @@ const sbHeaders = {
   Authorization: `Bearer ${SB_SERVICE_KEY}`,
   "Content-Type": "application/json"
 };
+
+const LOGIN_CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
+
+function createSessionToken(userId) {
+  const payload = Buffer.from(JSON.stringify({
+    sub: String(userId),
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS
+  })).toString('base64url');
+  const signature = createHmac('sha256', process.env.FID_SESSION_SECRET || SB_SERVICE_KEY)
+    .update(payload)
+    .digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function readSessionToken(token) {
+  if (typeof token !== 'string') return null;
+  const [payload, signature, extra] = token.split('.');
+  if (!payload || !signature || extra) return null;
+
+  const expected = createHmac('sha256', process.env.FID_SESSION_SECRET || SB_SERVICE_KEY)
+    .update(payload)
+    .digest();
+  let actual;
+  try {
+    actual = Buffer.from(signature, 'base64url');
+  } catch {
+    return null;
+  }
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
+
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (!data.sub || !Number.isFinite(data.exp) || data.exp <= Math.floor(Date.now() / 1000)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 // ====== Хелпер: notifyBot с retry ======
 async function notifyBot(url, body, retries = 2) {
@@ -197,10 +237,10 @@ app.post("/api/register", async (req, res) => {
 
 // ====== Вход ======
 app.post("/api/login", async (req, res) => {
-  const { username, password, clientIp, userAgent } = req.body;
+  const { username, password } = req.body;
   if (!username || !password) return res.json({ success: false, error: "Все поля обязательны" });
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${username}`, { headers: sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,password_hash,telegram_id,role`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
@@ -208,68 +248,126 @@ app.post("/api/login", async (req, res) => {
     if (!match) return res.json({ success: false, error: "Неверный пароль" });
 
     if (user.telegram_id) {
-      // Если Telegram привязан — требуем 2FA, не пускаем сразу
-      return res.json({ success: true, require2fa: true, userId: user.id, telegramLinked: true });
-    }
-
-    if (false) { // старый блок уведомлений — отключён
-      const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-      let device = 'неизвестно';
-      if (userAgent) {
-        if (/Android/.test(userAgent)) {
-          const model = userAgent.match(/;\s*([^;)]+)\s*Build/)?.[1] || 'Android';
-          const ver = userAgent.match(/Android\s*([\d.]+)/)?.[1] || '';
-          device = `📱 ${model} (Android ${ver})`;
-        } else if (/iPhone/.test(userAgent)) {
-          const ver = userAgent.match(/OS\s*([\d_]+)/)?.[1]?.replace(/_/g,'.') || '';
-          device = `🍎 iPhone (iOS ${ver})`;
-        } else if (/iPad/.test(userAgent)) {
-          device = `🍎 iPad`;
-        } else if (/Windows/.test(userAgent)) {
-          device = `🖥 Windows`;
-        } else if (/Macintosh|Mac OS/.test(userAgent)) {
-          device = `🖥 MacOS`;
-        } else if (/Linux/.test(userAgent)) {
-          device = `🖥 Linux`;
-        }
+      const challengeId = randomUUID();
+      const code = String(randomInt(10_000_000, 100_000_000));
+      const expiresAt = new Date(Date.now() + LOGIN_CHALLENGE_TTL_MS).toISOString();
+      const challengeRes = await fetch(`${SB_URL}/rest/v1/fernieid_login_challenges`, {
+        method: 'POST',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({
+          challenge_id: challengeId,
+          user_id: user.id,
+          code_hash: await bcrypt.hash(code, 10),
+          expires_at: expiresAt
+        })
+      });
+      if (!challengeRes.ok) {
+        console.error('login challenge insert error:', await challengeRes.text());
+        return res.json({ success: false, error: 'Не удалось создать подтверждение входа' });
       }
 
-      const serviceMap = {
-        'ferniex-minigame.vercel.app': '🎮 FernieX Minigame',
-        'fernie-x-ai-chat.vercel.app': '🤖 FernieX AI',
-        'ferniex-id.vercel.app': '🔐 FernieID (Личный кабинет)',
-      };
-      const origin = req.headers['origin'] || req.headers['referer'] || '';
-      const serviceName = Object.entries(serviceMap).find(([k]) => origin.includes(k))?.[1] || '🌐 FernieID';
-
-      await sendTgMessage(user.telegram_id,
-        `🔐 <b>Выполнен вход через FernieID</b>\n\n` +
-        `🛡 Сервис: <b>${serviceName}</b>\n\n` +
-        `<blockquote>` +
-        `👤 Аккаунт: <b>${username}</b>\n` +
-        `🕒 Время: <b>${now} МСК</b>` +
-        `</blockquote>\n\n` +
-        `<blockquote>` +
-        `🌐 IP: <code>${clientIp || req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'неизвестен'}</code>\n` +
-        `📱 Устройство: <b>${device}</b>` +
-        `</blockquote>\n\n` +
-        `⚠️ <i>Если это не ты — немедленно смени пароль!</i>`
+      const sent = await sendTgMessage(user.telegram_id,
+        `🔐 <b>Подтверждение входа в FernieID</b>\n\n` +
+        `👤 Аккаунт: <b>${user.username}</b>\n` +
+        `Код подтверждения:\n<code>${code}</code>\n\n` +
+        `⏱ Код действует 5 минут. Никому его не сообщай.`
       );
+      if (!sent) {
+        await fetch(`${SB_URL}/rest/v1/fernieid_login_challenges?challenge_id=eq.${challengeId}`, {
+          method: 'DELETE', headers: sbHeaders
+        });
+        return res.json({ success: false, error: 'Не удалось отправить код в Telegram. Напиши боту и попробуй снова.' });
+      }
+
+      return res.json({
+        success: true,
+        require2fa: true,
+        challengeId,
+        telegramHint: `(${String(user.telegram_id).slice(-4)})`
+      });
     }
 
-    res.json({ success: true, userId: user.id, telegramLinked: false });
+    res.json({
+      success: true,
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      sessionToken: createSessionToken(user.id)
+    });
   } catch (e) {
     console.error(e);
     res.json({ success: false, error: "Ошибка сервера" });
   }
 });
 
+app.post('/api/login/verify-2fa', async (req, res) => {
+  const { challengeId, code } = req.body;
+  if (!challengeId || !/^\d{8}$/.test(String(code || ''))) {
+    return res.json({ success: false, error: 'Введи корректный 8-значный код' });
+  }
+
+  try {
+    const challengeRes = await fetch(
+      `${SB_URL}/rest/v1/fernieid_login_challenges?challenge_id=eq.${encodeURIComponent(challengeId)}&select=user_id,code_hash,expires_at,attempts`,
+      { headers: sbHeaders }
+    );
+    const challenges = await challengeRes.json();
+    if (!challenges.length) return res.json({ success: false, error: 'Код не найден или уже использован' });
+
+    const challenge = challenges[0];
+    const challengeUrl = `${SB_URL}/rest/v1/fernieid_login_challenges?challenge_id=eq.${encodeURIComponent(challengeId)}`;
+    if (new Date(challenge.expires_at).getTime() <= Date.now() || challenge.attempts >= 5) {
+      await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+      return res.json({ success: false, error: 'Код истёк. Войди ещё раз, чтобы получить новый.' });
+    }
+
+    if (!await bcrypt.compare(String(code), challenge.code_hash)) {
+      const attempts = challenge.attempts + 1;
+      if (attempts >= 5) {
+        await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+        return res.json({ success: false, error: 'Слишком много попыток. Войди ещё раз, чтобы получить новый код.' });
+      }
+      await fetch(challengeUrl, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ attempts })
+      });
+      return res.json({ success: false, error: `Неверный код. Осталось попыток: ${5 - attempts}` });
+    }
+
+    await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+    const userRes = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.user_id)}&select=id,username,role`,
+      { headers: sbHeaders }
+    );
+    const users = await userRes.json();
+    if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+
+    const user = users[0];
+    res.json({
+      success: true,
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      sessionToken: createSessionToken(user.id)
+    });
+  } catch (e) {
+    console.error('login verify-2fa error:', e);
+    res.json({ success: false, error: 'Ошибка сервера' });
+  }
+});
+
 // ====== Верификация FernieID токена (для внешних сервисов) ======
 app.post("/api/verify-token", async (req, res) => {
-  const { userId, username } = req.body;
-  if (!userId || !username) return res.json({ success: false, error: "Нет данных" });
+  const { sessionToken, userId, username } = req.body;
+  const session = sessionToken ? readSessionToken(sessionToken) : null;
+  if (sessionToken && !session) return res.json({ success: false, error: "Сессия недействительна или истекла" });
+  if (!session && (!userId || !username)) return res.json({ success: false, error: "Нет данных" });
   try {
-    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&username=eq.${username}&select=id,username,role,telegram_id,avatar_url,banner_url,theme`, { headers: sbHeaders });
+    const userFilter = session
+      ? `id=eq.${encodeURIComponent(session.sub)}`
+      : `id=eq.${encodeURIComponent(userId)}&username=eq.${encodeURIComponent(username)}`;
+    const response = await fetch(`${SB_URL}/rest/v1/users?${userFilter}&select=id,username,role,telegram_id,avatar_url,banner_url,theme`, { headers: sbHeaders });
     const data = await response.json();
     if (!data.length) return res.json({ success: false, error: "Пользователь не найден" });
     const user = data[0];
