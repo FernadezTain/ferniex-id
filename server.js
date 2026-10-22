@@ -1,6 +1,6 @@
 import express from "express";
 import fetch from "node-fetch";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import cors from "cors";
 
