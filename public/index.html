@@ -6788,11 +6788,7 @@ function maskKey(key){
 }
 
 function apiKeyStatusLabel(key){
-  const status = key.display_status || (key.status === 'active'
-    ? key.expires_at && Date.parse(key.expires_at) <= Date.now() ? 'expired' : 'active'
-    : 'inactive');
-  if(status === 'expired') return { label:'Истёк', className:'pill-red' };
-  if(status === 'active') return { label:'Активен', className:'pill-green' };
+  if(key.status === 'active') return { label:'Активен', className:'pill-green' };
   return { label:'Отключён', className:'pill-red' };
 }
 
@@ -6901,7 +6897,6 @@ function renderApiKeyDetailBody(k){
   const status = apiKeyStatusLabel(k);
   const statusPill = `<span class="pill ${status.className}">${status.label}</span>`;
   const lastUsed = k.last_used_at ? new Date(k.last_used_at).toLocaleString('ru-RU', { timeZone:'Europe/Moscow' }) : 'ещё не использовался';
-  const expiresAt = k.expires_at ? new Date(k.expires_at).toLocaleDateString('ru-RU', { timeZone:'Europe/Moscow' }) : 'без срока';
   const tm = typeMeta(k.type);
   $('apiKeyDetailBody').innerHTML = `
     <div class="key-card-top" style="margin-bottom:1rem;">
@@ -6916,7 +6911,6 @@ function renderApiKeyDetailBody(k){
       <div class="key-stat">Запросов всего: <b>${k.requests_total ?? 0}</b></div>
       <div class="key-stat">Сегодня: <b>${k.requests_today ?? 0}</b></div>
       <div class="key-stat">Последний запрос: <b>${lastUsed}</b></div>
-      <div class="key-stat">Действует до: <b>${expiresAt}</b></div>
     </div>
     <div class="key-actions">
       <button class="btn btn-outline btn-sm" id="keyDetailEditBtn">Редактировать</button>
