@@ -3762,11 +3762,11 @@ const AURIN_PERSONAS = {
 };
 
 const MODEL_MAP = {
-  'aurin-lite':      'mistral-small-2603',
-  'aurin-medium':    'mistral-medium-3-5',
-  'mistral-medium':  'mistral-medium-3-5',
-  'aurin':           'mistral-large-4',
-  'aurin-pro':       'mistral-large-4',
+  'aurin-lite':     'ministral-3b-2512',
+  'aurin-medium':   'ministral-8b-2512',
+  'mistral-medium': 'ministral-8b-2512',
+  'aurin':          'ministral-8b-2512',
+  'aurin-pro':      'codestral-2508',
   'aurin-custom':    'mistral-medium-3-5',
 };
 function pickAurinPersona(persona, apiModel) {
