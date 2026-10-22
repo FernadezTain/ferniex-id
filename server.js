@@ -3744,6 +3744,7 @@ ${AURIN_FORMAT_INSTRUCTIONS}
 // Персона по умолчанию, если клиент не прислал persona (например внешний F-API)
 const AURIN_PERSONAS = {
   'aurin-lite':   AURIN_LITE_SYSTEM,
+  'aurin-medium': AURIN_MEDIUM_SYSTEM,
   'mistral-medium': AURIN_MEDIUM_SYSTEM,
   'aurin':        AURIN_SYSTEM,
   'aurin-pro':    AURIN_PRO_SYSTEM,
@@ -3751,17 +3752,18 @@ const AURIN_PERSONAS = {
 };
 
 const MODEL_MAP = {
-  'aurin-lite':      'mistral-small-latest',
-  'mistral-medium':  'mistral-medium-latest',
-  'aurin':           'mistral-large-latest',
-  'aurin-pro':       'mistral-large-latest',
-  'aurin-custom':    'mistral-medium-latest',
+  'aurin-lite':     'ministral-3b-2512',
+  'aurin-medium':   'ministral-8b-2512',
+  'mistral-medium': 'ministral-8b-2512',
+  'aurin':          'ministral-8b-2512',
+  'aurin-pro':      'codestral-2508',
+  'aurin-custom':   'mistral-medium-3-5',
 };
 function pickAurinPersona(persona, apiModel) {
   if (persona && AURIN_PERSONAS[persona]) return AURIN_PERSONAS[persona];
   // Фолбэк по имени модели Mistral, если persona не прислали (внешние F-API запросы)
-  if (apiModel === 'mistral-small-latest') return AURIN_LITE_SYSTEM;
-  if (apiModel === 'mistral-medium-latest') return AURIN_MEDIUM_SYSTEM;
+  if (apiModel === 'ministral-3b-2512') return AURIN_LITE_SYSTEM;
+  if (apiModel === 'ministral-8b-2512' || apiModel === 'mistral-medium-3-5') return AURIN_MEDIUM_SYSTEM;
   return AURIN_SYSTEM; // mistral-large-latest и всё остальное — базовый Aurin
 }
 // ══════════════════════════════════════════
@@ -4131,7 +4133,7 @@ app.post('/api/chat', async (req, res) => {
   let messages = req.body.messages;
 
   const apiModel = MODEL_MAP[requestedModelId] || requestedModelId;
-  const KNOWN_MISTRAL_MODELS = ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest'];
+  const KNOWN_MISTRAL_MODELS = [...new Set(Object.values(MODEL_MAP))];
   if (!KNOWN_MISTRAL_MODELS.includes(apiModel)) {
     return res.status(400).json({
       error: { message: 'Указанной модели не существует. Проверьте актуальные модели на сайте https://fernieai-developers.vercel.app', code: 'invalid_model' }
@@ -4166,7 +4168,7 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const defenderDisabled = requestedModelId === 'aurin-custom' || apiModel === 'mistral-medium-latest';
+  const defenderDisabled = requestedModelId === 'aurin-custom' || apiModel === 'mistral-medium-3-5';
   if (!req.body.lite_mode && !defenderDisabled && containsJailbreak(messages)) {
     const userIdInfo = req.body.userId || 'unknown';
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
