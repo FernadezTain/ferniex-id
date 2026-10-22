@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import cors from "cors";
-import { createHmac, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 
 dotenv.config();
 
@@ -209,6 +209,36 @@ async function fetchBotJson(url, init) {
       }
     }
     return { success: false, error: 'Сервис оператора вернул повреждённый ответ' };
+  }
+}
+
+async function fetchFernieService(path, init = {}) {
+  const headers = {
+    'X-Fernie-Server-Key': process.env.FERNIE_SERVER_KEY || '',
+    ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+    ...init.headers
+  };
+  const response = await fetch(`${BOT_URL}${path}`, { ...init, headers });
+  const data = await response.json().catch(() => ({ success: false, error: 'Некорректный ответ сервиса FernieX' }));
+  return { status: response.status, data };
+}
+
+async function enrichUdgGifts(items) {
+  if (!Array.isArray(items) || !items.length) return [];
+  try {
+    const response = await fetch(
+      `${SB_URL}/rest/v1/udg_gift_assets?select=gift_id,background_id,collection_name,model_name,background_name,symbol_name,image_url,background_url`,
+      { headers: sbHeaders }
+    );
+    if (!response.ok) return items;
+    const assets = await response.json();
+    const assetMap = new Map(assets.map(asset => [`${asset.gift_id}:${asset.background_id}`, asset]));
+    return items.map(item => ({
+      ...item,
+      ...(assetMap.get(`${item.gift_id}:${item.background_id}`) || {})
+    }));
+  } catch {
+    return items;
   }
 }
 
@@ -2217,6 +2247,335 @@ app.get('/api/dc/:userId', async (req, res) => {
   } catch (e) {
     console.error('dc error:', e);
     res.json({ success: false, dc: 0, error: e.message });
+  }
+});
+
+app.get('/api/exchange/summary', async (_req, res) => {
+  try {
+    const { status, data } = await fetchFernieService('/api/exchange/summary');
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('exchange summary error:', e);
+    res.status(502).json({ success: false, error: 'Биржа временно недоступна' });
+  }
+});
+
+app.get('/api/exchange/recent-trades', async (_req, res) => {
+  try {
+    const { status, data } = await fetchFernieService('/api/exchange/recent-trades');
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('exchange recent trades error:', e);
+    res.status(502).json({ success: false, error: 'Лента сделок временно недоступна', trades: [] });
+  }
+});
+
+app.get('/api/exchange/transactions/:userId', async (req, res) => {
+  try {
+    const telegramId = await resolveTelegramId(req.params.userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан', transactions: [] });
+    const { status, data } = await fetchFernieService(
+      `/api/exchange/transactions?telegram_id=${encodeURIComponent(telegramId)}`
+    );
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('exchange transactions error:', e);
+    res.status(502).json({ success: false, error: 'История биржи временно недоступна', transactions: [] });
+  }
+});
+
+app.post('/api/exchange/refresh', async (_req, res) => {
+  try {
+    const { status, data } = await fetchFernieService('/api/exchange/refresh', { method: 'POST', body: '{}' });
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('exchange refresh error:', e);
+    res.status(502).json({ success: false, error: 'Не удалось обновить курс' });
+  }
+});
+
+app.post('/api/exchange/trade', async (req, res) => {
+  const { userId, side, amount, transactionId } = req.body;
+  if (!userId || !['buy', 'sell'].includes(side) || !Number.isSafeInteger(amount) || amount < 1) {
+    return res.status(400).json({ success: false, error: 'Некорректные данные сделки' });
+  }
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const { status, data } = await fetchFernieService('/api/exchange/trade', {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id: String(telegramId), side, amount, transaction_id: transactionId })
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('exchange trade error:', e);
+    res.status(502).json({ success: false, error: 'Не удалось выполнить сделку' });
+  }
+});
+
+app.get('/api/udg/market', async (_req, res) => {
+  try {
+    const { status, data } = await fetchFernieService('/api/udg/market');
+    if (data.success) data.items = await enrichUdgGifts(data.items);
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('UDG market error:', e);
+    res.status(502).json({ success: false, error: 'Рынок UDG временно недоступен', items: [] });
+  }
+});
+
+app.get('/api/udg/inventory/:userId', async (req, res) => {
+  try {
+    const telegramId = await resolveTelegramId(req.params.userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан', items: [] });
+    const { status, data } = await fetchFernieService(
+      `/api/udg/inventory?telegram_id=${encodeURIComponent(telegramId)}`
+    );
+    if (data.success) data.items = await enrichUdgGifts(data.items);
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('UDG inventory error:', e);
+    res.status(502).json({ success: false, error: 'Инвентарь UDG временно недоступен', items: [] });
+  }
+});
+
+app.get('/api/udg/gift/:uid', async (req, res) => {
+  if (!/^[a-f\d]{32}$/i.test(req.params.uid)) {
+    return res.status(400).json({ success: false, error: 'Некорректный UID подарка' });
+  }
+  try {
+    const { status, data } = await fetchFernieService(
+      `/api/udg/gift?uid=${encodeURIComponent(req.params.uid)}`
+    );
+    if (data.success) data.gift = (await enrichUdgGifts([data.gift]))[0];
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('UDG gift error:', e);
+    res.status(502).json({ success: false, error: 'Подарок временно недоступен' });
+  }
+});
+
+app.post('/api/udg/market/list', async (req, res) => {
+  const { userId, uid, listed, price } = req.body;
+  if (!userId || !/^[a-f\d]{32}$/i.test(String(uid || '')) || typeof listed !== 'boolean') {
+    return res.status(400).json({ success: false, error: 'Некорректные данные объявления' });
+  }
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const { status, data } = await fetchFernieService('/api/udg/market/list', {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id: String(telegramId), uid, listed, ...(price !== undefined ? { price } : {}) })
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('UDG listing error:', e);
+    res.status(502).json({ success: false, error: 'Не удалось изменить объявление' });
+  }
+});
+
+app.post('/api/udg/market/buy', async (req, res) => {
+  const { userId, uid, transactionId } = req.body;
+  if (!userId || !/^[a-f\d]{32}$/i.test(String(uid || '')) || !/^[a-f\d]{32}$/i.test(String(transactionId || ''))) {
+    return res.status(400).json({ success: false, error: 'Некорректные данные покупки' });
+  }
+  try {
+    const telegramId = await resolveTelegramId(userId);
+    if (!telegramId) return res.json({ success: false, error: 'Telegram не привязан' });
+    const { status, data } = await fetchFernieService('/api/udg/market/buy', {
+      method: 'POST',
+      body: JSON.stringify({ telegram_id: String(telegramId), user_id: String(userId), uid, transaction_id: transactionId })
+    });
+    res.status(status).json(data);
+  } catch (e) {
+    console.error('UDG purchase error:', e);
+    res.status(502).json({ success: false, error: 'Не удалось купить подарок' });
+  }
+});
+
+app.post('/api/udg/transfer/send-code', async (req, res) => {
+  const { uid, recipientId } = req.body;
+  if (!/^[a-f\d]{32}$/i.test(String(uid || '')) || !/^\d+$/.test(String(recipientId || ''))) {
+    return res.status(400).json({ success: false, error: 'Некорректные данные передачи' });
+  }
+  try {
+    const session = readSessionToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!session) return res.status(401).json({ success: false, error: 'Сессия истекла. Войдите снова.' });
+    const senderId = session.sub;
+    if (String(senderId) === String(recipientId)) return res.json({ success: false, error: 'Нельзя передать подарок самому себе' });
+
+    const [senderRes, recipientRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(senderId)}&select=id,username,telegram_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,telegram_id`, { headers: sbHeaders })
+    ]);
+    const [senders, recipients] = await Promise.all([senderRes.json(), recipientRes.json()]);
+    const sender = senders[0];
+    const recipient = recipients[0];
+    if (!sender?.telegram_id) return res.json({ success: false, error: 'Привяжите Telegram для передачи подарка' });
+    if (!recipient?.telegram_id) return res.json({ success: false, error: 'У получателя не привязан Telegram' });
+
+    const { status: inventoryStatus, data: inventoryData } = await fetchFernieService(
+      `/api/udg/inventory?telegram_id=${encodeURIComponent(sender.telegram_id)}`
+    );
+    if (inventoryStatus !== 200 || !inventoryData.success) {
+      return res.status(502).json({ success: false, error: inventoryData.error || 'Не удалось проверить инвентарь' });
+    }
+    const gift = inventoryData.items?.find(item => String(item.uid).toLowerCase() === String(uid).toLowerCase());
+    if (!gift) return res.json({ success: false, error: 'Подарок не найден в вашем инвентаре' });
+    if (gift.listed) return res.json({ success: false, error: 'Сначала снимите подарок с рынка' });
+
+    const challengeId = randomUUID();
+    const code = String(randomInt(100000, 1000000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+    const challengeRes = await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        challenge_id: challengeId,
+        sender_user_id: sender.id,
+        recipient_user_id: recipient.id,
+        gift_uid: String(uid).toLowerCase(),
+        gift_payload: { ...gift, owner_user_id: recipient.id, owner_username: recipient.username },
+        code_hash: createHash('sha256').update(code).digest('hex'),
+        expires_at: expiresAt
+      })
+    });
+    if (!challengeRes.ok) {
+      console.error('UDG transfer challenge insert error:', await challengeRes.text());
+      return res.status(500).json({ success: false, error: 'Не удалось создать подтверждение передачи' });
+    }
+
+    const sent = await sendTgMessage(sender.telegram_id,
+      `🎁 <b>Подтверждение передачи UDG-подарка</b>\n\n` +
+      `Подарок: <b>${gift.model_name || gift.gift_id || 'UDG'}</b>\n` +
+      `Получатель: <b>${recipient.username}</b>\n` +
+      `Код: <code>${code}</code>\n\n` +
+      `⏱ Действует 10 минут. Никому не сообщайте код.`
+    );
+    if (!sent) {
+      await fetch(`${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${encodeURIComponent(challengeId)}`, {
+        method: 'DELETE', headers: sbHeaders
+      });
+      return res.json({ success: false, error: 'Не удалось отправить код в Telegram' });
+    }
+    res.json({ success: true, challengeId });
+  } catch (e) {
+    console.error('UDG transfer send-code error:', e);
+    res.status(500).json({ success: false, error: 'Ошибка создания передачи' });
+  }
+});
+
+app.post('/api/udg/transfer/confirm', async (req, res) => {
+  const { challengeId, code } = req.body;
+  if (!challengeId || !/^\d{6}$/.test(String(code || ''))) {
+    return res.status(400).json({ success: false, error: 'Введите корректный 6-значный код' });
+  }
+  try {
+    const session = readSessionToken(req.headers.authorization?.replace(/^Bearer\s+/i, ''));
+    if (!session) return res.status(401).json({ success: false, error: 'Сессия истекла. Войдите снова.' });
+    const challengeUrl = `${SB_URL}/rest/v1/udg_gift_transfer_challenges?challenge_id=eq.${encodeURIComponent(challengeId)}&sender_user_id=eq.${encodeURIComponent(session.sub)}`;
+    const challengeRes = await fetch(`${challengeUrl}&select=*`, { headers: sbHeaders });
+    const challenges = await challengeRes.json();
+    const challenge = challenges[0];
+    if (!challenge || challenge.status !== 'pending') {
+      return res.json({ success: false, error: 'Передача не найдена или уже обработана' });
+    }
+    if (new Date(challenge.expires_at).getTime() <= Date.now()) {
+      await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+      return res.json({ success: false, error: 'Код истёк. Начните передачу заново.' });
+    }
+    if (challenge.attempts >= 5) {
+      await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+      return res.json({ success: false, error: 'Слишком много попыток. Начните передачу заново.' });
+    }
+
+    const providedHash = createHash('sha256').update(String(code)).digest();
+    const storedHash = Buffer.from(challenge.code_hash, 'hex');
+    if (storedHash.length !== providedHash.length || !timingSafeEqual(storedHash, providedHash)) {
+      const attempts = challenge.attempts + 1;
+      if (attempts >= 5) {
+        await fetch(challengeUrl, { method: 'DELETE', headers: sbHeaders });
+        return res.json({ success: false, error: 'Слишком много попыток. Начните передачу заново.' });
+      }
+      await fetch(challengeUrl, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ attempts })
+      });
+      return res.json({ success: false, error: `Неверный код. Осталось попыток: ${5 - attempts}` });
+    }
+
+    const claimRes = await fetch(`${challengeUrl}&status=eq.pending&attempts=lt.5`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({ status: 'processing' })
+    });
+    const claimed = await claimRes.json();
+    if (!claimRes.ok || !claimed.length) return res.json({ success: false, error: 'Передача уже обрабатывается' });
+
+    const [senderRes, recipientRes] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.sender_user_id)}&select=id,username,telegram_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.recipient_user_id)}&select=id,username,telegram_id`, { headers: sbHeaders })
+    ]);
+    const [senders, recipients] = await Promise.all([senderRes.json(), recipientRes.json()]);
+    const sender = senders[0];
+    const recipient = recipients[0];
+    if (!sender?.telegram_id || !recipient?.telegram_id) {
+      await fetch(challengeUrl, { method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'pending' }) });
+      return res.json({ success: false, error: 'У отправителя или получателя не привязан Telegram' });
+    }
+
+    const transferId = randomBytes(24).toString('hex');
+    const { status: transferStatus, data: transferData } = await fetchFernieService('/api/udg/gift/transfer', {
+      method: 'POST',
+      body: JSON.stringify({
+        transfer_id: transferId,
+        uid: challenge.gift_uid,
+        from_telegram_id: String(sender.telegram_id),
+        to_telegram_id: String(recipient.telegram_id),
+        to_user_id: String(recipient.id)
+      })
+    });
+    if (transferStatus !== 200 || !transferData.success) {
+      await fetch(challengeUrl, { method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'pending' }) });
+      return res.status(transferStatus || 502).json({ success: false, error: transferData.error || 'Не удалось передать подарок' });
+    }
+
+    const payload = { ...challenge.gift_payload, owner_user_id: recipient.id, owner_username: recipient.username, listed: false };
+    const pair = [Number(sender.id), Number(recipient.id)].sort((a, b) => a - b);
+    const conversationQuery = `${SB_URL}/rest/v1/social_conversations?participant_one=eq.${pair[0]}&participant_two=eq.${pair[1]}&select=id`;
+    let conversationRes = await fetch(conversationQuery, { headers: sbHeaders });
+    let conversations = await conversationRes.json();
+    if (!conversations.length) {
+      conversationRes = await fetch(`${SB_URL}/rest/v1/social_conversations`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify({ participant_one: pair[0], participant_two: pair[1] })
+      });
+      conversations = await conversationRes.json();
+      if (!conversationRes.ok || !conversations.length) {
+        conversations = await (await fetch(conversationQuery, { headers: sbHeaders })).json();
+      }
+    }
+    const conversation = conversations[0];
+    if (!conversation?.id) {
+      await fetch(challengeUrl, { method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'completed' }) });
+      return res.json({ success: true, warning: 'Подарок передан, но чат не удалось открыть.', uid: challenge.gift_uid });
+    }
+
+    const messageRes = await fetch(`${SB_URL}/rest/v1/rpc/send_social_gift_message`, {
+      method: 'POST', headers: sbHeaders,
+      body: JSON.stringify({ p_conversation_id: conversation.id, p_sender_id: sender.id, p_gift_payload: payload })
+    });
+    if (!messageRes.ok) console.error('UDG gift chat message error:', await messageRes.text());
+    await fetch(challengeUrl, { method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'completed' }) });
+    res.json({
+      success: true,
+      uid: challenge.gift_uid,
+      conversation: { id: conversation.id },
+      partner: { id: recipient.id, username: recipient.username }
+    });
+  } catch (e) {
+    console.error('UDG transfer confirm error:', e);
+    res.status(500).json({ success: false, error: 'Ошибка подтверждения передачи' });
   }
 });
 
