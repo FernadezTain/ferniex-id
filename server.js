@@ -4146,9 +4146,9 @@ app.post('/api/chat', async (req, res) => {
   if (!apiKeyProvided) return res.status(401).json({ error: { message: 'Нет API-ключа' } });
   let apiKeyRow = null;
   try {
-    const keyCheck = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKeyProvided}&select=id,user_id,status`, { headers: sbHeaders });
+    const keyCheck = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKeyProvided)}&select=id,user_id,status,expires_at`, { headers: sbHeaders });
     const keyRows = await keyCheck.json();
-    if (!keyRows.length || keyRows[0].status !== 'active') return res.status(401).json({ error: { message: 'Неверный или неактивный API-ключ' } });
+    if (!keyRows.length || !isApiKeyActive(keyRows[0])) return res.status(401).json({ error: { message: keyRows[0]?.status === 'active' ? 'Срок действия API-ключа истёк' : 'Неверный или неактивный API-ключ' } });
     apiKeyRow = keyRows[0];
   } catch (e) {
     console.error('apiKey check failed:', e.message);
@@ -4645,6 +4645,19 @@ function generateApiKey() {
   return `fid_${randomBytes(30).toString('base64url')}`;
 }
 
+function isApiKeyActive(apiKey) {
+  if (apiKey?.status !== 'active') return false;
+  if (!apiKey.expires_at) return true;
+  const expiresAt = Date.parse(apiKey.expires_at);
+  return Number.isFinite(expiresAt) && expiresAt > Date.now();
+}
+
+function getApiKeyDisplayStatus(apiKey) {
+  if (apiKey?.status !== 'active') return apiKey?.status || 'inactive';
+  if (apiKey.expires_at && !isApiKeyActive(apiKey)) return 'expired';
+  return 'active';
+}
+
 // Хелпер: логирование действия с API-ключом
 async function logApiKeyAction(apiKeyId, userId, action, meta = {}) {
   try {
@@ -4673,7 +4686,11 @@ app.get('/api/apikeys/:userId', async (req, res) => {
       { headers: sbHeaders }
     );
     const keys = await r.json();
-    res.json({ success: true, keys });
+    if (!r.ok || !Array.isArray(keys)) {
+      return res.status(502).json({ success: false, error: 'Не удалось загрузить API-ключи' });
+    }
+    const normalizedKeys = keys.map(key => ({ ...key, display_status: getApiKeyDisplayStatus(key) }));
+    res.json({ success: true, keys: normalizedKeys });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
@@ -4684,10 +4701,16 @@ app.post('/api/apikeys/create', async (req, res) => {
   const { userId, name, type, appName } = req.body;
   if (!userId || !name) return res.json({ success: false, error: 'Нет обязательных полей' });
   try {
-    // Лимит: не более 10 ключей
-    const countRes = await fetch(`${SB_URL}/rest/v1/api_keys?user_id=eq.${userId}&select=id`, { headers: sbHeaders });
+    const countRes = await fetch(`${SB_URL}/rest/v1/api_keys?user_id=eq.${encodeURIComponent(userId)}&select=id,status,expires_at`, { headers: sbHeaders });
     const existing = await countRes.json();
-    if (existing.length >= 10) return res.json({ success: false, error: 'Максимум 10 ключей на аккаунт' });
+    if (!countRes.ok || !Array.isArray(existing)) {
+      console.error('API key count query failed:', JSON.stringify(existing).slice(0, 300));
+      return res.status(502).json({ success: false, error: 'Не удалось проверить количество API-ключей' });
+    }
+    const activeCount = existing.filter(isApiKeyActive).length;
+    if (activeCount >= 10) {
+      return res.status(409).json({ success: false, error: `Лимит: 10 действующих ключей. Сейчас действует ${activeCount}. Отключите ненужный ключ или удалите его.` });
+    }
 
     const key = generateApiKey();
     const insertRes = await fetch(`${SB_URL}/rest/v1/api_keys`, {
@@ -4789,11 +4812,11 @@ app.post('/api/apikeys/verify', async (req, res) => {
   const { key } = req.body;
   if (!key) return res.json({ success: false, error: 'Нет ключа' });
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${key}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(key)}&select=id,user_id,status,expires_at,name,app_name,type`, { headers: sbHeaders });
     const rows = await r.json();
     if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
     const apiKey = rows[0];
-    if (apiKey.status !== 'active') return res.json({ success: false, error: 'Ключ неактивен' });
+    if (!isApiKeyActive(apiKey)) return res.json({ success: false, error: apiKey.status === 'active' ? 'Срок действия ключа истёк' : 'Ключ неактивен' });
 
     // Обновляем счётчики и last_used_at
     const today = new Date().toISOString().slice(0, 10);
@@ -4853,11 +4876,11 @@ app.post('/api/apikeys/verify', async (req, res) => {
   const { key } = req.body;
   if (!key) return res.json({ success: false, error: 'Нет ключа' });
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${key}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(key)}&select=id,user_id,status,expires_at,name,app_name,type`, { headers: sbHeaders });
     const rows = await r.json();
     if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
     const apiKey = rows[0];
-    if (apiKey.status !== 'active') return res.json({ success: false, error: 'Ключ неактивен' });
+    if (!isApiKeyActive(apiKey)) return res.json({ success: false, error: apiKey.status === 'active' ? 'Срок действия ключа истёк' : 'Ключ неактивен' });
 
     const today = new Date().toISOString().slice(0, 10);
     const statsRes = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}&select=requests_total,requests_today,last_used_date`, { headers: sbHeaders });
@@ -4891,10 +4914,10 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     // 1. Проверяем API ключ
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,user_id,status,name,app_name`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,user_id,status,expires_at,name,app_name`, { headers: sbHeaders });
     const keys = await keyRes.json();
     if (!keys.length) return res.json({ success: false, error: 'Неверный API ключ' });
-    if (keys[0].status !== 'active') return res.json({ success: false, error: 'API ключ неактивен' });
+    if (!isApiKeyActive(keys[0])) return res.json({ success: false, error: keys[0].status === 'active' ? 'Срок действия API-ключа истёк' : 'API ключ неактивен' });
     const appName = keys[0].app_name;
     const appKeyId = keys[0].id;
 
@@ -4973,9 +4996,9 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
 
   try {
     // Проверяем API ключ
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status,app_name`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,expires_at,app_name`, { headers: sbHeaders });
     const keys = await keyRes.json();
-    if (!keys.length || keys[0].status !== 'active')
+    if (!keys.length || !isApiKeyActive(keys[0]))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const challengeId = String(req.body.challengeId);
@@ -5017,9 +5040,9 @@ app.post('/api/edit/balance', async (req, res) => {
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status,user_id,app_name,type`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,expires_at,user_id,app_name,type`, { headers: sbHeaders });
     const keys = await keyRes.json();
-    if (!keys.length || keys[0].status !== 'active')
+    if (!keys.length || !isApiKeyActive(keys[0]))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     if (action === 'add' && keys[0].type !== 'bot')
@@ -5068,9 +5091,9 @@ app.post('/api/balance/get', async (req, res) => {
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status,user_id`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,expires_at,user_id`, { headers: sbHeaders });
     const keys = await keyRes.json();
-    if (!keys.length || keys[0].status !== 'active')
+    if (!keys.length || !isApiKeyActive(keys[0]))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
@@ -5735,9 +5758,9 @@ app.post('/api/birthday/submit', async (req, res) => {
   if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,expires_at`, { headers: sbHeaders });
     const keys = await keyRes.json();
-    if (!keys.length || keys[0].status !== 'active')
+    if (!keys.length || !isApiKeyActive(keys[0]))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
@@ -5827,9 +5850,9 @@ app.post('/api/birthday/check', async (req, res) => {
   if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${apiKey}&select=id,status`, { headers: sbHeaders });
+    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,expires_at`, { headers: sbHeaders });
     const keys = await keyRes.json();
-    if (!keys.length || keys[0].status !== 'active')
+    if (!keys.length || !isApiKeyActive(keys[0]))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, { headers: sbHeaders });
