@@ -83,6 +83,8 @@ const sbHeaders = {
   "Content-Type": "application/json"
 };
 
+app.use('/api', apiKeyAuditMiddleware);
+
 // ====== Хелпер: notifyBot с retry ======
 async function notifyBot(url, body, retries = 2) {
   for (let i = 0; i <= retries; i++) {
@@ -4118,7 +4120,7 @@ async function serverImageSearch(query) {
       headers: { 'X-API-KEY': SERPER_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ q: query, hl: 'ru', num: 6 })
     });
-    if (!r.ok) return null;
+    if (!r.ok) return { error: `Serper Images HTTP ${r.status}` };
     const data = await r.json();
     const images = data.images || [];
     if (!images.length) return null;
@@ -4127,7 +4129,7 @@ async function serverImageSearch(query) {
     return { url: pick.imageUrl, title: pick.title || '' };
   } catch (e) {
     console.error('image search error:', e.message);
-    return null;
+    return { error: e.message };
   }
 }
 
@@ -4211,13 +4213,13 @@ app.post('/api/chat', async (req, res) => {
     console.error('Token limit check failed, skipping:', e.message);
   }
 
-  try {
-    await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'ai_request', {
-      model: requestedModelId, userId, stream: !!stream,
-      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
-      origin: req.headers['origin'] || req.headers['referer'] || ''
-    });
-  } catch {}
+  await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'ai_request', {
+    endpoint: '/api/chat', method: 'POST', status: 200, success: true,
+    model: requestedModelId, userId, stream: !!stream,
+    ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+    origin: req.headers.origin || req.headers.referer || '',
+    request: sanitizeApiLogValue({ messages, max_tokens, stream, persona })
+  });
 
   const wantsStream = !!stream;
   let totalTokensUsed = 0;
@@ -4239,6 +4241,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       round1 = await mistralStreamCall(messages, apiModel, max_tokens || 8192);
     } catch (e) {
+      req.apiError = e;
       const rawMsg = e.body?.message || e.body?.error?.message || e.message || '';
       if (e.body?.type === 'invalid_model' || /invalid model/i.test(rawMsg)) {
         return res.status(400).json({
@@ -4359,9 +4362,11 @@ app.post('/api/chat', async (req, res) => {
 
       if (toolName === 'netsearch') {
         toolResultText = await serverWebSearch(inner);
+        if (/^Ошибка поиска:/i.test(toolResultText)) await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'api_error', { endpoint: '/api/chat', tool: toolName, status: 502, success: false, request: { query: inner }, error: { message: toolResultText } });
         followupUserContent = `Сегодняшняя дата: ${getCurrentDateStr()}. Вот результаты поиска:\n${toolResultText}\n\nЭто актуальные данные на сегодня — доверяй датам и фактам в них, даже если они не совпадают с твоей внутренней памятью. НЕ исправляй и не подвергай сомнению даты из результатов поиска. Ответь пользователю на его языке. Если это вопрос о курсе валют — обязательно укажи текущий курс и историю за 7 дней строго в формате: Пн: 85.23, Вт: 85.67, Ср: 84.90, Чт: 86.12, Пт: 85.80, Сб: 86.40, Вс: 86.15`;
       } else if (toolName === 'webfetch') {
         toolResultText = await serverWebFetch(inner);
+        if (/^(?:Ошибка|Не удалось загрузить страницу|Страница недоступна)/i.test(toolResultText)) await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'api_error', { endpoint: '/api/chat', tool: toolName, status: 502, success: false, request: { url: inner }, error: { message: toolResultText } });
         if (toolResultText === UNREADABLE_VIDEO_MARKER) {
           // Видео-хостинг: там нет читаемого текста — не отправляем это модели вообще,
           // чтобы она не начала выдумывать содержание или пересказывать сам тег/ссылку.
@@ -4374,6 +4379,7 @@ app.post('/api/chat', async (req, res) => {
         const fetchUrl = (parts[0] || '').trim();
         const searchQuery = (parts[1] || '').trim();
         toolResultText = await serverDocSearch(fetchUrl, searchQuery);
+        if (/^Ошибка поиска:/i.test(toolResultText)) await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'api_error', { endpoint: '/api/chat', tool: toolName, status: 502, success: false, request: { url: fetchUrl, query: searchQuery }, error: { message: toolResultText } });
         followupUserContent = `Найденный фрагмент документа:\n\n${toolResultText}\n\nОтветь на вопрос пользователя: "${userQuestion}". ЗАПРЕЩЕНО выдавать теги или ссылки в ответе.`;
       } else if (toolName === 'imgsearch') {
         // aurin-pro — исключение (мусорная неиспользуемая модель, фильтр на неё не действует)
@@ -4383,6 +4389,7 @@ app.post('/api/chat', async (req, res) => {
           followupUserContent = `Пользователь попросил найти фото по запросу "${inner}", но это откровенный/порнографический запрос — такое искать нельзя. Вежливо откажи и предложи помощь с чем-то другим. Без тегов и ссылок.`;
         } else {
           imgResult = await serverImageSearch(inner);
+          if (imgResult?.error || !process.env.SERPER_API_KEY) await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'api_error', { endpoint: '/api/chat', tool: toolName, status: 503, success: false, request: { query: inner }, error: { message: imgResult?.error || 'SERPER_API_KEY не настроен' } });
           if (imgResult && imgResult.url) {
             followupUserContent = `Найдено изображение по запросу "${inner}"${imgResult.title ? ` (${imgResult.title})` : ''}.\n\nНапиши ОДНУ короткую живую фразу, которой сопровождаешь отправку этого фото пользователю. Без ссылок, без тегов, без markdown — только сама фраза.`;
           } else {
@@ -4434,6 +4441,15 @@ app.post('/api/chat', async (req, res) => {
 
   } catch (e) {
     console.error('chat error:', e);
+    req.apiError = e;
+    if (wantsStream) {
+      await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, 'api_error', {
+        endpoint: '/api/chat', method: 'POST', status: 500, success: false,
+        model: requestedModelId,
+        request: sanitizeApiLogValue({ messages, max_tokens, stream, persona }),
+        error: { message: String(e?.message || e).slice(0, 2000), status: e?.status || 500 }
+      });
+    }
     if (wantsStream) { try { res.end(); } catch {} }
     else res.status(500).json({ error: { message: 'Ошибка сервера' } });
   }
@@ -4674,7 +4690,7 @@ function apiKeyMetadata(apiKey) {
   return { id, user_id, name, type, app_name, status, requests_total, requests_today, last_used_at, created_at, updated_at, key_prefix };
 }
 
-async function findApiKeyBySecret(secret) {
+async function findApiKeyBySecret(secret, trackUsage = true) {
   if (typeof secret !== 'string' || secret.length < 20 || secret.length > 256) return null;
   const hash = hashApiKey(secret);
   const fields = 'id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_date,last_used_at,created_at,updated_at,key_prefix';
@@ -4685,7 +4701,7 @@ async function findApiKeyBySecret(secret) {
   if (hashResponse.ok) {
     const hashedRows = await hashResponse.json();
     if (hashedRows[0]) {
-      if (isApiKeyActive(hashedRows[0])) await trackApiKeyUse(hashedRows[0].id);
+      if (trackUsage && isApiKeyActive(hashedRows[0])) await trackApiKeyUse(hashedRows[0].id);
       return hashedRows[0];
     }
   }
@@ -4710,7 +4726,7 @@ async function findApiKeyBySecret(secret) {
     });
   }
   delete legacyKey.key;
-  if (hashResponse.ok && isApiKeyActive(legacyKey)) await trackApiKeyUse(legacyKey.id);
+  if (trackUsage && hashResponse.ok && isApiKeyActive(legacyKey)) await trackApiKeyUse(legacyKey.id);
   return legacyKey;
 }
 
@@ -4772,6 +4788,75 @@ async function logApiKeyAction(apiKeyId, userId, action, meta = {}) {
   }
 }
 
+function sanitizeApiLogValue(value, key = '', budget = { remaining: 1_000_000 }) {
+  if (/^(?:api_?key|key|secret|password|session_?token|challenge_?id|authorization)$/i.test(key)) return '[скрыто]';
+  if (/^(?:code|otp|verification_?code)$/i.test(key) && (typeof value === 'number' && Number.isInteger(value) || typeof value === 'string' && /^\d{6,8}$/.test(value))) return '[скрыто]';
+  if (/^(?:imageBase64)$/i.test(key) || key === 'imageUrl' && typeof value === 'string' && value.startsWith('data:')) return '[изображение скрыто]';
+  if (typeof value === 'string') {
+    const lines = value.split(/\r?\n/);
+    let text = lines.length > 1000 ? `${lines.slice(0, 1000).join('\n')}\n[содержимое сокращено: первые 1000 строк из ${lines.length}]` : value;
+    if (text.length > 100000) text = `${text.slice(0, 100000)}\n[содержимое сокращено]`;
+    if (text.length > budget.remaining) text = `${text.slice(0, Math.max(0, budget.remaining))}\n[размер журнала ограничен]`;
+    budget.remaining = Math.max(0, budget.remaining - text.length);
+    return text;
+  }
+  if (Array.isArray(value)) {
+    const items = key === 'messages' ? value.slice(-200).reverse() : value.slice(0, 200);
+    const safeItems = items.map(item => sanitizeApiLogValue(item, '', budget));
+    return key === 'messages' ? safeItems.reverse() : safeItems;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).slice(0, 200).map(([childKey, childValue]) => [childKey, sanitizeApiLogValue(childValue, childKey, budget)]));
+  }
+  return value;
+}
+
+async function writeApiKeyAudit(req, status, responseBody) {
+  const method = req.method.toUpperCase();
+  const isKeyMutation = req.path.startsWith('/api/apikeys/') && method !== 'GET' && !req.path.endsWith('/verify');
+  const isKeyLogRead = /^\/api\/apikeys\/[^/]+\/logs$/.test(req.path);
+  const submittedSecret = req.body?.apiKey || req.body?.key;
+  const keyId = req.path.match(/^\/api\/apikeys\/([^/]+)/)?.[1];
+  const claims = verifySessionToken(req.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1]);
+  const ownerId = claims?.sub;
+  if (!submittedSecret && !((isKeyMutation || isKeyLogRead) && ownerId && keyId && keyId !== 'create')) return;
+
+  const failed = status >= 400 || responseBody?.success === false || !!responseBody?.error;
+  if (!failed) return;
+  const request = sanitizeApiLogValue(req.body || {});
+  const error = sanitizeApiLogValue({
+    response: responseBody || { error: `HTTP ${status}` },
+    ...(req.apiError ? { details: { name: req.apiError.name, message: req.apiError.message, status: req.apiError.status } } : {})
+  });
+  const meta = {
+    endpoint: req.path,
+    method,
+    status,
+    success: false,
+    ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
+    origin: req.headers.origin || req.headers.referer || '',
+    request,
+    error
+  };
+
+  let apiKey = submittedSecret ? await findApiKeyBySecret(submittedSecret, false) : null;
+  if (!apiKey && (isKeyMutation || isKeyLogRead) && ownerId && keyId && keyId !== 'create') apiKey = await getOwnedApiKey(keyId, ownerId);
+  if (apiKey) await logApiKeyAction(apiKey.id, apiKey.user_id, 'api_error', meta);
+}
+
+function apiKeyAuditMiddleware(req, res, next) {
+  const originalJson = res.json.bind(res);
+  res.json = data => {
+    const status = res.statusCode;
+    const failed = status >= 400 || data?.success === false || !!data?.error;
+    if (!failed) return originalJson(data);
+    return writeApiKeyAudit(req, status, data)
+      .catch(error => console.error('API request audit failed:', error.message))
+      .then(() => originalJson(data));
+  };
+  next();
+}
+
 // GET /api/apikeys/:userId — список ключей пользователя
 app.get('/api/apikeys/:userId', requireDashboardSession, async (req, res) => {
   const userId = String(req.params.userId);
@@ -4787,6 +4872,7 @@ app.get('/api/apikeys/:userId', requireDashboardSession, async (req, res) => {
     }
     res.json({ success: true, keys: keys.map(apiKeyMetadata) });
   } catch (e) {
+    req.apiError = e;
     res.status(502).json({ success: false, error: 'Не удалось загрузить API-ключи' });
   }
 });
@@ -4826,6 +4912,7 @@ app.post('/api/apikeys/create', requireDashboardSession, async (req, res) => {
     await logApiKeyAction(created.id, userId, 'created', { name, type, app: appName });
     res.status(201).json({ success: true, key: created, secret: key });
   } catch (e) {
+    req.apiError = e;
     console.error('API key creation failed:', e.message);
     res.status(503).json({ success: false, error: 'Не удалось создать API-ключ' });
   }
@@ -4881,6 +4968,7 @@ app.patch('/api/apikeys/:keyId', requireDashboardSession, async (req, res) => {
     if (status === undefined || status === existing.status) await logApiKeyAction(keyId, userId, 'edited', { name: update.name, app: update.app_name, type });
     res.json({ success: true });
   } catch (e) {
+    req.apiError = e;
     res.status(502).json({ success: false, error: 'Не удалось обновить API-ключ' });
   }
 });
@@ -4902,7 +4990,8 @@ app.post('/api/apikeys/:keyId/rotate', requireDashboardSession, async (req, res)
     if (!response.ok || !rows[0]) return res.status(response.ok ? 404 : 502).json({ success: false, error: 'Не удалось перевыпустить ключ' });
     await logApiKeyAction(keyId, userId, 'rotated', {});
     res.json({ success: true, secret });
-  } catch {
+  } catch (e) {
+    req.apiError = e;
     res.status(502).json({ success: false, error: 'Не удалось перевыпустить ключ' });
   }
 });
@@ -4919,6 +5008,7 @@ app.delete('/api/apikeys/:keyId', requireDashboardSession, async (req, res) => {
     if (!deleted.ok) return res.status(502).json({ success: false, error: 'Не удалось удалить API-ключ' });
     res.json({ success: true });
   } catch (e) {
+    req.apiError = e;
     res.status(502).json({ success: false, error: 'Не удалось удалить API-ключ' });
   }
 });
@@ -4931,13 +5021,14 @@ app.get('/api/apikeys/:keyId/logs', requireDashboardSession, async (req, res) =>
     if (!await getOwnedApiKey(keyId, userId)) return res.status(404).json({ success: false, error: 'Ключ не найден' });
 
     const logsRes = await fetch(
-      `${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}&select=action,meta,created_at&order=created_at.desc&limit=50`,
+      `${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}&select=action,meta,created_at&order=created_at.desc&limit=200`,
       { headers: sbHeaders }
     );
     const logs = await logsRes.json();
     if (!logsRes.ok || !Array.isArray(logs)) return res.status(502).json({ success: false, error: 'Не удалось загрузить историю ключа' });
     res.json({ success: true, logs });
   } catch (e) {
+    req.apiError = e;
     res.status(502).json({ success: false, error: 'Не удалось загрузить историю ключа' });
   }
 });
@@ -5061,6 +5152,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.json({ success: true, require2fa: false, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
+    req.apiError = e;
     console.error('auth/login error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
@@ -5104,6 +5196,7 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
     res.json({ success: true, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
+    req.apiError = e;
     console.error('auth/verify-2fa error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
@@ -5155,6 +5248,7 @@ const botRes = await fetch(`${process.env.BOT_URL}/api/edit/balance`, {
 
     res.json({ success: botData.success, ...botData });
   } catch (e) {
+    req.apiError = e;
     console.error('edit/balance error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
@@ -5209,6 +5303,7 @@ app.post('/api/balance/get', async (req, res) => {
     res.json({ success: true, username: user.username, ...botData });
 
   } catch (e) {
+    req.apiError = e;
     console.error('balance/get error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
@@ -5913,6 +6008,7 @@ app.post('/api/birthday/submit', async (req, res) => {
 
     res.json({ success: true, rewardGiven, cardGiven, hasTelegram: !!user.telegram_id });
   } catch (e) {
+    req.apiError = e;
     console.error('birthday/submit error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
@@ -5940,6 +6036,7 @@ app.post('/api/birthday/check', async (req, res) => {
 
     res.json({ success: true, completed: existingData.length > 0, wish: existingData[0]?.wish || null });
   } catch (e) {
+    req.apiError = e;
     console.error('birthday/check error:', e);
     res.json({ success: false, error: 'Ошибка сервера' });
   }
