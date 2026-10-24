@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FernieID</title>
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -1235,6 +1236,8 @@ body:hover::-webkit-scrollbar-thumb{
 .key-card-app{font-size:.76rem;color:var(--muted);margin-top:1px;display:flex;align-items:center;gap:5px;}
 .key-value-box{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;background:var(--card);border:1px solid var(--field-border);border-radius:10px;font-family:monospace;font-size:.78rem;color:var(--ink);margin-bottom:.7rem;overflow:hidden;}
 .key-value-box span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.key-value-box .field-input{min-width:0;flex:1;font-family:monospace;font-size:.78rem;}
+#section-apikeys .key-list-card{animation:none!important;}
 .key-copy-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;font-size:.7rem;font-weight:700;}
 .key-copy-btn:hover{color:var(--ink);}
 .key-show-btn{flex-shrink:0;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px 4px;font-size:.7rem;font-weight:700;}
@@ -2044,11 +2047,11 @@ html,body{touch-action:manipulation;}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 21 19a1.2 1.2 0 0 1-1.05 1.8H4.05A1.2 1.2 0 0 1 3 19l9-15.8Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg>
           </div>
           <div class="api-outage-copy">
-            <div class="api-outage-label"><span class="api-outage-dot"></span>Временное ограничение</div>
-            <div class="api-outage-title">AI-запросы через API сейчас недоступны</div>
-            <div class="api-outage-description">Мы уже разбираемся с работой AI API. Создание, просмотр и управление API-ключами остаются доступны.</div>
+            <div class="api-outage-label"><span class="api-outage-dot"></span>Управление доступом</div>
+            <div class="api-outage-title">Безопасные ключи для твоих интеграций</div>
+            <div class="api-outage-description">Секрет показывается только при создании или перевыпуске. На сервере хранится только его криптографический отпечаток.</div>
           </div>
-          <div class="api-outage-chip"><span aria-hidden="true">🛠</span>Уже чиним</div>
+          <div class="api-outage-chip"><span aria-hidden="true">🔐</span>Защищено</div>
         </div>
         <div class="panel" id="apiKeysListPanel">
           <div class="panel-head">
@@ -3264,6 +3267,25 @@ $('socialChatInput').addEventListener('keydown', event => {
   }
 });
 
+function animateApiKeysSection(){
+  if(!window.anime || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const section = $('section-apikeys');
+  const panels = [...section.querySelectorAll(':scope > .panel')].filter(panel => panel.offsetParent !== null);
+  if(!panels.length) return;
+  anime.remove(panels);
+  anime.set(panels, { opacity: 0 });
+  anime({ targets:panels, opacity:[0,1], delay:anime.stagger(90), duration:520, easing:'easeOutCubic' });
+}
+
+function animateApiKeyCards(){
+  if(!window.anime || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cards = $('apiKeysBody')?.querySelectorAll('.key-list-card');
+  if(!cards?.length) return;
+  anime.remove(cards);
+  anime.set(cards, { opacity: 0, translateY: 10 });
+  anime({ targets:cards, opacity:[0,1], translateY:[10,0], delay:anime.stagger(55), duration:420, easing:'easeOutCubic' });
+}
+
 function switchSection(name){
   if(name === 'subscription'){
     $('subscriptionBackgroundView').hidden = true;
@@ -3276,6 +3298,7 @@ function switchSection(name){
   document.querySelectorAll('.dash-section').forEach(s=>s.classList.remove('active'));
   const target = $('section-'+name);
   if(target) target.classList.add('active');
+  if(name === 'apikeys') requestAnimationFrame(animateApiKeysSection);
   activeNavSection = name;
   updateNavCascade(name);
   loadSectionData(name);
@@ -6816,11 +6839,18 @@ function openMyTicketDetail(num){
    API-КЛЮЧИ — полноценный функционал
    ══════════════════════════════════════════ */
 let apiKeysCache = [];
-let apiKeyDetailShown = false; // показан ли сейчас полный ключ на странице деталей
 
-function maskKey(key){
-  if(!key) return '—';
-  return key.length > 16 ? key.slice(0,8) + '••••••••••••••••' + key.slice(-4) : '••••••••••';
+function apiKeyRequest(path, options = {}){
+  let sessionToken = '';
+  try{ sessionToken = JSON.parse(localStorage.getItem(STORE_KEY) || '{}').sessionToken || ''; }catch{}
+  return fetch(`${API}${path}`, {
+    ...options,
+    headers:{ ...options.headers, ...(sessionToken ? { Authorization:`Bearer ${sessionToken}` } : {}) }
+  });
+}
+
+function maskKey(prefix){
+  return prefix ? `${escapeHtml(prefix)}••••••••••••` : 'Секрет уже нельзя просмотреть';
 }
 
 function apiKeyStatusLabel(key){
@@ -6833,10 +6863,10 @@ async function loadApiKeys(){
   $('apiKeysListPanel').style.display = '';
   $('apiKeysBody').innerHTML = `<div class="loader">Загрузка…</div>`;
   try{
-    const res = await fetch(`${API}/api/apikeys/${currentUser.id}`);
+    const res = await apiKeyRequest(`/api/apikeys/${currentUser.id}`);
     const data = await res.json();
-    if(!data.success){
-      $('apiKeysBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">Не удалось загрузить</div></div>`;
+    if(!res.ok || !data.success){
+      $('apiKeysBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('warn')}</div><div class="title">${escapeHtml(data.error || 'Не удалось загрузить')}</div></div>`;
       return;
     }
     apiKeysCache = data.keys || [];
@@ -6846,8 +6876,6 @@ async function loadApiKeys(){
   }
 }
 
-// Простой список ключей — значение ключа всегда замаскировано.
-// Полный ключ достаётся только из apiKeysCache в момент клика (никогда не лежит в разметке).
 function renderApiKeys(){
   if(!apiKeysCache.length){
     $('apiKeysBody').innerHTML = `<div class="empty-box"><div class="emoji-ico">${icon('key')}</div><div class="title">Ключей пока нет</div><div class="desc">Создай первый API-ключ для интеграции сторонних сервисов с твоим аккаунтом.</div></div>`;
@@ -6865,38 +6893,41 @@ function renderApiKeys(){
         </div>
         ${statusPill}
       </div>
-      <div class="key-value-box"><span>${maskKey(k.key)}</span><button class="key-copy-btn" data-copy="${k.id}">Копировать</button></div>
+      <div class="key-value-box"><span>${maskKey(k.key_prefix)}</span><span class="panel-sub">Секрет показывается только один раз</span></div>
     </div>`;
   }).join('');
 
-  $('apiKeysBody').querySelectorAll('[data-copy]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      copyApiKeyValue(btn.dataset.copy, btn);
-    });
-  });
   $('apiKeysBody').querySelectorAll('[data-open]').forEach(card => {
     card.addEventListener('click', () => openApiKeyDetail(card.dataset.open));
   });
+  animateApiKeyCards();
 }
 
-// Копирует ключ из кэша в памяти — раскрывать его в HTML/атрибутах не нужно.
-function copyApiKeyValue(keyId, btn){
-  const k = apiKeysCache.find(x => String(x.id) === String(keyId));
-  if(!k) return;
-  navigator.clipboard?.writeText(k.key).then(() => {
-    if(!btn) return;
-    const old = btn.textContent;
-    btn.textContent = 'Скопировано';
-    setTimeout(() => btn.textContent = old, 1400);
-  }).catch(() => {});
+function showApiKeySecret(secret, title){
+  openModal(`
+    <div class="modal-title">${escapeHtml(title)}</div>
+    <div class="panel-sub" style="margin:-.5rem 0 1rem;">Скопируй и сохрани сейчас. После закрытия окна секрет больше нельзя будет посмотреть.</div>
+    <div class="key-value-box"><input class="field-input" id="apiKeyOneTimeSecret" readonly value="${escapeHtml(secret)}" aria-label="Новый API-ключ"><button class="key-copy-btn" id="apiKeyOneTimeCopy">Копировать</button></div>
+    <div class="form-msg">Не отправляй ключ другим людям и не добавляй его в публичный код.</div>
+    <div class="modal-actions"><button class="btn btn-dark" id="apiKeySecretClose">Готово</button></div>
+  `);
+  $('apiKeyOneTimeCopy').onclick = async () => {
+    try{
+      await navigator.clipboard.writeText(secret);
+      $('apiKeyOneTimeCopy').textContent = 'Скопировано';
+    }catch{
+      $('apiKeyOneTimeSecret').select();
+      document.execCommand('copy');
+      $('apiKeyOneTimeCopy').textContent = 'Скопировано';
+    }
+  };
+  $('apiKeySecretClose').onclick = closeModal;
 }
 
 // Полная страница по клику на ключ ("полное меню")
 function openApiKeyDetail(keyId){
   const k = apiKeysCache.find(x => String(x.id) === String(keyId));
   if(!k) return;
-  apiKeyDetailShown = false;
   $('apiKeysListPanel').style.display = 'none';
   $('apiKeyDetailPanel').style.display = '';
   renderApiKeyDetailBody(k);
@@ -6942,13 +6973,15 @@ function renderApiKeyDetailBody(k){
       </div>
       ${statusPill}
     </div>
-    <div class="key-value-box"><span id="keyDetailVal">${maskKey(k.key)}</span><button class="key-show-btn" id="keyDetailShowBtn">Показать</button><button class="key-copy-btn" id="keyDetailCopyBtn">Копировать</button></div>
+    <div class="key-value-box"><span>${maskKey(k.key_prefix)}</span><span class="panel-sub">Чтобы получить секрет, перевыпусти ключ</span></div>
     <div class="key-stats">
       <div class="key-stat">Запросов всего: <b>${k.requests_total ?? 0}</b></div>
       <div class="key-stat">Сегодня: <b>${k.requests_today ?? 0}</b></div>
       <div class="key-stat">Последний запрос: <b>${lastUsed}</b></div>
     </div>
     <div class="key-actions">
+      <button class="btn btn-outline btn-sm" id="keyDetailStatusBtn">${k.status === 'active' ? 'Отключить' : 'Включить'}</button>
+      <button class="btn btn-outline btn-sm" id="keyDetailRotateBtn">Перевыпустить</button>
       <button class="btn btn-outline btn-sm" id="keyDetailEditBtn">Редактировать</button>
       <button class="btn btn-danger btn-sm" id="keyDetailDeleteBtn">Удалить</button>
     </div>
@@ -6956,12 +6989,8 @@ function renderApiKeyDetailBody(k){
     <div class="panel-sub" style="margin-bottom:.8rem;font-weight:700;color:var(--ink);font-size:.85rem;">История запросов</div>
     <div id="keyLogsBody"><div class="loader">Загрузка…</div></div>`;
 
-  $('keyDetailShowBtn').onclick = () => {
-    apiKeyDetailShown = !apiKeyDetailShown;
-    $('keyDetailVal').textContent = apiKeyDetailShown ? k.key : maskKey(k.key);
-    $('keyDetailShowBtn').textContent = apiKeyDetailShown ? 'Скрыть' : 'Показать';
-  };
-  $('keyDetailCopyBtn').onclick = () => copyApiKeyValue(k.id, $('keyDetailCopyBtn'));
+  $('keyDetailStatusBtn').onclick = () => setApiKeyStatus(k.id, k.status === 'active' ? 'inactive' : 'active');
+  $('keyDetailRotateBtn').onclick = () => rotateApiKey(k.id);
   $('keyDetailEditBtn').onclick = () => openEditKeyModal(k.id);
   $('keyDetailDeleteBtn').onclick = () => deleteApiKey(k.id);
 
@@ -6995,14 +7024,15 @@ $('createKeyBtn').onclick = () => {
     if(!name){ msg.textContent = 'Укажи название ключа'; return; }
     const btn = $('newKeySubmit'); setBtnLoading(btn, true, 'Создать');
     try{
-      const res = await fetch(`${API}/api/apikeys/create`, {
+      const res = await apiKeyRequest('/api/apikeys/create', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUser.id, name, appName, type })
+        body: JSON.stringify({ name, appName, type })
       });
       const data = await res.json();
-      if(data.success){
+      if(res.ok && data.success){
         closeModal();
         loadApiKeys();
+        showApiKeySecret(data.secret, 'API-ключ создан');
       } else { msg.textContent = data.error || 'Не удалось создать ключ'; }
     } catch(e){ msg.textContent = 'Ошибка соединения'; }
     finally{ setBtnLoading(btn, false, 'Создать'); }
@@ -7037,16 +7067,38 @@ function openEditKeyModal(keyId){
     if(!name){ msg.textContent = 'Укажи название ключа'; return; }
     const btn = $('editKeySubmit'); setBtnLoading(btn, true, 'Сохранить');
     try{
-      const res = await fetch(`${API}/api/apikeys/${keyId}`, {
+      const res = await apiKeyRequest(`/api/apikeys/${keyId}`, {
         method:'PATCH', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUser.id, name, appName, type })
+        body: JSON.stringify({ name, appName, type })
       });
       const data = await res.json();
-      if(data.success){ closeModal(); loadApiKeys(); }
+      if(res.ok && data.success){ closeModal(); loadApiKeys(); }
       else { msg.textContent = data.error || 'Не удалось сохранить'; }
     } catch(e){ msg.textContent = 'Ошибка соединения'; }
     finally{ setBtnLoading(btn, false, 'Сохранить'); }
   };
+}
+
+async function setApiKeyStatus(keyId, status){
+  try{
+    const res = await apiKeyRequest(`/api/apikeys/${keyId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if(!res.ok || !data.success) return alert(data.error || 'Не удалось изменить статус ключа');
+    await loadApiKeys();
+  }catch{ alert('Ошибка соединения'); }
+}
+
+async function rotateApiKey(keyId){
+  if(!(await confirmModal('Старый секрет немедленно перестанет работать. Сохрани новый ключ после перевыпуска.', { title:'Перевыпустить API-ключ?', okLabel:'Перевыпустить', danger:true, icon:'key' }))) return;
+  try{
+    const res = await apiKeyRequest(`/api/apikeys/${keyId}/rotate`, { method:'POST' });
+    const data = await res.json();
+    if(!res.ok || !data.success) return alert(data.error || 'Не удалось перевыпустить ключ');
+    await loadApiKeys();
+    showApiKeySecret(data.secret, 'Новый секрет API-ключа');
+  }catch{ alert('Ошибка соединения'); }
 }
 
 // логи запроса — грузятся сразу при открытии страницы ключа, прямо в блоке (без модалки), со ступенчатой анимацией строк
@@ -7078,9 +7130,9 @@ async function loadKeyLogsInline(keyId){
   const box = $('keyLogsBody');
   if(!box) return;
   try{
-    const res = await fetch(`${API}/api/apikeys/${keyId}/logs?userId=${currentUser.id}`);
+    const res = await apiKeyRequest(`/api/apikeys/${keyId}/logs`);
     const data = await res.json();
-    if(!data.success){
+    if(!res.ok || !data.success){
       box.innerHTML = `<div class="empty-box" style="padding:1.2rem 0;"><div class="desc">${escapeHtml(data.error||'Не удалось загрузить')}</div></div>`;
       return;
     }
@@ -7105,12 +7157,9 @@ async function loadKeyLogsInline(keyId){
 async function deleteApiKey(keyId){
   if(!(await confirmModal('Действие необратимо. Все интеграции, использующие этот ключ, перестанут работать.', { title:'Удалить API-ключ?', okLabel:'Удалить', danger:true, icon:'key' }))) return;
   try{
-    const res = await fetch(`${API}/api/apikeys/${keyId}`, {
-      method:'DELETE', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id })
-    });
+    const res = await apiKeyRequest(`/api/apikeys/${keyId}`, { method:'DELETE' });
     const data = await res.json();
-    if(data.success) loadApiKeys();
+    if(res.ok && data.success) loadApiKeys();
     else alert(data.error || 'Не удалось удалить ключ');
   } catch(e){ alert('Ошибка соединения'); }
 }
