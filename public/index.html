@@ -345,11 +345,40 @@ button:focus-visible{outline:3px solid color-mix(in srgb,var(--ink) 25%,transpar
 .type-picker{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem;}
 @media(max-width:420px){.type-picker{grid-template-columns:repeat(3,1fr);}}
 .type-option{display:flex;flex-direction:column;align-items:center;gap:.45rem;padding:.75rem .3rem;border-radius:14px;border:1px solid var(--field-border);background:var(--field);cursor:pointer;transition:transform .18s cubic-bezier(.22,1,.36,1), border-color .18s, background .18s;}
-.type-option .cico{color:var(--muted);transition:color .18s;}
+.type-option .type-icon{display:grid;place-items:center;width:28px;height:28px;color:var(--muted);transition:color .22s,filter .22s;}
+.type-icon svg{width:24px;height:24px;overflow:visible;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.type-icon svg .icon-draw{transition:transform .35s cubic-bezier(.2,1.4,.4,1);transform-box:fill-box;transform-origin:center;}
+.type-icon svg .icon-fill{fill:currentColor;stroke:none;transform-box:fill-box;transform-origin:center;transition:transform .35s cubic-bezier(.2,1.4,.4,1);}
 .type-option-label{font-size:.66rem;font-weight:700;color:var(--muted);transition:color .18s;}
-.type-option:hover{border-color:#d8c3af;transform:translateY(-1px);}
+.type-option:hover{z-index:1;border-color:color-mix(in srgb,var(--blob-pink) 55%,var(--ink));background:color-mix(in srgb,var(--field) 78%,var(--blob-pink));transform:translateY(-4px) scale(1.035);box-shadow:0 10px 22px -17px color-mix(in srgb,var(--ink) 70%,transparent);}
+.type-option:hover .type-icon{color:var(--ink);filter:drop-shadow(0 3px 4px color-mix(in srgb,var(--blob-pink) 55%,transparent));}
+.type-option:hover .type-icon svg .icon-draw{transform:rotate(-5deg) scale(1.04);}
+.type-option:hover .type-icon svg .icon-fill{transform:translateY(-2px) scale(1.18) rotate(-8deg);}
 .type-option.active{background:var(--ink);border-color:var(--ink);transform:translateY(-2px) scale(1.03);}
-.type-option.active .cico,.type-option.active .type-option-label{color:var(--ink-contrast);}
+.type-option.active .type-icon,.type-option.active .type-option-label{color:var(--ink-contrast);}
+.type-option.active .type-icon svg .icon-fill{transform:scale(1.12);}
+.type-option:focus-visible{outline:2px solid color-mix(in srgb,var(--blob-pink) 75%,var(--ink));outline-offset:3px;}
+.type-option:active,.type-option.active:active{transform:translateY(0) scale(.96);transition-duration:.08s;}
+.type-picker:has(.type-option.active) .type-option.active:hover{transform:translateY(-5px) scale(1.06);box-shadow:0 13px 24px -16px color-mix(in srgb,var(--ink) 78%,transparent);}
+.api-key-app-icon{display:inline-grid;place-items:center;width:19px;height:19px;flex:0 0 19px;margin-right:2px;color:var(--muted);transition:color .2s,transform .28s cubic-bezier(.2,1.5,.4,1),filter .2s;}
+.api-key-app-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;overflow:visible;}
+.key-list-card:hover .api-key-app-icon,.api-key-detail-view .key-card-top:hover .api-key-app-icon{color:var(--ink);transform:translateY(-2px) rotate(-8deg) scale(1.14);filter:drop-shadow(0 2px 3px color-mix(in srgb,var(--blob-pink) 65%,transparent));}
+.api-key-modal .modal-title{display:flex;align-items:center;gap:.65rem;margin-bottom:.35rem;font-size:1.3rem;}
+.api-key-modal .modal-title-icon{display:grid;place-items:center;width:38px;height:38px;border:1px solid color-mix(in srgb,var(--blob-pink) 30%,var(--line));border-radius:13px;background:linear-gradient(145deg,color-mix(in srgb,var(--blob-pink) 20%,var(--card)),color-mix(in srgb,var(--blob-sage) 28%,var(--card)));color:var(--ink);}
+.api-key-modal .modal-title-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.api-key-modal .modal-title-icon svg{overflow:visible;}
+.api-key-modal .panel-sub{margin-bottom:1.15rem!important;}
+.api-key-modal .modal-actions .btn{position:relative;overflow:hidden;min-height:44px;transition:transform .24s cubic-bezier(.2,1.4,.4,1),box-shadow .24s,background .2s,border-color .2s;}
+.api-key-modal .modal-actions .btn::after{position:absolute;top:-80%;left:-45%;width:35%;height:260%;content:'';background:linear-gradient(90deg,transparent,rgba(255,255,255,.24),transparent);transform:translateX(-180%) rotate(18deg);transition:transform .55s cubic-bezier(.2,.8,.2,1);pointer-events:none;}
+.api-key-modal .modal-actions .btn:hover{transform:translateY(-3px) scale(1.025);box-shadow:0 11px 22px -15px color-mix(in srgb,var(--ink) 76%,transparent);}
+.api-key-modal .modal-actions .btn:hover::after{transform:translateX(480%) rotate(18deg);}
+.api-key-modal .modal-actions .btn:active{transform:translateY(0) scale(.97);transition-duration:.08s;}
+.api-key-modal .modal-actions .btn-dark:hover{background:color-mix(in srgb,var(--ink) 83%,var(--blob-pink));}
+.api-key-modal .modal-actions .btn-outline:hover{border-color:color-mix(in srgb,var(--ink) 30%,var(--line));}
+.api-key-modal .type-option{animation:apiTypeTileIn .42s cubic-bezier(.2,1.3,.35,1) both;}
+.api-key-modal .type-option:nth-child(2){animation-delay:.035s;}.api-key-modal .type-option:nth-child(3){animation-delay:.07s;}.api-key-modal .type-option:nth-child(4){animation-delay:.105s;}.api-key-modal .type-option:nth-child(5){animation-delay:.14s;}
+@keyframes apiTypeTileIn{from{opacity:0;transform:translateY(12px) scale(.9);}to{opacity:1;transform:translateY(0) scale(1);}}
+@media(prefers-reduced-motion:reduce){.api-key-modal .type-option,.api-key-modal .modal-actions .btn,.type-icon,.type-icon svg .icon-draw,.type-icon svg .icon-fill,.api-key-app-icon{animation:none!important;transition:none!important;}}
 
 /* --- модалка подтверждения (замена window.confirm) --- */
 .modal-overlay.confirm-active{isolation:isolate;overflow:hidden;}
@@ -6934,7 +6963,7 @@ function renderApiKeys(){
       <div class="key-card-top">
         <div>
           <div class="key-card-name">${escapeHtml(k.name)}</div>
-          <div class="key-card-app"><i class="cico cico-${tm.icon} ic"></i>${escapeHtml(k.app_name || 'Без привязанного приложения')} · ${escapeHtml(tm.label)}</div>
+          <div class="key-card-app"><span class="api-key-app-icon">${tm.icon}</span>${escapeHtml(k.app_name || 'Без привязанного приложения')} · ${escapeHtml(tm.label)}</div>
         </div>
         ${statusPill}
       </div>
@@ -6981,17 +7010,18 @@ function openApiKeyDetail(keyId){
 }
 
 const TYPE_DEFS = {
-  web:    { icon:'globe',    label:'Веб' },
-  mobile: { icon:'mobile',   label:'Мобайл' },
-  bot:    { icon:'bot',      label:'Бот' },
-  game:   { icon:'joystick', label:'Игра' },
-  other:  { icon:'gear',     label:'Другое' }
+  web:    { label:'Веб', icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M3.7 12h16.6M12 3.5c2.2 2.3 3.2 5.1 3.2 8.5s-1 6.2-3.2 8.5c-2.2-2.3-3.2-5.1-3.2-8.5s1-6.2 3.2-8.5Z"/><circle cx="19.3" cy="5" r="1.7"/></svg>' },
+  mobile: { label:'Мобайл', icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.7" y="2.7" width="10.6" height="18.6" rx="2.6"/><path d="M10 5.5h4M10.8 18.2h2.4"/><circle cx="12" cy="18.3" r=".75"/></svg>' },
+  bot:    { label:'Бот', icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v3M9.8 4a2.2 2.2 0 1 1 4.4 0"/><rect x="4" y="8" width="16" height="12" rx="4"/><circle cx="9" cy="13" r="1.35"/><circle cx="15" cy="13" r="1.35"/><path d="M9 17h6M2 12v4M22 12v4"/></svg>' },
+  game:   { label:'Игра', icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 8h9.6a4 4 0 0 1 3.8 2.9l1.1 4.2a2.6 2.6 0 0 1-4.2 2.6l-2.1-1.8H8.6l-2.1 1.8a2.6 2.6 0 0 1-4.2-2.6l1.1-4.2A4 4 0 0 1 7.2 8Z"/><path d="M7 11v4M5 13h4"/><circle cx="16.5" cy="12" r="1"/><circle cx="18.5" cy="14.5" r="1"/></svg>' },
+  other:  { label:'Другое', icon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2 14 8l4.8 2-4.8 2-2 4.8L10 12l-4.8-2L10 8l2-4.8Z"/><path d="m18.5 15.5.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z"/><circle cx="5" cy="18" r="1.3"/></svg>' }
 };
-function typeMeta(type){ return TYPE_DEFS[type] || { icon:'gear', label: type || 'Другое' }; }
+const API_KEY_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8-8 2 2-2 2 1.5 1.5-2.1 2.1-1.5-1.5-3.1 3.1M8 15h.01"/></svg>';
+function typeMeta(type){ return TYPE_DEFS[type] || TYPE_DEFS.other; }
 function typePickerHtml(selected){
   return Object.entries(TYPE_DEFS).map(([key,t]) => `
     <div class="type-option${key===selected?' active':''}" data-type="${key}">
-      <i class="cico cico-${t.icon}"></i>
+      <span class="type-icon">${t.icon}</span>
       <span class="type-option-label">${t.label}</span>
     </div>`).join('');
 }
@@ -7006,6 +7036,36 @@ function wireTypePicker(container, initial){
   return () => current;
 }
 
+function wireApiKeyModalMotion(){
+  const modal = $('genericModalBox').querySelector('.api-key-modal');
+  if(!modal) return;
+  const tiles = modal.querySelectorAll('.type-option');
+  const buttons = modal.querySelectorAll('.modal-actions .btn');
+  const animate = (targets, properties) => {
+    if(window.anime && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      anime.remove(targets);
+      anime({ targets, ...properties, duration:380, easing:'easeOutBack' });
+    }
+  };
+  const icon = modal.querySelector('.modal-title-icon');
+  icon?.addEventListener('pointerenter', () => animate(icon, { scale:[1,1.13], rotate:['0deg','-9deg'] }));
+  icon?.addEventListener('pointerleave', () => animate(icon, { scale:[1.13,1], rotate:['-9deg','0deg'] }));
+  tiles.forEach(tile => {
+    tile.addEventListener('pointerenter', () => animate(tile.querySelector('.type-icon'), { scale:[1,1.17], rotate:['0deg','-7deg'] }));
+    tile.addEventListener('pointerleave', () => animate(tile.querySelector('.type-icon'), { scale:[1.17,1], rotate:['-7deg','0deg'] }));
+    tile.addEventListener('focus', () => animate(tile.querySelector('.type-icon'), { scale:[1,1.12] }));
+    tile.addEventListener('click', () => {
+      tiles.forEach(item => item.classList.toggle('active', item === tile));
+      animate(tile.querySelector('.type-icon'), { scale:[.84,1.2,1], rotate:['8deg','-7deg','0deg'] });
+    });
+  });
+  buttons.forEach(button => {
+    button.addEventListener('pointerenter', () => animate(button, { translateY:[0,-3], scale:[1,1.035] }));
+    button.addEventListener('pointerleave', () => animate(button, { translateY:[-3,0], scale:[1.035,1] }));
+    button.addEventListener('pointerdown', () => animate(button, { scale:[1,.96] }));
+  });
+}
+
 function renderApiKeyDetailBody(k){
   const status = apiKeyStatusLabel(k);
   const statusPill = `<span class="pill ${status.className}">${status.label}</span>`;
@@ -7016,7 +7076,7 @@ function renderApiKeyDetailBody(k){
     <div class="key-card-top" style="margin-bottom:1rem;">
       <div>
         <div class="key-card-name" style="font-size:1.05rem;">${escapeHtml(k.name)}</div>
-        <div class="key-card-app"><i class="cico cico-${tm.icon} ic"></i>${escapeHtml(k.app_name || 'Без привязанного приложения')} · ${escapeHtml(tm.label)}</div>
+        <div class="key-card-app"><span class="api-key-app-icon">${tm.icon}</span>${escapeHtml(k.app_name || 'Без привязанного приложения')} · ${escapeHtml(tm.label)}</div>
       </div>
       ${statusPill}
     </div>
@@ -7050,7 +7110,8 @@ $('apiKeyDetailBack').onclick = () => { loadApiKeys(); };
 
 $('createKeyBtn').onclick = () => {
   openModal(`
-    <div class="modal-title">Создать API-ключ</div>
+    <div class="api-key-modal">
+    <div class="modal-title"><span class="modal-title-icon">${API_KEY_ICON}</span>Создать API-ключ</div>
     <div class="panel-sub" style="margin:-.5rem 0 1.2rem;">FernieID Developer</div>
     <div class="field"><label class="field-label">Название ключа</label><input class="field-input" id="newKeyName" placeholder="Например: Мой сайт"></div>
     <div class="field">
@@ -7063,7 +7124,9 @@ $('createKeyBtn').onclick = () => {
       <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
       <button class="btn btn-dark" id="newKeySubmit">Создать</button>
     </div>
+    </div>
   `);
+  wireApiKeyModalMotion();
   const getType = wireTypePicker($('newKeyTypePicker'), 'web');
   $('newKeySubmit').onclick = async () => {
     const name = $('newKeyName').value.trim();
@@ -7093,7 +7156,8 @@ function openEditKeyModal(keyId){
   if(!k) return;
   const initialType = TYPE_DEFS[k.type] ? k.type : 'other';
   openModal(`
-    <div class="modal-title">Редактировать ключ</div>
+    <div class="api-key-modal">
+    <div class="modal-title"><span class="modal-title-icon">${API_KEY_ICON}</span>Редактировать ключ</div>
     <div class="panel-sub" style="margin:-.5rem 0 1.2rem;">FernieID Developer</div>
     <div class="field"><label class="field-label">Название ключа</label><input class="field-input" id="editKeyName" value="${escapeHtml(k.name)}"></div>
     <div class="field">
@@ -7106,7 +7170,9 @@ function openEditKeyModal(keyId){
       <button class="btn btn-outline" onclick="closeModal()">Отмена</button>
       <button class="btn btn-dark" id="editKeySubmit">Сохранить</button>
     </div>
+    </div>
   `);
+  wireApiKeyModalMotion();
   const getType = wireTypePicker($('editKeyTypePicker'), initialType);
   $('editKeySubmit').onclick = async () => {
     const name = $('editKeyName').value.trim();
