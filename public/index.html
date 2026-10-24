@@ -3972,7 +3972,7 @@ async function bootDashboard(){
     if(!data.success) return logout();
 
     currentUser = {
-      id: data.userId, username: data.username, role: data.role,
+      id: data.userId, username: data.username, role: data.role, sessionToken,
       telegramLinked: data.telegramLinked, telegram_id: data.telegram_id,
       avatar_url: data.avatarUrl || null, banner_url: data.bannerUrl || null,
       theme: data.theme || localStorage.getItem(THEME_STORE_KEY) || 'cream'
@@ -6502,13 +6502,14 @@ function startTgTimerAndPoll(deadline, endpoint){
     try{
       const r = await fetch(`${API}/api/telegram/${endpoint}`, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: currentUser.id })
+        body: JSON.stringify({ userId: currentUser.id, sessionToken:currentUser.sessionToken })
       });
       const d = await r.json();
       if(d.status === 'linked'){
         clearTgFlow();
         currentUser.telegramLinked = true; currentUser.telegram_id = d.telegram_id;
-        localStorage.setItem('fernieid_session', JSON.stringify(currentUser));
+        const session = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+        localStorage.setItem(STORE_KEY, JSON.stringify({ ...session, userId:currentUser.id, username:currentUser.username }));
         showTgLinkResult(true, d.telegram_id);
       } else if(d.status === 'expired' || d.status === 'declined'){
         clearTgFlow();
@@ -6536,7 +6537,7 @@ async function startTgCodeFlow(){
   try{
     const res = await fetch(`${API}/api/telegram/generate-token`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id })
+      body: JSON.stringify({ userId: currentUser.id, sessionToken:currentUser.sessionToken })
     });
     const data = await res.json();
     if(!data.success){ $('tgTabBody').innerHTML = `<div class="empty-box"><div class="desc">${escapeHtml(data.error || 'Не удалось получить код')}</div></div>`; return; }
@@ -6555,7 +6556,7 @@ async function startTgLinkFlow(){
   try{
     const res = await fetch(`${API}/api/telegram/generate-token`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ userId: currentUser.id })
+      body: JSON.stringify({ userId: currentUser.id, sessionToken:currentUser.sessionToken })
     });
     const data = await res.json();
     if(!data.success){ $('tgTabBody').innerHTML = `<div class="empty-box"><div class="desc">${escapeHtml(data.error || 'Не удалось получить ссылку')}</div></div>`; return; }
