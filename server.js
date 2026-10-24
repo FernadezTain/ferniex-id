@@ -686,8 +686,10 @@ app.get("/api/test-bot", async (req, res) => {
 
 // ====== Генерация токена привязки Telegram ======
 app.post("/api/telegram/generate-token", async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.json({ success: false, error: "Нет userId" });
+  const claims = verifySessionToken(req.body?.sessionToken);
+  if (!claims) return res.status(401).json({ success: false, error: "Сессия истекла. Войдите снова." });
+  const userId = claims.sub;
+  if (req.body?.userId && String(req.body.userId) !== userId) return res.status(403).json({ success: false, error: "Недостаточно прав" });
   try {
     const token = genLinkCode();
     const patchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
@@ -754,8 +756,10 @@ app.post("/api/telegram/link", async (req, res) => {
 
 // ====== Статус привязки (для опроса кода/ссылки на сайте) ======
 app.post("/api/telegram/link-status", async (req, res) => {
-  const { userId } = req.body;
-  if (!userId) return res.json({ success: false, error: "Нет userId" });
+  const claims = verifySessionToken(req.body?.sessionToken);
+  if (!claims) return res.status(401).json({ success: false, error: "Сессия истекла. Войдите снова." });
+  const userId = claims.sub;
+  if (req.body?.userId && String(req.body.userId) !== userId) return res.status(403).json({ success: false, error: "Недостаточно прав" });
   try {
     const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,link_token,link_token_created_at`, { headers: sbHeaders });
     const users = await r.json();
