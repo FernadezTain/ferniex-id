@@ -352,6 +352,35 @@
       try { return JSON.parse(localStorage.getItem('fernieid_user')); } catch { return null; }
     },
 
+    async getProfile() {
+      const user = this.getUser();
+      if (!user?.sessionToken) return { success: false, error: 'not_logged_in' };
+      const response = await post('/api/verify-token', { sessionToken: user.sessionToken });
+      if (response.success) {
+        const updatedUser = { ...user, ...response };
+        try { localStorage.setItem('fernieid_user', JSON.stringify(updatedUser)); } catch {}
+      }
+      return response;
+    },
+
+    async generateTelegramLink() {
+      const user = this.getUser();
+      if (!user?.sessionToken) return { success: false, error: 'not_logged_in' };
+      return post('/api/telegram/generate-token', {
+        userId: user.userId,
+        sessionToken: user.sessionToken
+      });
+    },
+
+    async getTelegramLinkStatus() {
+      const user = this.getUser();
+      if (!user?.sessionToken) return { success: false, error: 'not_logged_in' };
+      return post('/api/telegram/link-status', {
+        userId: user.userId,
+        sessionToken: user.sessionToken
+      });
+    },
+
     logout() {
       try { localStorage.removeItem('fernieid_user'); } catch {}
     },
