@@ -1245,6 +1245,40 @@ body:hover::-webkit-scrollbar-thumb{
 .key-list-card{padding:1rem 1.2rem;border-radius:16px;background:var(--field);border:1px solid var(--field-border);margin-bottom:.7rem;cursor:pointer;transition:border-color .15s;}
 .key-list-card:hover{border-color:color-mix(in srgb, var(--ink) 35%, var(--field-border));}
 .key-list-card:last-child{margin-bottom:0;}
+.api-key-detail-view .key-card-top{align-items:center;padding-bottom:.9rem;border-bottom:1px solid var(--line);}
+.api-key-detail-view .key-value-box{min-height:54px;padding:.8rem 1rem;border-radius:14px;background:linear-gradient(115deg,color-mix(in srgb,var(--blob-pink) 8%,var(--card)),color-mix(in srgb,var(--blob-sage) 11%,var(--card)));}
+.api-key-detail-view .key-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:1rem 0;}
+.api-key-detail-view .key-stat{padding:.85rem .95rem;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--field) 70%,transparent);line-height:1.5;}
+.api-key-detail-view .key-stat b{display:block;margin-top:.12rem;font-size:.95rem;}
+.api-key-detail-view .key-actions{gap:.6rem;padding:.25rem 0 .3rem;}
+.api-key-detail-view .key-actions .btn{transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s;}
+.api-key-detail-view .key-actions .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px -13px rgba(0,0,0,.45);}
+.api-key-detail-view #keyLogsBody{overflow:hidden;border:1px solid var(--line);border-radius:15px;background:color-mix(in srgb,var(--field) 35%,transparent);}
+.api-key-detail-view #keyLogsBody .scroll-area{padding:.15rem .65rem;}
+.api-key-detail-view .api-log-row{transition:background .2s,transform .2s;}
+.api-key-detail-view .api-log-row:hover{transform:translateX(3px);}
+.api-log-row-status{flex:0 0 auto;padding:.25rem .48rem;border-radius:999px;background:color-mix(in srgb,var(--blob-sage) 28%,var(--card));color:var(--green);font-size:.58rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+.api-log-row-status.error{background:color-mix(in srgb,var(--red) 12%,var(--card));color:var(--red);}
+.api-log-row-copy{display:flex;min-width:0;flex-direction:column;gap:.18rem;}
+.api-log-row-copy small{max-width:min(52vw,620px);overflow:hidden;color:var(--muted);font-size:.68rem;font-weight:500;text-overflow:ellipsis;white-space:nowrap;}
+.api-log-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+.api-log-detail-heading .modal-title{margin:0;font-size:1.25rem;}
+.api-log-result{flex:0 0 auto;padding:.38rem .62rem;border:1px solid transparent;border-radius:999px;font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;}
+.api-log-result.is-ok{border-color:color-mix(in srgb,var(--green) 20%,var(--line));background:color-mix(in srgb,var(--green) 11%,var(--card));color:var(--green);}
+.api-log-result.is-error{border-color:color-mix(in srgb,var(--red) 24%,var(--line));background:color-mix(in srgb,var(--red) 11%,var(--card));color:var(--red);}
+.api-log-detail-context{margin-top:.35rem;color:var(--muted);font-size:.72rem;overflow-wrap:anywhere;}
+.api-log-detail-question{display:-webkit-box;max-width:100%;margin-top:.75rem;overflow:hidden;color:var(--ink);font-size:.82rem;line-height:1.55;overflow-wrap:anywhere;line-clamp:4;-webkit-box-orient:vertical;-webkit-line-clamp:4;}
+.api-log-payload{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--field) 58%,transparent);}
+.api-log-payload summary{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.78rem .85rem;cursor:pointer;font-size:.78rem;font-weight:750;list-style:none;}
+.api-log-payload summary::-webkit-details-marker{display:none;}
+.api-log-payload summary::after{content:'＋';margin-left:auto;color:var(--muted);}
+.api-log-payload[open] summary::after{content:'−';}
+.api-log-payload summary span{color:var(--muted);font-size:.67rem;font-weight:550;}
+.api-log-payload pre{max-height:min(48vh,520px);overflow:auto;margin:0;padding:.85rem;border-top:1px solid var(--line);color:var(--ink);font:500 .72rem/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;}
+.modal-overlay.api-log-detail-active{background:rgba(12,10,8,.62);backdrop-filter:blur(7px);}
+.modal-overlay.api-log-detail-active .modal-box{max-width:min(760px,calc(100vw - 2rem));padding:clamp(1rem,3vw,1.8rem);border:1px solid color-mix(in srgb,var(--ink) 10%,var(--line));box-shadow:0 36px 100px -35px rgba(0,0,0,.68);}
+@media(max-width:620px){.api-key-detail-view .key-stats{grid-template-columns:1fr;gap:.45rem;}.api-key-detail-view .key-stat{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.62rem .75rem;}.api-key-detail-view .key-stat b{margin:0;}.api-log-detail-heading{align-items:flex-start;}.api-log-detail-context{line-height:1.5;}}
+@media(prefers-reduced-motion:reduce){.api-key-detail-view .key-actions .btn,.api-key-detail-view .api-log-row{transition:none!important;}.modal-overlay.api-log-detail-active .modal-box{animation:none!important;}}
 
 /* ---------- профиль: баннер / аватар / темы ---------- */
 .profile-banner-wrap{position:relative;border-radius:22px;overflow:hidden;background:linear-gradient(135deg,var(--blob-pink),var(--blob-sage));height:150px;margin:-1.6rem -1.75rem 0;}
@@ -2289,6 +2323,7 @@ function escapeHtml(s){
 }
 function closeModal(){
   const modal = $('genericModal');
+  modal.classList.remove('api-log-detail-active');
   if(modal.classList.contains('game-details-active')){
     if(modal.classList.contains('game-details-closing')) return;
     modal.classList.add('game-details-closing');
@@ -2306,7 +2341,7 @@ function openModal(html){
   clearTimeout(gameModalCloseTimer);
   gameModalCloseTimer = null;
   const modal = $('genericModal');
-  modal.classList.remove('confirm-active','author-active','game-details-active','game-details-closing');
+  modal.classList.remove('confirm-active','author-active','game-details-active','game-details-closing','api-log-detail-active');
   $('genericModalBox').innerHTML = html;
   modal.classList.add('active');
 }
@@ -3284,6 +3319,16 @@ function animateApiKeyCards(){
   anime.remove(cards);
   anime.set(cards, { opacity: 0, translateY: 10 });
   anime({ targets:cards, opacity:[0,1], translateY:[10,0], delay:anime.stagger(55), duration:420, easing:'easeOutCubic' });
+}
+
+function animateApiKeyDetail(){
+  if(!window.anime || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const elements = $('apiKeyDetailBody')?.querySelectorAll('.key-card-top, .key-value-box, .key-stats, .key-actions, .section-divider, .panel-sub, .api-log-row');
+  const parts = elements ? [...elements].slice(0, 28) : [];
+  if(!parts.length) return;
+  anime.remove(parts);
+  anime.set(parts, { opacity:0, translateY:8 });
+  anime({ targets:parts, opacity:[0,1], translateY:[8,0], delay:anime.stagger(35), duration:360, easing:'easeOutCubic' });
 }
 
 function switchSection(name){
@@ -6931,6 +6976,7 @@ function openApiKeyDetail(keyId){
   $('apiKeysListPanel').style.display = 'none';
   $('apiKeyDetailPanel').style.display = '';
   renderApiKeyDetailBody(k);
+  animateApiKeyDetail();
   $('apiKeyDetailPanel').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
@@ -6966,6 +7012,7 @@ function renderApiKeyDetailBody(k){
   const lastUsed = k.last_used_at ? new Date(k.last_used_at).toLocaleString('ru-RU', { timeZone:'Europe/Moscow' }) : 'ещё не использовался';
   const tm = typeMeta(k.type);
   $('apiKeyDetailBody').innerHTML = `
+    <div class="api-key-detail-view">
     <div class="key-card-top" style="margin-bottom:1rem;">
       <div>
         <div class="key-card-name" style="font-size:1.05rem;">${escapeHtml(k.name)}</div>
@@ -6987,7 +7034,9 @@ function renderApiKeyDetailBody(k){
     </div>
     <div class="section-divider"></div>
     <div class="panel-sub" style="margin-bottom:.8rem;font-weight:700;color:var(--ink);font-size:.85rem;">История запросов</div>
-    <div id="keyLogsBody"><div class="loader">Загрузка…</div></div>`;
+    <div class="panel-sub" style="margin:-.5rem 0 .7rem;font-size:.69rem;">Сохраняются параметры запросов и ошибки; содержимое ограничено первыми 1000 строками, секреты и пароли скрыты.</div>
+    <div id="keyLogsBody"><div class="loader">Загрузка…</div></div>
+    </div>`;
 
   $('keyDetailStatusBtn').onclick = () => setApiKeyStatus(k.id, k.status === 'active' ? 'inactive' : 'active');
   $('keyDetailRotateBtn').onclick = () => rotateApiKey(k.id);
@@ -7072,7 +7121,12 @@ function openEditKeyModal(keyId){
         body: JSON.stringify({ name, appName, type })
       });
       const data = await res.json();
-      if(res.ok && data.success){ closeModal(); loadApiKeys(); }
+      if(res.ok && data.success){
+        Object.assign(k, { name, app_name:appName, type });
+        closeModal();
+        renderApiKeyDetailBody(k);
+        animateApiKeyDetail();
+      }
       else { msg.textContent = data.error || 'Не удалось сохранить'; }
     } catch(e){ msg.textContent = 'Ошибка соединения'; }
     finally{ setBtnLoading(btn, false, 'Сохранить'); }
@@ -7086,7 +7140,11 @@ async function setApiKeyStatus(keyId, status){
     });
     const data = await res.json();
     if(!res.ok || !data.success) return alert(data.error || 'Не удалось изменить статус ключа');
-    await loadApiKeys();
+    const key = apiKeysCache.find(item => String(item.id) === String(keyId));
+    if(!key) return;
+    key.status = status;
+    renderApiKeyDetailBody(key);
+    animateApiKeyDetail();
   }catch{ alert('Ошибка соединения'); }
 }
 
@@ -7096,33 +7154,65 @@ async function rotateApiKey(keyId){
     const res = await apiKeyRequest(`/api/apikeys/${keyId}/rotate`, { method:'POST' });
     const data = await res.json();
     if(!res.ok || !data.success) return alert(data.error || 'Не удалось перевыпустить ключ');
-    await loadApiKeys();
+    const key = apiKeysCache.find(item => String(item.id) === String(keyId));
+    if(key){
+      key.key_prefix = data.secret.slice(0, 12);
+      key.status = 'active';
+      renderApiKeyDetailBody(key);
+      animateApiKeyDetail();
+    }
     showApiKeySecret(data.secret, 'Новый секрет API-ключа');
   }catch{ alert('Ошибка соединения'); }
 }
 
 // логи запроса — грузятся сразу при открытии страницы ключа, прямо в блоке (без модалки), со ступенчатой анимацией строк
+function apiLogActionLabel(action){
+  return ({
+    ai_request:'AI-запрос', api_error:'Ошибка запроса', verify:'Проверка ключа', auth_request:'Вход через ключ',
+    created:'Ключ создан', edited:'Ключ изменён', rotated:'Ключ перевыпущен', status_active:'Ключ включён',
+    status_inactive:'Ключ отключён', balance_request:'Запрос баланса', balance_add:'Баланс пополнен',
+    balance_spend:'С баланса списано'
+  })[action] || String(action || 'Событие').replaceAll('_', ' ');
+}
+
 function openApiKeyLogDetails(log){
   const labels = {
     ip:'IP-адрес', origin:'Источник', endpoint:'Маршрут', app:'Приложение', model:'Модель',
     userId:'ID пользователя', username:'Логин', currency:'Валюта', amount:'Сумма', fields:'Запрошенные поля',
-    stream:'Потоковый ответ', type:'Тип', status:'Статус'
+    stream:'Потоковый ответ', type:'Тип', status:'HTTP-статус', method:'Метод', success:'Результат',
+    request:'Содержимое запроса', error:'Ошибка / ответ сервера', persona:'Персона', max_tokens:'Лимит токенов'
   };
   const meta = log.meta && typeof log.meta === 'object' ? log.meta : {};
+  const messages = Array.isArray(meta.request?.messages) ? meta.request.messages : [];
+  const question = [...messages].reverse().find(message => message?.role === 'user')?.content;
+  const questionText = typeof question === 'string' ? question : question ? JSON.stringify(question) : '';
+  const formatValue = value => typeof value === 'string' ? value : JSON.stringify(value ?? '—', null, 2);
   const rows = Object.entries(meta).map(([key, value]) => {
-    const formatted = value && typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value ?? '—');
-    return `<div class="api-log-detail-row"><span class="api-log-detail-key">${escapeHtml(labels[key] || key.replaceAll('_', ' '))}</span><span class="api-log-detail-value">${escapeHtml(formatted)}</span></div>`;
+    const label = labels[key] || key.replaceAll('_', ' ');
+    const expandable = ['request', 'error'].includes(key) || (value && typeof value === 'object');
+    if(expandable){
+      const content = formatValue(value);
+      return `<details class="api-log-payload" ${key === 'error' ? 'open' : ''}><summary>${escapeHtml(label)}<span>${escapeHtml(typeof value === 'object' && value ? `${Object.keys(value).length} полей` : `${String(content).split(/\r?\n/).length} строк`)}</span></summary><pre>${escapeHtml(content)}</pre></details>`;
+    }
+    return `<div class="api-log-detail-row"><span class="api-log-detail-key">${escapeHtml(label)}</span><span class="api-log-detail-value">${escapeHtml(String(value ?? '—'))}</span></div>`;
   }).join('');
   const createdAt = log.created_at ? new Date(log.created_at) : null;
   const date = createdAt && !Number.isNaN(createdAt.getTime())
     ? createdAt.toLocaleString('ru-RU', { timeZone:'Europe/Moscow', dateStyle:'long', timeStyle:'medium' }) + ' МСК'
     : 'Дата недоступна';
+  const failed = log.action === 'api_error' || Number(meta.status) >= 400 || meta.success === false;
   openModal(`<div class="api-log-detail">
-    <div class="modal-title">Детали события</div>
-    <div class="api-log-detail-hero"><div class="api-log-detail-action">${escapeHtml(log.action || 'Действие не указано')}</div><div class="api-log-detail-date">${escapeHtml(date)}</div></div>
+    <div class="api-log-detail-heading"><div><div class="modal-title">${failed ? 'Ошибка запроса' : 'Детали запроса'}</div><div class="api-log-detail-date">${escapeHtml(date)}</div></div><span class="api-log-result ${failed ? 'is-error' : 'is-ok'}">${failed ? 'Не выполнен' : 'Успешно'}</span></div>
+    <div class="api-log-detail-hero"><div class="api-log-detail-action">${escapeHtml(apiLogActionLabel(log.action))}</div><div class="api-log-detail-context">${escapeHtml(meta.method || '')}${meta.method && meta.endpoint ? ' · ' : ''}${escapeHtml(meta.endpoint || '')}${meta.model ? ` · ${escapeHtml(meta.model)}` : ''}</div>${questionText ? `<div class="api-log-detail-question">${escapeHtml(questionText.slice(0, 600))}${questionText.length > 600 ? '…' : ''}</div>` : ''}</div>
     ${rows ? `<div class="api-log-detail-rows">${rows}</div>` : '<div class="empty-box" style="padding:1rem 0;">Дополнительных данных нет</div>'}
     <div class="modal-actions"><button type="button" class="btn btn-dark" id="apiLogDetailsClose">Закрыть</button></div>
   </div>`);
+  $('genericModal').classList.add('api-log-detail-active');
+  if(window.anime && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const targets = $('genericModalBox').querySelectorAll('.api-log-detail-heading, .api-log-detail-hero, .api-log-payload, .api-log-detail-row, .modal-actions');
+    anime.set(targets, { opacity:0, translateY:9 });
+    anime({ targets, opacity:[0,1], translateY:[9,0], delay:anime.stagger(45), duration:380, easing:'easeOutCubic' });
+  }
   $('apiLogDetailsClose').addEventListener('click', closeModal);
 }
 
@@ -7141,14 +7231,22 @@ async function loadKeyLogsInline(keyId){
       box.innerHTML = `<div class="empty-box" style="padding:1.2rem 0;"><div class="desc">Запросов по этому ключу пока не было</div></div>`;
       return;
     }
-    box.innerHTML = `<div class="scroll-area" style="max-height:320px;">` + logs.map((log, index) => `
+    box.innerHTML = `<div class="scroll-area" style="max-height:420px;">` + logs.map((log, index) => {
+      const failed = log.action === 'api_error' || Number(log.meta?.status) >= 400 || log.meta?.success === false;
+      const messages = Array.isArray(log.meta?.request?.messages) ? log.meta.request.messages : [];
+      const question = [...messages].reverse().find(message => message?.role === 'user')?.content;
+      const preview = typeof question === 'string' ? question : question ? JSON.stringify(question) : '';
+      return `
       <button type="button" class="api-log-row log-row" data-api-log-index="${index}" style="animation-delay:${Math.min(index*40, 480)}ms;">
-        <span class="api-log-row-label"><i class="cico cico-list" aria-hidden="true"></i><b>${escapeHtml(log.action || 'Действие не указано')}</b></span>
+        <span class="api-log-row-label"><i class="cico cico-list" aria-hidden="true"></i><span class="api-log-row-copy"><b>${escapeHtml(apiLogActionLabel(log.action))}</b>${preview ? `<small>${escapeHtml(preview.slice(0, 180))}${preview.length > 180 ? '…' : ''}</small>` : ''}</span></span>
+        <span class="api-log-row-status${failed?' error':''}">${failed?'ошибка':'успешно'}</span>
         <span class="api-log-row-date">${log.created_at ? escapeHtml(new Date(log.created_at).toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})) : '—'}　›</span>
-      </button>`).join('') + `</div>`;
+      </button>`;
+    }).join('') + `</div>`;
     box.querySelectorAll('[data-api-log-index]').forEach(button => {
       button.addEventListener('click', () => openApiKeyLogDetails(logs[Number(button.dataset.apiLogIndex)]));
     });
+    animateApiKeyDetail();
   } catch(e){
     box.innerHTML = `<div class="empty-box" style="padding:1.2rem 0;"><div class="desc">Ошибка соединения</div></div>`;
   }
