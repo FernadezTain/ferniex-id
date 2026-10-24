@@ -1306,6 +1306,88 @@ body:hover::-webkit-scrollbar-thumb{
 .api-log-payload pre{max-height:min(48vh,520px);overflow:auto;margin:0;padding:.85rem;border-top:1px solid var(--line);color:var(--ink);font:500 .72rem/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:2;}
 .modal-overlay.api-log-detail-active{background:rgba(12,10,8,.62);backdrop-filter:blur(7px);}
 .modal-overlay.api-log-detail-active .modal-box{max-width:min(760px,calc(100vw - 2rem));padding:clamp(1rem,3vw,1.8rem);border:1px solid color-mix(in srgb,var(--ink) 10%,var(--line));box-shadow:0 36px 100px -35px rgba(0,0,0,.68);}
+.modal-overlay.api-key-tester-active{z-index:160;align-items:stretch;justify-content:stretch;padding:0;background:color-mix(in srgb,var(--bg) 96%,#111);backdrop-filter:blur(18px);}
+.modal-overlay.api-key-tester-active .modal-box{width:100%;max-width:none;height:100dvh;max-height:var(--tg-viewport-stable-height,100dvh);padding:0;overflow:hidden;border:0;border-radius:0;background:transparent;box-shadow:none;}
+.api-key-tester-shell{display:flex;flex-direction:column;width:100%;height:100dvh;max-height:var(--tg-viewport-stable-height,100dvh);overflow:hidden;border:0;border-radius:0;background:var(--bg);box-shadow:none;animation:apiTesterEnter .42s cubic-bezier(.16,1,.3,1) both;}
+.api-tester-header{display:flex;align-items:center;gap:1rem;padding:1rem clamp(1rem,3vw,2rem);border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--card) 83%,transparent);backdrop-filter:blur(16px);}
+.api-tester-back{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);border-radius:14px;background:var(--field);color:var(--ink);font-size:1.25rem;cursor:pointer;transition:transform .24s cubic-bezier(.2,1.5,.4,1),background .2s;}
+.api-tester-back:hover{transform:translateX(-3px) rotate(-5deg);background:var(--card);}
+.api-tester-heading{min-width:0;flex:1;}
+.api-tester-heading strong{display:block;font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:800;}
+.api-tester-heading span{display:block;margin-top:.18rem;color:var(--muted);font-size:.73rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.api-tester-key{display:flex;align-items:center;gap:.5rem;min-width:min(360px,34vw);padding:.4rem .55rem .4rem .8rem;border:1px solid var(--line);border-radius:13px;background:var(--field);}
+.api-tester-key input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--ink);font:500 .72rem ui-monospace,SFMono-Regular,Consolas,monospace;}
+.api-tester-key button{border:0;background:transparent;color:var(--muted);font-size:.72rem;font-weight:750;cursor:pointer;}
+.api-tester-main{display:grid;grid-template-columns:220px minmax(0,1fr);flex:1;min-height:0;}
+.api-tester-sidebar{display:flex;flex-direction:column;gap:.65rem;padding:1.2rem;border-right:1px solid var(--line);background:color-mix(in srgb,var(--card) 52%,transparent);}
+.api-tester-sidebar-label{padding:.2rem .4rem .35rem;color:var(--muted);font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;}
+.api-tester-mode{display:flex;align-items:center;gap:.75rem;width:100%;padding:.85rem .9rem;border:1px solid transparent;border-radius:15px;background:transparent;color:var(--muted);font:700 .8rem Inter,sans-serif;text-align:left;cursor:pointer;transition:transform .22s cubic-bezier(.2,1.4,.4,1),background .2s,border-color .2s,color .2s;}
+.api-tester-mode:hover{transform:translateX(4px);background:var(--field);color:var(--ink);}
+.api-tester-mode.active{border-color:var(--line);background:var(--card);color:var(--ink);box-shadow:0 12px 25px -20px rgba(0,0,0,.5);}
+.api-tester-mode-icon{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border-radius:11px;background:var(--field);font-size:.95rem;transition:transform .25s cubic-bezier(.2,1.5,.4,1);}
+.api-tester-mode:hover .api-tester-mode-icon,.api-tester-mode.active .api-tester-mode-icon{transform:rotate(-8deg) scale(1.08);}
+.api-tester-content{display:flex;flex-direction:column;min-width:0;min-height:0;}
+.api-tester-tabs{display:flex;align-items:center;gap:.35rem;padding:.85rem clamp(1rem,2.6vw,1.8rem);border-bottom:1px solid var(--line);}
+.api-tester-tab{position:relative;padding:.62rem .9rem;border:0;border-radius:11px;background:transparent;color:var(--muted);font:750 .76rem Inter,sans-serif;cursor:pointer;transition:background .2s,color .2s,transform .2s;}
+.api-tester-tab:hover{transform:translateY(-2px);color:var(--ink);}
+.api-tester-tab.active{background:var(--card);color:var(--ink);box-shadow:0 4px 15px -12px rgba(0,0,0,.65);}
+.api-tester-pane{flex:1;min-height:0;overflow:auto;padding:clamp(1rem,3vw,2rem);}
+.api-tester-overview{width:min(100%,920px);min-height:100%;margin:0 auto;}
+.api-tester-intro{margin-bottom:1.1rem;}
+.api-tester-intro h2{margin:0;font-family:'Syne',sans-serif;font-size:clamp(1.2rem,2.4vw,1.7rem);font-weight:800;letter-spacing:-.04em;}
+.api-tester-intro p{max-width:700px;margin:.4rem 0 0;color:var(--muted);font-size:.79rem;line-height:1.55;}
+.api-tester-card{padding:clamp(1rem,2.5vw,1.5rem);border:1px solid var(--line);border-radius:22px;background:var(--card);box-shadow:0 24px 55px -42px rgba(0,0,0,.45);}
+.api-tester-toolbar{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;}
+.api-tester-toolbar label{color:var(--muted);font-size:.69rem;font-weight:750;}
+.api-tester-select,.api-tester-input,.api-tester-textarea{width:100%;padding:.78rem .9rem;border:1px solid var(--field-border);border-radius:13px;background:var(--field);color:var(--ink);font:500 .82rem Inter,sans-serif;outline:0;transition:border-color .2s,box-shadow .2s;}
+.api-tester-select:focus,.api-tester-input:focus,.api-tester-textarea:focus{border-color:color-mix(in srgb,var(--blob-pink) 65%,var(--ink));box-shadow:0 0 0 3px color-mix(in srgb,var(--blob-pink) 22%,transparent);}
+.api-tester-select{width:auto;min-width:180px;}
+.api-tester-chat{display:flex;flex-direction:column;min-height:clamp(270px,45vh,520px);max-height:55vh;overflow:hidden;border:1px solid var(--line);border-radius:17px;background:color-mix(in srgb,var(--field) 44%,transparent);}
+.api-tester-chat-top{display:flex;align-items:center;gap:.5rem;padding:.72rem .9rem;border-bottom:1px solid var(--line);color:var(--muted);font-size:.68rem;font-weight:700;}
+.api-tester-live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 15%,transparent);}
+.api-tester-messages{display:flex;flex:1;flex-direction:column;align-items:flex-start;gap:.7rem;overflow:auto;padding:1rem;}
+.api-tester-empty{display:grid;flex:1;place-items:center;width:100%;padding:2rem;color:var(--muted);font-size:.78rem;text-align:center;}
+.api-tester-message{max-width:min(82%,720px);padding:.78rem .9rem;border:1px solid var(--line);border-radius:15px 15px 15px 5px;background:var(--card);color:var(--ink);font-size:.8rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;animation:apiTesterMessageIn .32s cubic-bezier(.2,1,.3,1) both;}
+.api-tester-message.user{align-self:flex-end;border-color:color-mix(in srgb,var(--blob-pink) 25%,var(--line));border-radius:15px 15px 5px 15px;background:color-mix(in srgb,var(--blob-pink) 16%,var(--card));}
+.api-tester-compose{display:flex;align-items:flex-end;gap:.6rem;padding:.75rem;border-top:1px solid var(--line);background:var(--card);}
+.api-tester-compose textarea{min-height:44px;max-height:130px;resize:vertical;}
+.api-tester-compose .btn{flex:0 0 auto;min-height:44px;}
+.api-tester-alert{display:none;margin-top:.8rem;padding:.72rem .85rem;border:1px solid color-mix(in srgb,var(--red) 26%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--red) 9%,var(--card));color:var(--red);font-size:.76rem;line-height:1.5;overflow-wrap:anywhere;}
+.api-tester-alert.visible{display:block;animation:apiTesterMessageIn .25s ease both;}
+.api-tester-auth{width:min(100%,620px);margin:0 auto;}
+.api-tester-auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;margin-bottom:1rem;padding:.3rem;border-radius:13px;background:var(--field);}
+.api-tester-auth-tab{padding:.65rem;border:0;border-radius:10px;background:transparent;color:var(--muted);font:750 .75rem Inter,sans-serif;cursor:pointer;transition:background .2s,color .2s,transform .2s;}
+.api-tester-auth-tab:hover{transform:translateY(-1px);}
+.api-tester-auth-tab.active{background:var(--card);color:var(--ink);box-shadow:0 3px 12px -9px rgba(0,0,0,.6);}
+.api-tester-field{display:flex;flex-direction:column;gap:.42rem;margin-bottom:.8rem;}
+.api-tester-field label{color:var(--muted);font-size:.65rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+.api-tester-auth-submit{width:100%;margin-top:.2rem;}
+.api-tester-twofa{padding:1rem;border:1px solid color-mix(in srgb,var(--amber) 25%,var(--line));border-radius:15px;background:color-mix(in srgb,var(--amber) 8%,var(--card));}
+.api-tester-twofa h3{margin:0 0 .4rem;font-size:.95rem;}
+.api-tester-twofa p{margin:0 0 .85rem;color:var(--muted);font-size:.75rem;line-height:1.5;}
+.api-tester-profile{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;padding:1rem;border:1px solid var(--line);border-radius:16px;background:linear-gradient(120deg,color-mix(in srgb,var(--blob-sage) 20%,var(--card)),color-mix(in srgb,var(--blob-pink) 14%,var(--card)));}
+.api-tester-avatar{display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:17px;background:var(--ink);color:var(--ink-contrast);font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;}
+.api-tester-profile-main{min-width:0;flex:1;}
+.api-tester-profile-main strong{display:block;font-family:'Syne',sans-serif;font-size:1rem;overflow-wrap:anywhere;}
+.api-tester-profile-main span{display:block;margin-top:.2rem;color:var(--muted);font-size:.72rem;}
+.api-tester-profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;margin-bottom:1rem;}
+.api-tester-profile-item{padding:.75rem;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--field) 55%,transparent);}
+.api-tester-profile-item small{display:block;color:var(--muted);font-size:.63rem;}
+.api-tester-profile-item b{display:block;margin-top:.3rem;font-size:.78rem;overflow-wrap:anywhere;}
+.api-tester-code-wrap{display:flex;flex-direction:column;width:min(100%,980px);height:100%;min-height:440px;margin:0 auto;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#171512;box-shadow:0 20px 50px -35px rgba(0,0,0,.7);}
+.api-tester-code-head{display:flex;align-items:center;gap:.7rem;padding:.75rem .9rem;border-bottom:1px solid rgba(255,255,255,.09);color:#e8e1d8;font-size:.72rem;}
+.api-tester-code-dots{display:flex;gap:5px;margin-right:.25rem;}.api-tester-code-dots i{width:8px;height:8px;border-radius:50%;background:#ed7b65;}.api-tester-code-dots i:nth-child(2){background:#e9be67;}.api-tester-code-dots i:nth-child(3){background:#75b987;}
+.api-tester-code-head>span:not(.api-tester-code-dots){flex:1;color:#a59b8f;}
+.api-tester-code-head .btn{border-color:rgba(255,255,255,.18);color:#f2ece4;}
+.api-tester-code-head .btn:hover{background:rgba(255,255,255,.1);}
+.api-tester-code{width:100%;flex:1;min-height:0;resize:none;padding:1rem;border:0;outline:0;background:transparent;color:#e8e1d8;font:500 .75rem/1.7 ui-monospace,SFMono-Regular,Consolas,monospace;tab-size:2;white-space:pre;overflow:auto;}
+.api-tester-code-actions{display:flex;justify-content:flex-end;gap:.5rem;padding:.7rem .85rem;border-top:1px solid rgba(255,255,255,.09);}
+.api-tester-secret-warning{margin-top:.65rem;color:var(--muted);font-size:.68rem;line-height:1.45;}
+@keyframes apiTesterEnter{from{opacity:0;transform:translateY(12px) scale(.99);filter:blur(5px);}to{opacity:1;transform:none;filter:blur(0);}}
+@keyframes apiTesterMessageIn{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
+@media(max-width:760px){.api-tester-main{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);}.api-tester-sidebar{flex-direction:row;gap:.45rem;padding:.55rem .8rem;border-right:0;border-bottom:1px solid var(--line);}.api-tester-sidebar-label{display:none;}.api-tester-mode{justify-content:center;padding:.55rem .7rem;font-size:.7rem;}.api-tester-mode-icon{width:28px;height:28px;flex-basis:28px;}.api-tester-key{min-width:0;max-width:44vw;}.api-tester-heading span{max-width:38vw;}}
+@media(max-width:520px){.api-tester-header{gap:.55rem;padding:.7rem;}.api-tester-back{width:36px;height:36px;flex-basis:36px;border-radius:12px;}.api-tester-heading strong{font-size:.84rem;}.api-tester-heading span{font-size:.62rem;max-width:34vw;}.api-tester-key{max-width:34vw;padding:.35rem .4rem .35rem .55rem;}.api-tester-key input{font-size:.62rem;}.api-tester-key button{font-size:.62rem;}.api-tester-mode{gap:.35rem;padding:.5rem .45rem;font-size:.65rem;}.api-tester-pane{padding:.85rem;}.api-tester-chat{min-height:300px;max-height:54vh;}.api-tester-message{max-width:94%;}.api-tester-compose{align-items:stretch;flex-direction:column;}.api-tester-compose .btn{width:100%;}.api-tester-profile-grid{grid-template-columns:1fr;}.api-tester-code-wrap{min-height:360px;}}
+@media(prefers-reduced-motion:reduce){.api-key-tester-shell,.api-tester-message,.api-tester-alert{animation:none!important;}.api-tester-back,.api-tester-mode,.api-tester-mode-icon,.api-tester-tab,.api-tester-auth-tab{transition:none!important;}}
 @media(max-width:620px){.api-key-detail-view .key-stats{grid-template-columns:1fr;gap:.45rem;}.api-key-detail-view .key-stat{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.62rem .75rem;}.api-key-detail-view .key-stat b{margin:0;}.api-log-detail-heading{align-items:flex-start;}.api-log-detail-context{line-height:1.5;}}
 @media(prefers-reduced-motion:reduce){.api-key-detail-view .key-actions .btn,.api-key-detail-view .api-log-row{transition:none!important;}.modal-overlay.api-log-detail-active .modal-box{animation:none!important;}}
 
@@ -2352,7 +2434,8 @@ function escapeHtml(s){
 }
 function closeModal(){
   const modal = $('genericModal');
-  modal.classList.remove('api-log-detail-active');
+  if(modal.classList.contains('api-key-tester-active')) apiKeyTesterState = null;
+  modal.classList.remove('api-log-detail-active','api-key-tester-active');
   if(modal.classList.contains('game-details-active')){
     if(modal.classList.contains('game-details-closing')) return;
     modal.classList.add('game-details-closing');
@@ -2376,7 +2459,7 @@ function openModal(html){
 }
 $('genericModal').addEventListener('click', e => { if(e.target === $('genericModal')) closeModal(); });
 document.addEventListener('keydown', event => {
-  if(event.key === 'Escape' && $('genericModal').classList.contains('game-details-active')) closeModal();
+  if(event.key === 'Escape' && ($('genericModal').classList.contains('game-details-active') || $('genericModal').classList.contains('api-key-tester-active'))) closeModal();
 });
 
 function confirmModal(message, opts){
@@ -6913,6 +6996,7 @@ function openMyTicketDetail(num){
    API-КЛЮЧИ — полноценный функционал
    ══════════════════════════════════════════ */
 let apiKeysCache = [];
+const apiKeySecrets = new Map();
 
 function apiKeyRequest(path, options = {}){
   let sessionToken = '';
@@ -7066,6 +7150,269 @@ function wireApiKeyModalMotion(){
   });
 }
 
+let apiKeyTesterState = null;
+
+function apiTesterSnippet(state){
+  const key = JSON.stringify(state.secret || 'ВСТАВЬ_API_КЛЮЧ');
+  if(state.mode === 'ai'){
+    const model = JSON.stringify(state.model);
+    return [
+      `const API_URL = ${JSON.stringify(API)};`,
+      `const API_KEY = ${key};`,
+      '',
+      'async function askAurin(prompt) {',
+      '  const response = await fetch(`${API_URL}/api/chat`, {',
+      "    method: 'POST',",
+      "    headers: { 'Content-Type': 'application/json' },",
+      '    body: JSON.stringify({',
+      '      apiKey: API_KEY,',
+      `      model: ${model},`,
+      "      messages: [{ role: 'user', content: prompt }],",
+      '      stream: false',
+      '    })',
+      '  });',
+      '  const data = await response.json();',
+      "  if (!response.ok || data.error) throw new Error(data.error?.message || `HTTP ${response.status}`);",
+      "  return data.choices?.[0]?.message?.content ?? '';",
+      '}',
+      '',
+      "askAurin('Привет!').then(console.log).catch(console.error);"
+    ].join('\n');
+  }
+  return [
+    `const API_URL = ${JSON.stringify(API)};`,
+    `const API_KEY = ${key};`,
+    '',
+    'async function request(path, payload) {',
+    '  const response = await fetch(`${API_URL}${path}`, {',
+    "    method: 'POST',",
+    "    headers: { 'Content-Type': 'application/json' },",
+    '    body: JSON.stringify(payload)',
+    '  });',
+    '  const data = await response.json();',
+    "  if (!response.ok || data.success === false) throw new Error(data.error || `HTTP ${response.status}`);",
+    '  return data;',
+    '}',
+    '',
+    'async function login(username, password) {',
+    "  return request('/api/auth/login', { apiKey: API_KEY, username, password });",
+    '}',
+    '',
+    'async function verifyTelegramCode(challengeId, code) {',
+    "  return request('/api/auth/verify-2fa', { apiKey: API_KEY, challengeId, code });",
+    '}',
+    '',
+    'async function loginWithTelegramCode(username, password, askForCode) {',
+    '  const result = await login(username, password);',
+    '  if (!result.require2fa) return result;',
+    '  const code = await askForCode();',
+    '  return verifyTelegramCode(result.challengeId, code);',
+    '}',
+    '',
+    'async function register(username, password) {',
+    "  await request('/api/register', { username, password });",
+    '  return login(username, password);',
+    '}',
+    '',
+    '// Если login вернул require2fa: true, запроси у пользователя 8-значный код из Telegram',
+    '// и передай challengeId вместе с кодом в verifyTelegramCode().'
+  ].join('\n');
+}
+
+function renderApiKeyTester(){
+  const state = apiKeyTesterState;
+  if(!state) return;
+  const key = apiKeysCache.find(item => String(item.id) === String(state.keyId));
+  if(!key) return closeModal();
+  const body = $('apiTesterBody');
+  const overview = state.tab === 'overview';
+  let content = '';
+  const secretNotice = state.secret ? '' : '<div class="api-tester-alert api-tester-secret-notice visible">Секрет существующего ключа нельзя получить с сервера. Вставь его в поле сверху или перевыпусти ключ, чтобы получить новый.</div>';
+
+  if(overview && state.mode === 'ai'){
+    const modelOptions = [
+      ['aurin-lite', 'Aurin Lite'], ['aurin-medium', 'Aurin Medium'], ['aurin', 'Aurin'], ['aurin-pro', 'Aurin Pro']
+    ].map(([value, label]) => `<option value="${value}"${state.model === value ? ' selected' : ''}>${label}</option>`).join('');
+    const messages = state.messages.length
+      ? state.messages.map(message => `<div class="api-tester-message ${message.role === 'user' ? 'user' : ''}">${escapeHtml(message.content)}</div>`).join('')
+      : '<div class="api-tester-empty">Выбери модель и отправь сообщение — ответ появится здесь.</div>';
+    content = `
+      <div class="api-tester-overview">
+        <div class="api-tester-intro"><h2>Проверь нейросеть</h2><p>Это настоящий запрос к FernieX AI API, выполненный с выбранным ключом.</p></div>
+        ${secretNotice}
+        <div class="api-tester-card">
+          <div class="api-tester-toolbar"><label for="apiTesterModel">Модель</label><select class="api-tester-select" id="apiTesterModel">${modelOptions}</select><span class="panel-sub">Ответ приходит через <b>/api/chat</b></span></div>
+          <div class="api-tester-chat"><div class="api-tester-chat-top"><span class="api-tester-live-dot"></span>Aurin · тестовое подключение</div><div class="api-tester-messages" id="apiTesterMessages">${messages}</div><form class="api-tester-compose" id="apiTesterChatForm"><textarea class="api-tester-textarea" id="apiTesterPrompt" placeholder="Напиши сообщение для Aurin…" maxlength="6000" required></textarea><button class="btn btn-dark" id="apiTesterSend" type="submit">Отправить →</button></form></div>
+          <div class="api-tester-alert${state.error ? ' visible' : ''}" id="apiTesterAlert">${escapeHtml(state.error || '')}</div>
+        </div>
+      </div>`;
+  } else if(overview){
+    const authPane = state.user
+      ? `<div class="api-tester-profile"><div class="api-tester-avatar">${escapeHtml((state.user.username || '?').slice(0,1).toUpperCase())}</div><div class="api-tester-profile-main"><strong>${escapeHtml(state.user.username || 'Пользователь')}</strong><span>Авторизация успешно пройдена</span></div><span class="api-log-result is-ok">В сети</span></div><div class="api-tester-profile-grid"><div class="api-tester-profile-item"><small>ID аккаунта</small><b>${escapeHtml(state.user.userId || '—')}</b></div><div class="api-tester-profile-item"><small>Роль</small><b>${escapeHtml(state.user.role || 'Пользователь')}</b></div><div class="api-tester-profile-item"><small>Сессия</small><b>${state.user.sessionToken ? 'Создана' : 'Не получена'}</b></div><div class="api-tester-profile-item"><small>Telegram</small><b>${state.telegramVerified ? 'Подтверждён' : 'Проверка пройдена'}</b></div></div><button class="btn btn-outline" id="apiTesterLogout">Выйти и повторить тест</button>`
+      : state.challengeId
+        ? `<div class="api-tester-twofa"><h3>Подтверди вход через Telegram</h3><p>На Telegram, привязанный к этому аккаунту, отправлен одноразовый 8-значный код. Он действует 5 минут.</p><form id="apiTesterCodeForm"><div class="api-tester-field"><label for="apiTesterCode">Код из Telegram</label><input class="api-tester-input" id="apiTesterCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="00000000" required></div><button class="btn btn-dark api-tester-auth-submit" type="submit">Подтвердить вход</button></form></div>`
+        : `<div class="api-tester-auth-tabs"><button class="api-tester-auth-tab${state.authTab === 'login' ? ' active' : ''}" data-auth-tab="login">Вход</button><button class="api-tester-auth-tab${state.authTab === 'register' ? ' active' : ''}" data-auth-tab="register">Регистрация</button></div><form id="apiTesterAuthForm"><div class="api-tester-field"><label for="apiTesterUsername">Логин</label><input class="api-tester-input" id="apiTesterUsername" autocomplete="username" maxlength="40" required placeholder="username"></div><div class="api-tester-field"><label for="apiTesterPassword">Пароль</label><input class="api-tester-input" id="apiTesterPassword" type="password" autocomplete="current-password" required placeholder="Пароль аккаунта"></div><button class="btn btn-dark api-tester-auth-submit" id="apiTesterAuthSubmit" type="submit">${state.authTab === 'register' ? 'Создать аккаунт и войти' : 'Войти через API-ключ'}</button></form>`;
+    content = `<div class="api-tester-overview"><div class="api-tester-intro"><h2>Тест авторизации</h2><p>Выполни вход или регистрацию. Если у аккаунта привязан Telegram, тест остановится на обязательном подтверждении одноразовым кодом.</p></div>${secretNotice}<div class="api-tester-card api-tester-auth">${authPane}<div class="api-tester-alert${state.error ? ' visible' : ''}" id="apiTesterAlert">${escapeHtml(state.error || '')}</div></div></div>`;
+  } else {
+    const code = apiTesterSnippet(state);
+    content = `<div class="api-tester-code-wrap"><div class="api-tester-code-head"><span class="api-tester-code-dots"><i></i><i></i><i></i></span><span>${state.mode === 'ai' ? 'POST /api/chat · JavaScript' : 'POST /api/auth/* · JavaScript'}</span><button class="btn btn-sm btn-outline" id="apiTesterCopyCode">Копировать код</button></div><textarea class="api-tester-code" id="apiTesterCodeBlock" readonly spellcheck="false">${escapeHtml(code)}</textarea><div class="api-tester-code-actions"><span class="api-tester-secret-warning">${state.secret ? 'Код содержит текущий секрет ключа.' : 'Секрет недоступен после перезагрузки; вставь его в поле выше.'} Не публикуй ключ в клиентском коде открытого сайта.</span></div></div>`;
+  }
+
+  body.innerHTML = content;
+  body.querySelectorAll('[data-auth-tab]').forEach(button => button.onclick = () => {
+    state.authTab = button.dataset.authTab;
+    state.error = '';
+    renderApiKeyTester();
+  });
+  $('apiTesterModel')?.addEventListener('change', event => { state.model = event.target.value; renderApiKeyTester(); });
+  $('apiTesterChatForm')?.addEventListener('submit', submitApiTesterChat);
+  $('apiTesterAuthForm')?.addEventListener('submit', submitApiTesterAuth);
+  $('apiTesterCodeForm')?.addEventListener('submit', submitApiTesterCode);
+  $('apiTesterLogout')?.addEventListener('click', () => {
+    state.user = null; state.challengeId = null; state.loginUsername = ''; state.telegramVerified = false; state.error = ''; state.authTab = 'login';
+    renderApiKeyTester();
+  });
+  $('apiTesterCopyCode')?.addEventListener('click', async event => {
+    try{
+      await navigator.clipboard.writeText(apiTesterSnippet(state));
+      event.currentTarget.textContent = 'Скопировано';
+    }catch{ state.error = 'Не удалось скопировать код'; renderApiKeyTester(); }
+  });
+}
+
+function setApiTesterError(error){
+  apiKeyTesterState.error = error;
+  const alert = $('apiTesterAlert');
+  if(alert){ alert.textContent = error; alert.classList.add('visible'); }
+  else renderApiKeyTester();
+}
+
+async function testerRequest(path, payload){
+  const response = await fetch(`${API}${path}`, {
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if(!response.ok || data.success === false || data.error){
+    const error = data.error?.message || data.error || `HTTP ${response.status}`;
+    throw new Error(typeof error === 'string' ? error : JSON.stringify(error));
+  }
+  return data;
+}
+
+async function submitApiTesterChat(event){
+  event.preventDefault();
+  const state = apiKeyTesterState;
+  const prompt = $('apiTesterPrompt').value.trim();
+  if(!state.secret) return setApiTesterError('Вставь секрет API-ключ в верхнее поле. Он не восстанавливается с сервера.');
+  if(!prompt) return;
+  state.error = '';
+  state.messages.push({ role:'user', content:prompt });
+  renderApiKeyTester();
+  const send = $('apiTesterSend');
+  if(send) setBtnLoading(send, true, 'Отправить');
+  try{
+    const data = await testerRequest('/api/chat', {
+      apiKey:state.secret, model:state.model, messages:state.messages, stream:false, max_tokens:1024
+    });
+    const answer = data.choices?.[0]?.message?.content || 'Модель вернула пустой ответ.';
+    state.messages.push({ role:'assistant', content:answer });
+  }catch(error){ state.error = error.message; }
+  renderApiKeyTester();
+  $('apiTesterMessages')?.scrollTo({ top:$('apiTesterMessages').scrollHeight, behavior:'smooth' });
+}
+
+async function submitApiTesterAuth(event){
+  event.preventDefault();
+  const state = apiKeyTesterState;
+  if(!state.secret) return setApiTesterError('Вставь секрет API-ключ в верхнее поле.');
+  const username = $('apiTesterUsername').value.trim();
+  const password = $('apiTesterPassword').value;
+  const submit = $('apiTesterAuthSubmit');
+  if(submit) setBtnLoading(submit, true, state.authTab === 'register' ? 'Регистрируем…' : 'Входим…');
+  state.error = '';
+  try{
+    if(state.authTab === 'register') await testerRequest('/api/register', { username, password });
+    const result = await testerRequest('/api/auth/login', { apiKey:state.secret, username, password });
+    if(result.require2fa){
+      state.challengeId = result.challengeId;
+      state.loginUsername = username;
+      state.telegramVerified = false;
+    }else{
+      state.user = result;
+      state.telegramVerified = false;
+    }
+  }catch(error){ state.error = error.message; }
+  renderApiKeyTester();
+}
+
+async function submitApiTesterCode(event){
+  event.preventDefault();
+  const state = apiKeyTesterState;
+  const code = $('apiTesterCode').value.trim();
+  if(!/^\d{8}$/.test(code)) return setApiTesterError('Код должен состоять из 8 цифр.');
+  const submit = $('apiTesterCodeForm').querySelector('button[type="submit"]');
+  if(submit) setBtnLoading(submit, true, 'Проверяем…');
+  try{
+    state.user = await testerRequest('/api/auth/verify-2fa', { apiKey:state.secret, challengeId:state.challengeId, code });
+    state.telegramVerified = true;
+    state.challengeId = null;
+    state.error = '';
+  }catch(error){ state.error = error.message; }
+  renderApiKeyTester();
+}
+
+function openApiKeyTester(keyId){
+  const key = apiKeysCache.find(item => String(item.id) === String(keyId));
+  if(!key) return;
+  apiKeyTesterState = {
+    keyId:String(keyId), secret:apiKeySecrets.get(String(keyId)) || '', revealSecret:false,
+    mode:'auth', tab:'overview', authTab:'login', challengeId:null, loginUsername:'',
+    user:null, telegramVerified:false, model:'aurin-lite', messages:[], error:''
+  };
+  openModal(`
+    <div class="api-key-tester-shell">
+      <header class="api-tester-header">
+        <button class="api-tester-back" id="apiTesterClose" aria-label="Закрыть тестирование">←</button>
+        <div class="api-tester-heading"><strong>Тестирование API</strong><span>${escapeHtml(key.name)} · ${escapeHtml(key.app_name || typeMeta(key.type).label)}</span></div>
+        <label class="api-tester-key"><input id="apiTesterKey" type="password" autocomplete="off" spellcheck="false" value="${escapeHtml(apiKeyTesterState.secret)}" placeholder="Вставь секрет API-ключ"><button id="apiTesterKeyToggle" type="button">Показать</button></label>
+      </header>
+      <div class="api-tester-main">
+        <aside class="api-tester-sidebar"><div class="api-tester-sidebar-label">Выбери тест</div><button class="api-tester-mode active" data-mode="auth"><span class="api-tester-mode-icon">◉</span>Авторизация</button><button class="api-tester-mode" data-mode="ai"><span class="api-tester-mode-icon">✦</span>Нейросеть</button></aside>
+        <section class="api-tester-content"><nav class="api-tester-tabs"><button class="api-tester-tab active" data-tester-tab="overview">Обзор</button><button class="api-tester-tab" data-tester-tab="code">Код</button></nav><div class="api-tester-pane" id="apiTesterBody"></div></section>
+      </div>
+    </div>
+  `);
+  $('genericModal').classList.add('api-key-tester-active');
+  $('apiTesterClose').onclick = closeModal;
+  $('apiTesterKey').addEventListener('input', event => {
+    apiKeyTesterState.secret = event.target.value.trim();
+    apiKeySecrets.set(String(keyId), apiKeyTesterState.secret);
+    const notice = document.querySelector('.api-tester-secret-notice');
+    if(notice) notice.hidden = !!apiKeyTesterState.secret;
+    if(apiKeyTesterState.tab === 'code') renderApiKeyTester();
+  });
+  $('apiTesterKeyToggle').onclick = () => {
+    const input = $('apiTesterKey');
+    const visible = input.type === 'password';
+    input.type = visible ? 'text' : 'password';
+    $('apiTesterKeyToggle').textContent = visible ? 'Скрыть' : 'Показать';
+  };
+  document.querySelectorAll('.api-tester-mode').forEach(button => button.onclick = () => {
+    apiKeyTesterState.mode = button.dataset.mode;
+    apiKeyTesterState.tab = 'overview';
+    apiKeyTesterState.error = '';
+    document.querySelectorAll('.api-tester-mode').forEach(item => item.classList.toggle('active', item === button));
+    document.querySelectorAll('.api-tester-tab').forEach(item => item.classList.toggle('active', item.dataset.testerTab === 'overview'));
+    renderApiKeyTester();
+  });
+  document.querySelectorAll('.api-tester-tab').forEach(button => button.onclick = () => {
+    apiKeyTesterState.tab = button.dataset.testerTab;
+    document.querySelectorAll('.api-tester-tab').forEach(item => item.classList.toggle('active', item === button));
+    renderApiKeyTester();
+  });
+  renderApiKeyTester();
+}
+
 function renderApiKeyDetailBody(k){
   const status = apiKeyStatusLabel(k);
   const statusPill = `<span class="pill ${status.className}">${status.label}</span>`;
@@ -7087,6 +7434,7 @@ function renderApiKeyDetailBody(k){
       <div class="key-stat">Последний запрос: <b>${lastUsed}</b></div>
     </div>
     <div class="key-actions">
+      <button class="btn btn-dark btn-sm" id="keyDetailTestBtn">Протестировать</button>
       <button class="btn btn-outline btn-sm" id="keyDetailStatusBtn">${k.status === 'active' ? 'Отключить' : 'Включить'}</button>
       <button class="btn btn-outline btn-sm" id="keyDetailRotateBtn">Перевыпустить</button>
       <button class="btn btn-outline btn-sm" id="keyDetailEditBtn">Редактировать</button>
@@ -7098,6 +7446,7 @@ function renderApiKeyDetailBody(k){
     <div id="keyLogsBody"><div class="loader">Загрузка…</div></div>
     </div>`;
 
+  $('keyDetailTestBtn').onclick = () => openApiKeyTester(k.id);
   $('keyDetailStatusBtn').onclick = () => setApiKeyStatus(k.id, k.status === 'active' ? 'inactive' : 'active');
   $('keyDetailRotateBtn').onclick = () => rotateApiKey(k.id);
   $('keyDetailEditBtn').onclick = () => openEditKeyModal(k.id);
@@ -7142,6 +7491,7 @@ $('createKeyBtn').onclick = () => {
       });
       const data = await res.json();
       if(res.ok && data.success){
+        apiKeySecrets.set(String(data.key.id), data.secret);
         closeModal();
         loadApiKeys();
         showApiKeySecret(data.secret, 'API-ключ создан');
@@ -7222,6 +7572,7 @@ async function rotateApiKey(keyId){
     if(!res.ok || !data.success) return alert(data.error || 'Не удалось перевыпустить ключ');
     const key = apiKeysCache.find(item => String(item.id) === String(keyId));
     if(key){
+      apiKeySecrets.set(String(key.id), data.secret);
       key.key_prefix = data.secret.slice(0, 12);
       key.status = 'active';
       renderApiKeyDetailBody(key);
