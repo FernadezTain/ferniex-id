@@ -3,7 +3,7 @@ import fetch from "node-fetch";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import cors from "cors";
-import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
 dotenv.config();
 
@@ -54,11 +54,12 @@ function sanitizeLog(body) {
   if (safe.code) safe.code = '***';
   if (safe.sessionToken) safe.sessionToken = '***';
   if (safe.challengeId) safe.challengeId = '***';
-  if (typeof safe.key === 'string') safe.key = safe.key.slice(0, 12) + '...';
+  if (typeof safe.key === 'string') safe.key = '***';
   else if (safe.key && typeof safe.key === 'object' && typeof safe.key.key === 'string') {
-    safe.key = { ...safe.key, key: safe.key.key.slice(0, 12) + '...' };
+    safe.key = { ...safe.key, key: '***' };
   }
-  if (typeof safe.apiKey === 'string') safe.apiKey = safe.apiKey.slice(0, 12) + '...';
+  if (typeof safe.apiKey === 'string') safe.apiKey = '***';
+  if (typeof safe.secret === 'string') safe.secret = '***';
   if (safe.imageBase64) safe.imageBase64 = `[image, ${Math.round(safe.imageBase64.length / 1024)}kb]`;
   if (safe.imageUrl && safe.imageUrl.startsWith('data:')) safe.imageUrl = `[image, ${Math.round(safe.imageUrl.length / 1024)}kb]`;
   return safe;
@@ -4149,10 +4150,8 @@ app.post('/api/chat', async (req, res) => {
   if (!apiKeyProvided) return res.status(401).json({ error: { message: 'Нет API-ключа' } });
   let apiKeyRow = null;
   try {
-    const keyCheck = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKeyProvided)}&select=id,user_id,status`, { headers: sbHeaders });
-    const keyRows = await keyCheck.json();
-    if (!keyRows.length || !isApiKeyActive(keyRows[0])) return res.status(401).json({ error: { message: keyRows[0]?.status === 'active' ? 'Срок действия API-ключа истёк' : 'Неверный или неактивный API-ключ' } });
-    apiKeyRow = keyRows[0];
+    apiKeyRow = await findApiKeyBySecret(apiKeyProvided);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow)) return res.status(401).json({ error: { message: 'Неверный или неактивный API-ключ' } });
   } catch (e) {
     console.error('apiKey check failed:', e.message);
     return res.status(503).json({ error: { message: 'Не удалось проверить API-ключ' } });
@@ -4179,7 +4178,17 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: { message: 'Запрос нарушает правила безопасности FernieX-AI.', code: 'jailbreak_detected' } });
   }
 
-  const userId = req.body.userId || null;
+  if (req.body.userId && String(req.body.userId) !== String(apiKeyRow.user_id)) {
+    return res.status(403).json({ error: { message: 'Пользователь не соответствует владельцу API-ключа', code: 'api_key_owner_mismatch' } });
+  }
+  const userId = apiKeyRow.user_id ? String(apiKeyRow.user_id) : null;
+  if (Array.isArray(messages)) {
+    messages = messages.map(message => {
+      if (message?.role !== 'system' || typeof message.content !== 'string') return message;
+      const safeContent = message.content.replace(/<\/?(?:netsearch|webfetch|docsearch|imgsearch)>/gi, '');
+      return { ...message, content: safeContent };
+    });
+  }
   const usageIdentifier = userId ? String(userId) : `key_${apiKeyRow.id}`;
   const TOKEN_LIMIT_ANON = 50000;
 
@@ -4656,6 +4665,94 @@ function getApiKeyDisplayStatus(apiKey) {
   return isApiKeyActive(apiKey) ? 'active' : 'inactive';
 }
 
+function hashApiKey(key) {
+  return createHash('sha256').update(key).digest('hex');
+}
+
+function apiKeyMetadata(apiKey) {
+  const { id, user_id, name, type, app_name, status, requests_total, requests_today, last_used_at, created_at, updated_at, key_prefix } = apiKey;
+  return { id, user_id, name, type, app_name, status, requests_total, requests_today, last_used_at, created_at, updated_at, key_prefix };
+}
+
+async function findApiKeyBySecret(secret) {
+  if (typeof secret !== 'string' || secret.length < 20 || secret.length > 256) return null;
+  const hash = hashApiKey(secret);
+  const fields = 'id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_date,last_used_at,created_at,updated_at,key_prefix';
+  const hashResponse = await fetch(
+    `${SB_URL}/rest/v1/api_keys?api_key_hash=eq.${hash}&select=${fields}&limit=1`,
+    { headers: sbHeaders }
+  );
+  if (hashResponse.ok) {
+    const hashedRows = await hashResponse.json();
+    if (hashedRows[0]) {
+      if (isApiKeyActive(hashedRows[0])) await trackApiKeyUse(hashedRows[0].id);
+      return hashedRows[0];
+    }
+  }
+
+  const legacyFields = hashResponse.ok
+    ? 'id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_date,last_used_at,created_at,updated_at,key_prefix,key'
+    : 'id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_date,last_used_at,created_at,key';
+  const legacyResponse = await fetch(
+    `${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(secret)}&select=${legacyFields}&limit=1`,
+    { headers: sbHeaders }
+  );
+  if (!legacyResponse.ok) throw new Error('Не удалось проверить API-ключ');
+  const legacyRows = await legacyResponse.json();
+  const legacyKey = legacyRows[0];
+  if (!legacyKey) return null;
+
+  if (hashResponse.ok && legacyKey.key === secret) {
+    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${encodeURIComponent(legacyKey.id)}&key=eq.${encodeURIComponent(secret)}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ api_key_hash: hash, key_prefix: secret.slice(0, 12), key: null })
+    });
+  }
+  delete legacyKey.key;
+  if (hashResponse.ok && isApiKeyActive(legacyKey)) await trackApiKeyUse(legacyKey.id);
+  return legacyKey;
+}
+
+async function trackApiKeyUse(keyId) {
+  const response = await fetch(`${SB_URL}/rest/v1/rpc/track_api_key_use`, {
+    method: 'POST',
+    headers: sbHeaders,
+    body: JSON.stringify({ p_api_key_id: keyId })
+  });
+  if (!response.ok) console.error('API key usage counter update failed:', await response.text());
+}
+
+async function requireDashboardSession(req, res, next) {
+  const token = req.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const claims = verifySessionToken(token);
+  if (!claims || !/^\d+$/.test(claims.sub)) {
+    return res.status(401).json({ success: false, error: 'Требуется действующая сессия' });
+  }
+  try {
+    const response = await fetch(
+      `${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(claims.sub)}&select=id&limit=1`,
+      { headers: sbHeaders }
+    );
+    if (!response.ok) return res.status(503).json({ success: false, error: 'Не удалось проверить сессию' });
+    const users = await response.json();
+    if (!users[0]) return res.status(401).json({ success: false, error: 'Сессия больше не активна' });
+    req.dashboardUserId = String(users[0].id);
+    next();
+  } catch {
+    res.status(503).json({ success: false, error: 'Не удалось проверить сессию' });
+  }
+}
+
+async function getOwnedApiKey(keyId, userId) {
+  const response = await fetch(
+    `${SB_URL}/rest/v1/api_keys?id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_at,created_at,updated_at,key_prefix&limit=1`,
+    { headers: sbHeaders }
+  );
+  if (!response.ok) throw new Error('Не удалось проверить владельца API-ключа');
+  return (await response.json())[0] || null;
+}
+
 // Хелпер: логирование действия с API-ключом
 async function logApiKeyAction(apiKeyId, userId, action, meta = {}) {
   try {
@@ -4676,163 +4773,182 @@ async function logApiKeyAction(apiKeyId, userId, action, meta = {}) {
 }
 
 // GET /api/apikeys/:userId — список ключей пользователя
-app.get('/api/apikeys/:userId', async (req, res) => {
-  const { userId } = req.params;
+app.get('/api/apikeys/:userId', requireDashboardSession, async (req, res) => {
+  const userId = String(req.params.userId);
+  if (userId !== req.dashboardUserId) return res.status(403).json({ success: false, error: 'Нет доступа к этим ключам' });
   try {
     const r = await fetch(
-      `${SB_URL}/rest/v1/api_keys?user_id=eq.${userId}&order=created_at.desc`,
+      `${SB_URL}/rest/v1/api_keys?user_id=eq.${encodeURIComponent(userId)}&select=id,user_id,name,type,app_name,status,requests_total,requests_today,last_used_at,created_at,updated_at,key_prefix&order=created_at.desc&limit=100`,
       { headers: sbHeaders }
     );
     const keys = await r.json();
     if (!r.ok || !Array.isArray(keys)) {
       return res.status(502).json({ success: false, error: 'Не удалось загрузить API-ключи' });
     }
-    const normalizedKeys = keys.map(key => ({ ...key, display_status: getApiKeyDisplayStatus(key) }));
-    res.json({ success: true, keys: normalizedKeys });
+    res.json({ success: true, keys: keys.map(apiKeyMetadata) });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    res.status(502).json({ success: false, error: 'Не удалось загрузить API-ключи' });
   }
 });
 
 // POST /api/apikeys/create — создание нового ключа
-app.post('/api/apikeys/create', async (req, res) => {
-  const { userId, name, type, appName } = req.body;
-  if (!userId || !name) return res.json({ success: false, error: 'Нет обязательных полей' });
+app.post('/api/apikeys/create', requireDashboardSession, async (req, res) => {
+  const userId = req.dashboardUserId;
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  const appName = typeof req.body?.appName === 'string' ? req.body.appName.trim() : '';
+  const type = req.body?.type;
+  if (!name || name.length > 60 || appName.length > 80 || !['web', 'mobile', 'bot', 'game', 'other'].includes(type)) {
+    return res.status(400).json({ success: false, error: 'Проверь название, приложение и тип ключа' });
+  }
   try {
-    const countRes = await fetch(`${SB_URL}/rest/v1/api_keys?user_id=eq.${encodeURIComponent(userId)}&select=id,status`, { headers: sbHeaders });
-    const existing = await countRes.json();
-    if (!countRes.ok || !Array.isArray(existing)) {
-      console.error('API key count query failed:', JSON.stringify(existing).slice(0, 300));
-      return res.status(502).json({ success: false, error: 'Не удалось проверить количество API-ключей' });
-    }
-    const activeCount = existing.filter(isApiKeyActive).length;
-    if (activeCount >= 10) {
-      return res.status(409).json({ success: false, error: `Лимит: 10 действующих ключей. Сейчас действует ${activeCount}. Отключите ненужный ключ или удалите его.` });
-    }
-
     const key = generateApiKey();
-    const insertRes = await fetch(`${SB_URL}/rest/v1/api_keys`, {
+    const insertRes = await fetch(`${SB_URL}/rest/v1/rpc/create_api_key_with_limit`, {
       method: 'POST',
-      headers: { ...sbHeaders, Prefer: 'return=representation' },
+      headers: sbHeaders,
       body: JSON.stringify({
-        user_id: userId,
-        name,
-        key,
-        type: type || 'other',
-        app_name: appName || '',
-        status: 'active',
-        requests_total: 0,
-        requests_today: 0,
-        last_used_at: null,
-        created_at: new Date().toISOString()
+        p_user_id: userId,
+        p_name: name,
+        p_type: type,
+        p_app_name: appName,
+        p_api_key_hash: hashApiKey(key),
+        p_key_prefix: key.slice(0, 12)
       })
     });
     const rows = await insertRes.json();
+    if (rows?.code === 'P0001' && rows?.message === 'API_KEY_LIMIT') {
+      return res.status(409).json({ success: false, error: 'Лимит: не более 10 активных API-ключей.' });
+    }
     if (!insertRes.ok || !rows[0]) {
       console.error('API key insert failed:', JSON.stringify(rows).slice(0, 300));
-      return res.status(502).json({ success: false, error: 'Не удалось сохранить API-ключ' });
+      return res.status(503).json({ success: false, error: 'Не удалось создать ключ. Проверь, что миграция API-ключей применена.' });
     }
-    const created = rows[0];
-    await logApiKeyAction(created.id, userId, 'created', { name, type, appName });
-    res.json({ success: true, key: created });
+    const created = apiKeyMetadata(rows[0]);
+    await logApiKeyAction(created.id, userId, 'created', { name, type, app: appName });
+    res.status(201).json({ success: true, key: created, secret: key });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    console.error('API key creation failed:', e.message);
+    res.status(503).json({ success: false, error: 'Не удалось создать API-ключ' });
   }
 });
 
 // PATCH /api/apikeys/:keyId — редактирование ключа
-app.patch('/api/apikeys/:keyId', async (req, res) => {
+app.patch('/api/apikeys/:keyId', requireDashboardSession, async (req, res) => {
   const { keyId } = req.params;
-  const { userId, name, appName } = req.body;
-  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  const userId = req.dashboardUserId;
+  const { name: inputName, appName: inputAppName, type, status } = req.body || {};
+  if (status !== undefined && (inputName !== undefined || inputAppName !== undefined || type !== undefined)) {
+    return res.status(400).json({ success: false, error: 'Изменяй статус отдельно от параметров ключа' });
+  }
   try {
-    // Проверяем владельца
-    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
-    const rows = await check.json();
-    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
-
-    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({ name, app_name: appName, updated_at: new Date().toISOString() })
-    });
-    await logApiKeyAction(keyId, userId, 'edited', { name, appName });
+    const existing = await getOwnedApiKey(keyId, userId);
+    if (!existing) return res.status(404).json({ success: false, error: 'Ключ не найден' });
+    const update = { updated_at: new Date().toISOString() };
+    if (inputName !== undefined) {
+      if (typeof inputName !== 'string' || !inputName.trim() || inputName.trim().length > 60) return res.status(400).json({ success: false, error: 'Название должно содержать 1–60 символов' });
+      update.name = inputName.trim();
+    }
+    if (inputAppName !== undefined) {
+      if (typeof inputAppName !== 'string' || inputAppName.trim().length > 80) return res.status(400).json({ success: false, error: 'Название приложения должно быть не длиннее 80 символов' });
+      update.app_name = inputAppName.trim();
+    }
+    if (type !== undefined) {
+      if (!['web', 'mobile', 'bot', 'game', 'other'].includes(type)) return res.status(400).json({ success: false, error: 'Некорректный тип ключа' });
+      update.type = type;
+    }
+    if (status !== undefined) {
+      if (!['active', 'inactive'].includes(status)) return res.status(400).json({ success: false, error: 'Некорректный статус ключа' });
+      const statusResponse = await fetch(`${SB_URL}/rest/v1/rpc/set_api_key_status`, {
+        method: 'POST',
+        headers: sbHeaders,
+        body: JSON.stringify({ p_user_id: userId, p_api_key_id: keyId, p_status: status })
+      });
+      const statusRows = await statusResponse.json();
+      if (statusRows?.code === 'P0001' && statusRows?.message === 'API_KEY_LIMIT') return res.status(409).json({ success: false, error: 'Лимит: не более 10 активных API-ключей.' });
+      if (!statusResponse.ok || !statusRows[0]) return res.status(statusResponse.ok ? 404 : 502).json({ success: false, error: 'Не удалось изменить статус ключа' });
+      if (status !== existing.status) {
+        await logApiKeyAction(keyId, userId, `status_${status}`, {});
+      }
+      delete update.status;
+    }
+    if (Object.keys(update).some(field => field !== 'updated_at')) {
+      const response = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH',
+        headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify(update)
+      });
+      if (!response.ok) return res.status(502).json({ success: false, error: 'Не удалось обновить API-ключ' });
+    }
+    if (status === undefined || status === existing.status) await logApiKeyAction(keyId, userId, 'edited', { name: update.name, app: update.app_name, type });
     res.json({ success: true });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    res.status(502).json({ success: false, error: 'Не удалось обновить API-ключ' });
+  }
+});
+
+app.post('/api/apikeys/:keyId/rotate', requireDashboardSession, async (req, res) => {
+  const { keyId } = req.params;
+  const userId = req.dashboardUserId;
+  try {
+    const existing = await getOwnedApiKey(keyId, userId);
+    if (!existing) return res.status(404).json({ success: false, error: 'Ключ не найден' });
+    const secret = generateApiKey();
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/rotate_api_key`, {
+      method: 'POST',
+      headers: sbHeaders,
+      body: JSON.stringify({ p_user_id: userId, p_api_key_id: keyId, p_api_key_hash: hashApiKey(secret), p_key_prefix: secret.slice(0, 12) })
+    });
+    const rows = await response.json();
+    if (rows?.code === 'P0001' && rows?.message === 'API_KEY_LIMIT') return res.status(409).json({ success: false, error: 'Лимит: не более 10 активных API-ключей.' });
+    if (!response.ok || !rows[0]) return res.status(response.ok ? 404 : 502).json({ success: false, error: 'Не удалось перевыпустить ключ' });
+    await logApiKeyAction(keyId, userId, 'rotated', {});
+    res.json({ success: true, secret });
+  } catch {
+    res.status(502).json({ success: false, error: 'Не удалось перевыпустить ключ' });
   }
 });
 
 // DELETE /api/apikeys/:keyId — удаление ключа
-app.delete('/api/apikeys/:keyId', async (req, res) => {
+app.delete('/api/apikeys/:keyId', requireDashboardSession, async (req, res) => {
   const { keyId } = req.params;
-  const { userId } = req.body;
-  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  const userId = req.dashboardUserId;
   try {
-    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
-    const rows = await check.json();
-    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
-
-    // Удаляем логи ключа
-    await fetch(`${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${keyId}`, { method: 'DELETE', headers: sbHeaders });
-    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}`, { method: 'DELETE', headers: sbHeaders });
+    if (!await getOwnedApiKey(keyId, userId)) return res.status(404).json({ success: false, error: 'Ключ не найден' });
+    const logs = await fetch(`${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE', headers: sbHeaders });
+    if (!logs.ok) return res.status(502).json({ success: false, error: 'Не удалось удалить историю ключа' });
+    const deleted = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}`, { method: 'DELETE', headers: sbHeaders });
+    if (!deleted.ok) return res.status(502).json({ success: false, error: 'Не удалось удалить API-ключ' });
     res.json({ success: true });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    res.status(502).json({ success: false, error: 'Не удалось удалить API-ключ' });
   }
 });
 
 // GET /api/apikeys/:keyId/logs — логи конкретного ключа
-app.get('/api/apikeys/:keyId/logs', async (req, res) => {
+app.get('/api/apikeys/:keyId/logs', requireDashboardSession, async (req, res) => {
   const { keyId } = req.params;
-  const userId = req.query.userId;
-  if (!userId) return res.json({ success: false, error: 'Нет userId' });
+  const userId = req.dashboardUserId;
   try {
-    // Проверяем владельца
-    const check = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${keyId}&user_id=eq.${userId}&select=id`, { headers: sbHeaders });
-    const rows = await check.json();
-    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
+    if (!await getOwnedApiKey(keyId, userId)) return res.status(404).json({ success: false, error: 'Ключ не найден' });
 
     const logsRes = await fetch(
-      `${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${keyId}&order=created_at.desc&limit=50`,
+      `${SB_URL}/rest/v1/api_key_logs?api_key_id=eq.${encodeURIComponent(keyId)}&user_id=eq.${encodeURIComponent(userId)}&select=action,meta,created_at&order=created_at.desc&limit=50`,
       { headers: sbHeaders }
     );
     const logs = await logsRes.json();
+    if (!logsRes.ok || !Array.isArray(logs)) return res.status(502).json({ success: false, error: 'Не удалось загрузить историю ключа' });
     res.json({ success: true, logs });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    res.status(502).json({ success: false, error: 'Не удалось загрузить историю ключа' });
   }
 });
 
 // POST /api/apikeys/verify — проверка ключа сторонним сервисом (логирует запрос)
 app.post('/api/apikeys/verify', async (req, res) => {
   const { key } = req.body;
-  if (!key) return res.json({ success: false, error: 'Нет ключа' });
+  if (typeof key !== 'string' || !key) return res.status(400).json({ success: false, error: 'Нет ключа' });
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(key)}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
-    const rows = await r.json();
-    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
-    const apiKey = rows[0];
-    if (!isApiKeyActive(apiKey)) return res.json({ success: false, error: apiKey.status === 'active' ? 'Срок действия ключа истёк' : 'Ключ неактивен' });
-
-    // Обновляем счётчики и last_used_at
-    const today = new Date().toISOString().slice(0, 10);
-    const statsRes = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}&select=requests_total,requests_today,last_used_date`, { headers: sbHeaders });
-    const statsRows = await statsRes.json();
-    const cur = statsRows[0] || {};
-    const sameDay = cur.last_used_date === today;
-    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        requests_total: (cur.requests_total || 0) + 1,
-        requests_today: sameDay ? (cur.requests_today || 0) + 1 : 1,
-        last_used_date: today,
-        last_used_at: new Date().toISOString()
-      })
-    });
-
-    // Лог запроса
+    const apiKey = await findApiKeyBySecret(key);
+    if (!apiKey || !isApiKeyActive(apiKey)) return res.status(401).json({ success: false, error: 'Неверный или неактивный API-ключ' });
     await logApiKeyAction(apiKey.id, apiKey.user_id, 'verify', {
       ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
       origin: req.headers['origin'] || req.headers['referer'] || '',
@@ -4842,7 +4958,8 @@ app.post('/api/apikeys/verify', async (req, res) => {
 
     res.json({ success: true, userId: apiKey.user_id, name: apiKey.name, appName: apiKey.app_name, type: apiKey.type });
   } catch (e) {
-    res.json({ success: false, error: e.message });
+    console.error('API key verification failed:', e.message);
+    res.status(503).json({ success: false, error: 'Не удалось проверить API-ключ' });
   }
 });
 
@@ -4869,38 +4986,6 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-app.post('/api/apikeys/verify', async (req, res) => {
-  const { key } = req.body;
-  if (!key) return res.json({ success: false, error: 'Нет ключа' });
-  try {
-    const r = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(key)}&select=id,user_id,status,name,app_name,type`, { headers: sbHeaders });
-    const rows = await r.json();
-    if (!rows.length) return res.json({ success: false, error: 'Ключ не найден' });
-    const apiKey = rows[0];
-    if (!isApiKeyActive(apiKey)) return res.json({ success: false, error: apiKey.status === 'active' ? 'Срок действия ключа истёк' : 'Ключ неактивен' });
-
-    const today = new Date().toISOString().slice(0, 10);
-    const statsRes = await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}&select=requests_total,requests_today,last_used_date`, { headers: sbHeaders });
-    const statsRows = await statsRes.json();
-    const cur = statsRows[0] || {};
-    const sameDay = cur.last_used_date === today;
-    await fetch(`${SB_URL}/rest/v1/api_keys?id=eq.${apiKey.id}`, {
-      method: 'PATCH',
-      headers: { ...sbHeaders, Prefer: 'return=minimal' },
-      body: JSON.stringify({
-        requests_total: (cur.requests_total || 0) + 1,
-        requests_today: sameDay ? (cur.requests_today || 0) + 1 : 1,
-        last_used_date: today,
-        last_used_at: new Date().toISOString()
-      })
-    });
-
-    res.json({ success: true, userId: apiKey.user_id, name: apiKey.name, appName: apiKey.app_name, type: apiKey.type });
-  } catch (e) {
-    res.json({ success: false, error: e.message });
-  }
-});
-
 // ══════════════════════════════════════════
 //  ВНЕШНЯЯ АВТОРИЗАЦИЯ ЧЕРЕЗ API КЛЮЧ
 // ══════════════════════════════════════════
@@ -4911,12 +4996,10 @@ app.post('/api/auth/login', async (req, res) => {
 
   try {
     // 1. Проверяем API ключ
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,user_id,status,name,app_name`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length) return res.json({ success: false, error: 'Неверный API ключ' });
-    if (!isApiKeyActive(keys[0])) return res.json({ success: false, error: keys[0].status === 'active' ? 'Срок действия API-ключа истёк' : 'API ключ неактивен' });
-    const appName = keys[0].app_name;
-    const appKeyId = keys[0].id;
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow)) return res.status(401).json({ success: false, error: 'Неверный или неактивный API-ключ' });
+    const appName = apiKeyRow.app_name;
+    const appKeyId = apiKeyRow.id;
 
     // 2. Ищем пользователя
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,password_hash,telegram_id,role`, { headers: sbHeaders });
@@ -4934,7 +5017,7 @@ app.post('/api/auth/login', async (req, res) => {
       headers: { ...sbHeaders, Prefer: 'return=minimal' },
       body: JSON.stringify({
         api_key_id: appKeyId,
-        user_id: keys[0].user_id,
+        user_id: apiKeyRow.user_id,
         action: 'auth_request',
         meta: { username, app: appName, has_telegram: !!user.telegram_id, ip: req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '?' },
         created_at: new Date().toISOString()
@@ -4947,7 +5030,7 @@ app.post('/api/auth/login', async (req, res) => {
       const challengeId = randomBytes(24).toString('hex');
       const code = String(randomInt(10_000_000, 100_000_000));
       const expiresAt = new Date(Date.now() + LOGIN_CHALLENGE_TTL_MS).toISOString();
-      const previous = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?user_id=eq.${user.id}&api_key_id=eq.${keys[0].id}`, {
+      const previous = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}?user_id=eq.${user.id}&api_key_id=eq.${apiKeyRow.id}`, {
         method:'DELETE',headers:sbHeaders
       });
       if(!previous.ok){
@@ -4956,7 +5039,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
       const challengeRes = await fetch(`${SB_URL}/rest/v1/${LOGIN_CHALLENGE_TABLE}`, {
         method:'POST',headers:{...sbHeaders,Prefer:'return=minimal'},
-        body:JSON.stringify({challenge_id:challengeId,user_id:user.id,api_key_id:keys[0].id,code_hash:hashLoginCode(challengeId,code),expires_at:expiresAt,attempts:0})
+        body:JSON.stringify({challenge_id:challengeId,user_id:user.id,api_key_id:apiKeyRow.id,code_hash:hashLoginCode(challengeId,code),expires_at:expiresAt,attempts:0})
       });
       if(!challengeRes.ok){
         await supabaseFailureDetails(challengeRes, 'SDK login challenge insert failed');
@@ -4993,21 +5076,20 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
 
   try {
     // Проверяем API ключ
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,app_name`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length || !isApiKeyActive(keys[0]))
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const challengeId = String(req.body.challengeId);
     const code = String(req.body.code).trim();
     if(!/^[a-f\d]{48}$/i.test(challengeId) || !/^\d{8}$/.test(code))
       return res.status(400).json({success:false,error:'Некорректный код подтверждения'});
-    const verification = await verifyLoginChallenge(challengeId, code, keys[0].id);
+    const verification = await verifyLoginChallenge(challengeId, code, apiKeyRow.id);
     if(!verification.user) return res.status(verification.status).json({success:false,error:verification.error});
     const {user} = verification;
 
     // Получаем appName из ключа
-    const appName = keys[0].app_name || 'FernieID';
+    const appName = apiKeyRow.app_name || 'FernieID';
 
     // Уведомление об успешном входе
     if (user.telegram_id) {
@@ -5037,12 +5119,11 @@ app.post('/api/edit/balance', async (req, res) => {
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,user_id,app_name,type`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length || !isApiKeyActive(keys[0]))
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
-    if (action === 'add' && keys[0].type !== 'bot')
+    if (action === 'add' && apiKeyRow.type !== 'bot')
       return res.json({ success: false, error: 'Пополнение доступно только для bot-ключей' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
@@ -5066,9 +5147,9 @@ const botRes = await fetch(`${process.env.BOT_URL}/api/edit/balance`, {
     const botData = await botRes.json();
 
     if (botData.success) {
-      await logApiKeyAction(keys[0].id, keys[0].user_id, `balance_${action}`, {
+      await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id, `balance_${action}`, {
         ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
-        username: user.username, currency, amount, app: keys[0].app_name
+        username: user.username, currency, amount, app: apiKeyRow.app_name
       });
     }
 
@@ -5088,9 +5169,8 @@ app.post('/api/balance/get', async (req, res) => {
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status,user_id`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length || !isApiKeyActive(keys[0]))
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
@@ -5119,7 +5199,7 @@ app.post('/api/balance/get', async (req, res) => {
     if (!botData.success)
       return res.json({ success: false, error: 'not_in_bot', message: 'Аккаунт не найден в боте.' });
 
-    await logApiKeyAction(keys[0].id, keys[0].user_id || null, 'balance_request', {
+    await logApiKeyAction(apiKeyRow.id, apiKeyRow.user_id || null, 'balance_request', {
       ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip,
       origin: req.headers['origin'] || req.headers['referer'] || '',
       username: user.username,
@@ -5755,9 +5835,8 @@ app.post('/api/birthday/submit', async (req, res) => {
   if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length || !isApiKeyActive(keys[0]))
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,telegram_id`, { headers: sbHeaders });
@@ -5847,9 +5926,8 @@ app.post('/api/birthday/check', async (req, res) => {
   if (!apiKey || !username) return res.json({ success: false, error: 'Нет обязательных полей' });
 
   try {
-    const keyRes = await fetch(`${SB_URL}/rest/v1/api_keys?key=eq.${encodeURIComponent(apiKey)}&select=id,status`, { headers: sbHeaders });
-    const keys = await keyRes.json();
-    if (!keys.length || !isApiKeyActive(keys[0]))
+    const apiKeyRow = await findApiKeyBySecret(apiKey);
+    if (!apiKeyRow || !isApiKeyActive(apiKeyRow))
       return res.json({ success: false, error: 'Неверный API ключ' });
 
     const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id`, { headers: sbHeaders });
