@@ -715,8 +715,9 @@ body:hover::-webkit-scrollbar-thumb{
 @keyframes udgAreaReveal{to{opacity:.17;}}
 @media(prefers-reduced-motion:reduce){.udg-candle-wick,.udg-candle-body,.udg-chart-line,.udg-chart-fill{animation-duration:.01ms;animation-delay:0ms;}}
 .udg-exchange-footer{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1rem;color:var(--muted);font-size:.78rem;letter-spacing:.02em;}
-.udg-recent-trades{position:relative;margin-top:1.15rem;padding:1rem;border:1px solid color-mix(in srgb,var(--field-border) 80%,transparent);border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--card) 90%,transparent),color-mix(in srgb,var(--field) 78%,transparent));overflow:hidden;isolation:isolate;}
-.udg-recent-trades::before{position:absolute;z-index:-1;inset:-70% auto auto -18%;width:55%;height:170%;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--sage) 20%,transparent),transparent 70%);content:"";animation:udgTradesAura 8s ease-in-out infinite alternate;pointer-events:none;}
+.udg-recent-trades{position:relative;contain:paint;margin-top:1.15rem;padding:1rem;border:1px solid color-mix(in srgb,var(--field-border) 80%,transparent);border-radius:18px;background:linear-gradient(135deg,color-mix(in srgb,var(--card) 90%,transparent),color-mix(in srgb,var(--field) 78%,transparent));overflow:hidden;isolation:isolate;}
+.udg-recent-trades::before{position:absolute;z-index:0;inset:0;width:100%;height:100%;border-radius:inherit;background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--sage) 18%,transparent),transparent 62%);content:"";animation:udgTradesAura 8s ease-in-out infinite alternate;pointer-events:none;}
+.udg-recent-trades>*{position:relative;z-index:1;}
 .udg-recent-trades-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.65rem;}
 .udg-recent-trades-head h3{margin:.22rem 0 0;color:var(--ink);font-family:'Syne',sans-serif;font-size:1.05rem;letter-spacing:-.025em;}
 .udg-trades-live{display:inline-flex;align-items:center;gap:.4rem;padding:.34rem .58rem;border:1px solid color-mix(in srgb,var(--success) 24%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--success) 7%,var(--card));color:var(--success);font-size:.62rem;font-weight:900;letter-spacing:.12em;}
@@ -735,7 +736,7 @@ body:hover::-webkit-scrollbar-thumb{
 .udg-trade-amount span{display:block;margin-top:.2rem;color:var(--muted);font-size:.63rem;}
 .udg-trades-state{padding:.95rem .6rem;color:var(--muted);font-size:.78rem;text-align:center;}
 @keyframes udgTradesPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--success) 38%,transparent);}70%,100%{box-shadow:0 0 0 7px transparent;}}
-@keyframes udgTradesAura{from{transform:translate3d(-5%,0,0) scale(.9);opacity:.52;}to{transform:translate3d(25%,8%,0) scale(1.16);opacity:.9;}}
+@keyframes udgTradesAura{from{opacity:.42;}to{opacity:.78;}}
 @keyframes udgTradeEnter{from{opacity:0;transform:translateY(12px) scale(.985);filter:blur(4px);}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}}
 @media(max-width:520px){.udg-recent-trades{padding:.8rem;border-radius:15px;}.udg-trade-row{grid-template-columns:32px minmax(0,1fr) auto;gap:.55rem;padding:.5rem;}.udg-trade-side{width:30px;height:30px;border-radius:9px;}.udg-trade-user{font-size:.73rem;}.udg-trade-detail{font-size:.62rem;}.udg-trade-amount strong{font-size:.7rem;}}
 @media(prefers-reduced-motion:reduce){.udg-recent-trades::before,.udg-trades-live i{animation:none;}.udg-trade-row{transition:none;}}
