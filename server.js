@@ -686,10 +686,8 @@ app.get("/api/test-bot", async (req, res) => {
 
 // ====== Генерация токена привязки Telegram ======
 app.post("/api/telegram/generate-token", async (req, res) => {
-  const claims = verifySessionToken(req.body?.sessionToken);
-  if (!claims) return res.status(401).json({ success: false, error: "Сессия истекла. Войдите снова." });
-  const userId = claims.sub;
-  if (req.body?.userId && String(req.body.userId) !== userId) return res.status(403).json({ success: false, error: "Недостаточно прав" });
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
     const token = genLinkCode();
     const patchRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
@@ -756,10 +754,8 @@ app.post("/api/telegram/link", async (req, res) => {
 
 // ====== Статус привязки (для опроса кода/ссылки на сайте) ======
 app.post("/api/telegram/link-status", async (req, res) => {
-  const claims = verifySessionToken(req.body?.sessionToken);
-  if (!claims) return res.status(401).json({ success: false, error: "Сессия истекла. Войдите снова." });
-  const userId = claims.sub;
-  if (req.body?.userId && String(req.body.userId) !== userId) return res.status(403).json({ success: false, error: "Недостаточно прав" });
+  const { userId } = req.body;
+  if (!userId) return res.json({ success: false, error: "Нет userId" });
   try {
     const r = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id,link_token,link_token_created_at`, { headers: sbHeaders });
     const users = await r.json();
@@ -2459,6 +2455,16 @@ app.get('/api/exchange/summary', async (req, res) => {
   } catch (e) {
     console.error('exchange summary error:', e);
     res.status(502).json({ success: false, error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
+  }
+});
+
+app.get('/api/exchange/recent-trades', async (req, res) => {
+  try {
+    const result = await exchangeBotRequest('/api/exchange/recent-trades');
+    return res.status(result.status).json(result.data);
+  } catch (e) {
+    console.error('exchange recent trades error:', e);
+    return res.status(502).json({ success: false, trades: [], error: e.name === 'AbortError' ? 'Таймаут сервиса бота' : 'Сервис биржи бота недоступен' });
   }
 });
 
