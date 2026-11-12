@@ -3975,6 +3975,14 @@ function updateExchangeTradePreview(side){
   const gross = side === 'buy'
     ? (fernikReserve * fcAmount + fcReserve - fcAmount - 1n) / (fcReserve - fcAmount)
     : fernikReserve * fcAmount / (fcReserve + fcAmount);
+  const nextFcReserve = side === 'buy' ? fcReserve - fcAmount : fcReserve + fcAmount;
+  const nextFernikReserve = side === 'buy' ? fernikReserve + gross : fernikReserve - gross;
+  const nextRate = (nextFernikReserve + nextFcReserve / 2n) / nextFcReserve;
+  const currentRate = BigInt(exchangeMarketData.rate || 0);
+  if ((nextRate > currentRate ? nextRate - currentRate : currentRate - nextRate) * 10000n > currentRate * 1000n) {
+    preview.textContent = 'Сделка слишком сильно изменит курс. Уменьшите количество FC.';
+    return;
+  }
   const fee = (gross * 250n + 9999n) / 10000n;
   const total = side === 'buy' ? gross + fee : gross - fee;
   preview.innerHTML = `Комиссия: <b>${fee.toLocaleString('ru-RU')} ферников</b><br>${side === 'buy' ? 'К оплате' : 'К получению'}: <b>${total.toLocaleString('ru-RU')} ферников</b>`;
