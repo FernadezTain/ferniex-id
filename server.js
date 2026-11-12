@@ -86,14 +86,14 @@ const sbHeaders = {
 app.use('/api', apiKeyAuditMiddleware);
 
 // ====== Хелпер: notifyBot с retry ======
-async function notifyBot(url, body, retries = 2) {
+async function notifyBot(url, body, retries = 2, headers = {}) {
   for (let i = 0; i <= retries; i++) {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
         signal: controller.signal
       });
@@ -1761,19 +1761,23 @@ app.post('/api/backgrounds/set', async (req, res) => {
     const users = await userRes.json();
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: 'Telegram не привязан' });
-    const bgRes = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${backgroundId}&select=*`, { headers: sbHeaders });
+    const bgRes = await fetch(`${SB_URL}/rest/v1/backgrounds?id=eq.${encodeURIComponent(backgroundId)}&select=id,name,image_url`, { headers: sbHeaders });
     const bgs = await bgRes.json();
     if (!bgs.length) return res.json({ success: false, error: 'Фон не найден' });
-    await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}`, {
+    const background = bgs[0];
+    const updateRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, {
       method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
       body: JSON.stringify({ active_background_id: backgroundId })
     });
-    await notifyBot(`${BOT_URL}/api/fernieplus/background`, {
+    if (!updateRes.ok) return res.status(500).json({ success: false, error: 'Не удалось сохранить фон профиля' });
+    const botResult = await notifyBot(`${BOT_URL}/api/fernieplus/background`, {
       telegram_id: users[0].telegram_id,
-      media_url: bgs[0].image_url,
+      background_id: background.id,
+      background_name: background.name,
+      media_url: background.image_url,
       media_type: 'photo'
-    });
-    res.json({ success: true });
+    }, 2, { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY });
+    res.json({ success: true, notificationSent: !!botResult?.notification_sent });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
 
