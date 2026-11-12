@@ -1062,7 +1062,7 @@ app.post("/api/transfer/confirm", async (req, res) => {
 app.get("/api/seeds/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=telegram_id`, { headers: sbHeaders });
     const users = await userRes.json();
     console.log('seeds users:', JSON.stringify(users));
     if (!users.length || !users[0].telegram_id)
@@ -1757,7 +1757,7 @@ app.post('/api/backgrounds/like', async (req, res) => {
 app.post('/api/backgrounds/set', async (req, res) => {
   const { userId, backgroundId } = req.body;
   try {
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${userId}&select=telegram_id`, { headers: sbHeaders });
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=telegram_id,active_background_id`, { headers: sbHeaders });
     const users = await userRes.json();
     if (!users.length || !users[0].telegram_id)
       return res.json({ success: false, error: 'Telegram не привязан' });
@@ -1777,6 +1777,13 @@ app.post('/api/backgrounds/set', async (req, res) => {
       media_url: background.image_url,
       media_type: 'photo'
     }, 2, { 'X-Fernie-Server-Key': FERNIE_SERVER_KEY });
+    if (!botResult?.success) {
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}`, {
+        method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' },
+        body: JSON.stringify({ active_background_id: users[0].active_background_id || null })
+      });
+      return res.status(502).json({ success: false, error: 'Не удалось сохранить название фона в профиле бота' });
+    }
     res.json({ success: true, notificationSent: !!botResult?.notification_sent });
   } catch (e) { res.json({ success: false, error: e.message }); }
 });
