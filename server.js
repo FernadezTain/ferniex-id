@@ -6225,24 +6225,27 @@ app.get('/api/social/feed/:userId', async (req, res) => {
     const authorIds = [...new Set(page.map(p => p.author_id))];
     const postIds = page.map(p => p.id);
 
-    const [usersRes, likesRes, viewsRes, myLikesRes, myViewsRes] = await Promise.all([
+    const [usersRes, likesRes, viewsRes, myLikesRes, myViewsRes, commentCountsRes] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/users?id=in.(${authorIds.join(',')})&select=id,username,avatar_url`, { headers: sbHeaders }),
       fetch(`${SB_URL}/rest/v1/post_likes?post_id=in.(${postIds.join(',')})&select=post_id`, { headers: sbHeaders }),
       fetch(`${SB_URL}/rest/v1/post_views?post_id=in.(${postIds.join(',')})&select=post_id`, { headers: sbHeaders }),
       fetch(`${SB_URL}/rest/v1/post_likes?post_id=in.(${postIds.join(',')})&user_id=eq.${userId}&select=post_id`, { headers: sbHeaders }),
-      fetch(`${SB_URL}/rest/v1/post_views?post_id=in.(${postIds.join(',')})&user_id=eq.${userId}&select=post_id`, { headers: sbHeaders })
+      fetch(`${SB_URL}/rest/v1/post_views?post_id=in.(${postIds.join(',')})&user_id=eq.${userId}&select=post_id`, { headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_comment_counts?post_id=in.(${postIds.map(encodeURIComponent).join(',')})&select=post_id,comment_count`, { headers: sbHeaders })
     ]);
     const users = await usersRes.json();
     const likes = await likesRes.json();
     const views = await viewsRes.json();
     const myLikes = await myLikesRes.json();
     const myViews = await myViewsRes.json();
+    const commentCounts = commentCountsRes.ok ? await commentCountsRes.json() : [];
 
     const userMap = {}; (users || []).forEach(u => userMap[u.id] = u);
     const likeCount = {}; (likes || []).forEach(l => likeCount[l.post_id] = (likeCount[l.post_id] || 0) + 1);
     const viewCount = {}; (views || []).forEach(v => viewCount[v.post_id] = (viewCount[v.post_id] || 0) + 1);
     const myLikeSet = new Set((myLikes || []).map(l => l.post_id));
     const myViewSet = new Set((myViews || []).map(v => v.post_id));
+    const commentCount = new Map((commentCounts || []).map(row => [String(row.post_id), row.comment_count]));
 
     const result = page.map(p => ({
       id: p.id,
@@ -6256,6 +6259,7 @@ app.get('/api/social/feed/:userId', async (req, res) => {
       },
       likes: likeCount[p.id] || 0,
       views: viewCount[p.id] || 0,
+      commentCount: commentCount.get(String(p.id)) || 0,
       likedByMe: myLikeSet.has(p.id),
       viewedByMe: myViewSet.has(p.id)
     }));
@@ -6307,7 +6311,8 @@ app.delete('/api/social/posts/:id', async (req, res) => {
     // Чистим связанные лайки и просмотры
     await Promise.all([
       fetch(`${SB_URL}/rest/v1/post_likes?post_id=eq.${id}`, { method: 'DELETE', headers: sbHeaders }),
-      fetch(`${SB_URL}/rest/v1/post_views?post_id=eq.${id}`, { method: 'DELETE', headers: sbHeaders })
+      fetch(`${SB_URL}/rest/v1/post_views?post_id=eq.${id}`, { method: 'DELETE', headers: sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/post_comments?post_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: sbHeaders })
     ]);
 
     // Удаляем сам пост
@@ -6359,6 +6364,118 @@ app.post('/api/social/posts/:id/view', async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/social/posts/:id/comments', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if (!user) return res.status(401).json({ success: false, error: 'Требуется авторизация' });
+  const { id } = req.params;
+  if (!/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(id)) {
+    return res.status(400).json({ success: false, error: 'Некорректный пост' });
+  }
+
+  try {
+    const postRes = await fetch(`${SB_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id`, { headers: sbHeaders });
+    if (!postRes.ok) return res.status(500).json({ success: false, error: 'Не удалось загрузить комментарии' });
+    const posts = await postRes.json();
+    if (!posts.length) return res.status(404).json({ success: false, error: 'Пост не найден' });
+
+    const commentsRes = await fetch(`${SB_URL}/rest/v1/post_comments?post_id=eq.${encodeURIComponent(id)}&select=id,user_id,body,created_at&order=created_at.asc,id.asc&limit=100`, { headers: sbHeaders });
+    if (!commentsRes.ok) return res.status(500).json({ success: false, error: 'Не удалось загрузить комментарии' });
+    const comments = await commentsRes.json();
+    const authorIds = [...new Set(comments.map(comment => comment.user_id))];
+    const usersRes = authorIds.length
+      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${authorIds.join(',')})&select=id,username,avatar_url`, { headers: sbHeaders })
+      : null;
+    if (usersRes && !usersRes.ok) return res.status(500).json({ success: false, error: 'Не удалось загрузить авторов комментариев' });
+    const users = usersRes ? await usersRes.json() : [];
+    const userMap = new Map(users.map(author => [String(author.id), author]));
+    const countRes = await fetch(`${SB_URL}/rest/v1/post_comment_counts?post_id=eq.${encodeURIComponent(id)}&select=comment_count`, { headers: sbHeaders });
+    const countRows = countRes.ok ? await countRes.json() : [];
+
+    res.json({
+      success: true,
+      count: countRows[0]?.comment_count || 0,
+      comments: comments.map(comment => ({
+        id: comment.id,
+        body: comment.body,
+        createdAt: comment.created_at,
+        author: {
+          id: comment.user_id,
+          username: userMap.get(String(comment.user_id))?.username || 'Пользователь',
+          avatarUrl: userMap.get(String(comment.user_id))?.avatar_url || null
+        }
+      }))
+    });
+  } catch (e) {
+    console.error('social comments load error:', e);
+    res.status(500).json({ success: false, error: 'Не удалось загрузить комментарии' });
+  }
+});
+
+app.post('/api/social/posts/:id/comments', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if (!user) return res.status(401).json({ success: false, error: 'Требуется авторизация' });
+  const { id } = req.params;
+  const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+  if (!/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(id)) {
+    return res.status(400).json({ success: false, error: 'Некорректный пост' });
+  }
+  if (!body || body.length > 1000) return res.status(400).json({ success: false, error: 'Комментарий должен содержать от 1 до 1000 символов' });
+
+  try {
+    const postRes = await fetch(`${SB_URL}/rest/v1/posts?id=eq.${encodeURIComponent(id)}&select=id`, { headers: sbHeaders });
+    if (!postRes.ok) return res.status(500).json({ success: false, error: 'Не удалось проверить пост' });
+    const posts = await postRes.json();
+    if (!posts.length) return res.status(404).json({ success: false, error: 'Пост не найден' });
+
+    const commentRes = await fetch(`${SB_URL}/rest/v1/post_comments`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=representation' },
+      body: JSON.stringify({ post_id: id, user_id: user.id, body })
+    });
+    if (!commentRes.ok) {
+      console.error('social comment create error:', await commentRes.text());
+      return res.status(500).json({ success: false, error: 'Не удалось отправить комментарий' });
+    }
+    const [comment] = await commentRes.json();
+    res.json({
+      success: true,
+      comment: {
+        id: comment.id,
+        body: comment.body,
+        createdAt: comment.created_at,
+        author: { id: user.id, username: user.username, avatarUrl: user.avatar_url || null }
+      }
+    });
+  } catch (e) {
+    console.error('social comment create error:', e);
+    res.status(500).json({ success: false, error: 'Не удалось отправить комментарий' });
+  }
+});
+
+app.delete('/api/social/posts/:postId/comments/:commentId', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if (!user) return res.status(401).json({ success: false, error: 'Требуется авторизация' });
+  const { postId, commentId } = req.params;
+  if (!/^(?:\d+|[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(postId)
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-9a-f][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(commentId)) {
+    return res.status(400).json({ success: false, error: 'Некорректный комментарий' });
+  }
+
+  try {
+    const deleteRes = await fetch(`${SB_URL}/rest/v1/post_comments?id=eq.${encodeURIComponent(commentId)}&post_id=eq.${encodeURIComponent(postId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+      method: 'DELETE',
+      headers: { ...sbHeaders, Prefer: 'return=representation' }
+    });
+    if (!deleteRes.ok) return res.status(500).json({ success: false, error: 'Не удалось удалить комментарий' });
+    const deleted = await deleteRes.json();
+    if (!deleted.length) return res.status(404).json({ success: false, error: 'Комментарий не найден' });
+    res.json({ success: true });
+  } catch (e) {
+    console.error('social comment delete error:', e);
+    res.status(500).json({ success: false, error: 'Не удалось удалить комментарий' });
   }
 });
 
