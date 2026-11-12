@@ -4,67 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FernieID</title>
+<meta name="design-credit" content="Unslop by Damir Sokolovsky (@heydamir), CC BY 4.0 — https://github.com/heydamir/unslop">
 <script src="https://telegram.org/js/telegram-web-app.js?64"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
   --app-safe-top:max(env(safe-area-inset-top, 0px),var(--tg-safe-area-inset-top, 0px),var(--tg-content-safe-area-inset-top, 0px));
   --app-safe-right:max(env(safe-area-inset-right, 0px),var(--tg-safe-area-inset-right, 0px),var(--tg-content-safe-area-inset-right, 0px));
   --app-safe-bottom:max(env(safe-area-inset-bottom, 0px),var(--tg-safe-area-inset-bottom, 0px),var(--tg-content-safe-area-inset-bottom, 0px));
   --app-safe-left:max(env(safe-area-inset-left, 0px),var(--tg-safe-area-inset-left, 0px),var(--tg-content-safe-area-inset-left, 0px));
-  --bg:#fbf1e8;
-  --page-bg:#fbf1e8;
-  --card-bg:#F3EEE8;
-  --card-glow-color:#e9c5b8;
+  --bg:#f6f5f1;
+  --page-bg:#f6f5f1;
+  --card-bg:#fffefa;
+  --card-glow-color:#e7e4dc;
   --card:var(--card-bg);
-  --ink:#181410;
-  --muted:#948b83;
-  --field:#f4ece2;
-  --field-border:#efe3d4;
-  --blob-pink:#e9a49e;
-  --blob-sage:#cddac2;
-  --red:#e2564f;
-  --green:#3f9d5b;
-  --amber:#c98a2b;
-  --line:#efe6da;
+  --ink:#242320;
+  --muted:#65635e;
+  --field:#f2f1ec;
+  --field-border:#e4e2db;
+  --blob-pink:#b64f3f;
+  --blob-sage:#7a8a74;
+  --accent:#b64f3f;
+  --accent-contrast:#ffffff;
+  --red:#b6403a;
+  --green:#347353;
+  --amber:#92651f;
+  --line:#e8e6e0;
   --ink-contrast:#ffffff;
-  --radius-card:28px;
-  --radius-field:14px;
+  --radius-card:16px;
+  --radius-field:10px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-*{transition:background-color .45s cubic-bezier(.4,0,.2,1), border-color .45s cubic-bezier(.4,0,.2,1), color .45s cubic-bezier(.4,0,.2,1);}
 html{height:100%;}
 body{
   min-height:100%;
   min-height:100dvh;
   min-height:var(--tg-viewport-stable-height,100dvh);
-  font-family:'Inter',sans-serif;
+  font-family:'Instrument Sans',sans-serif;
   background:var(--bg);
   color:var(--ink);
   -webkit-font-smoothing:antialiased;
   overflow-x:clip;
-}
-
-/* декоративные пятна фона */
-.blob{position:fixed;border-radius:50%;filter:blur(2px);opacity:.9;z-index:0;pointer-events:none;}
-.blob-pink{width:340px;height:340px;background:var(--blob-pink);top:-140px;right:-110px;animation:floatBlobPink 13s ease-in-out infinite;}
-.blob-sage{width:260px;height:260px;background:var(--blob-sage);bottom:-120px;left:-90px;animation:floatBlobSage 16s ease-in-out infinite;}
-@keyframes floatBlobPink{
-  0%{transform:translate(0,0) scale(1);}
-  33%{transform:translate(-26px,24px) scale(1.06);}
-  66%{transform:translate(14px,38px) scale(.96);}
-  100%{transform:translate(0,0) scale(1);}
-}
-@keyframes floatBlobSage{
-  0%{transform:translate(0,0) scale(1);}
-  40%{transform:translate(24px,-22px) scale(1.05);}
-  70%{transform:translate(-18px,-8px) scale(.97);}
-  100%{transform:translate(0,0) scale(1);}
-}
-@media(prefers-reduced-motion: reduce){
-  .blob-pink,.blob-sage{animation:none;}
 }
 
 .page{display:none;position:relative;z-index:1;}
@@ -987,6 +969,34 @@ body:hover::-webkit-scrollbar-thumb{
 .post-action.liked{color:var(--red);}
 .post-action.static{cursor:default;}
 .post-action .cico{width:17px;height:17px;}
+.post-comment-toggle{display:inline-flex;align-items:center;gap:.4rem;margin-top:.85rem;padding:0;border:0;background:transparent;color:var(--muted);font:500 .78rem 'Instrument Sans',sans-serif;cursor:pointer;transition:color .18s,transform .18s;}
+.post-comment-toggle:hover,.post-comment-toggle[aria-expanded="true"]{color:var(--ink);}
+.post-comment-toggle:active{transform:scale(.98);}
+.post-comment-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.post-comment-count{font-variant-numeric:tabular-nums;}
+.post-comments{margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--line);animation:fadeUp .22s cubic-bezier(.22,1,.36,1) both;}
+.post-comments[hidden]{display:none;}
+.post-comments-head{margin-bottom:.65rem;color:var(--ink);font-size:.8rem;font-weight:600;}
+.post-comments-list{display:flex;flex-direction:column;gap:.7rem;max-height:300px;overflow-y:auto;overscroll-behavior:contain;}
+.post-comment{display:flex;align-items:flex-start;gap:.55rem;min-width:0;}
+.post-comment-avatar{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;overflow:hidden;border-radius:50%;background:var(--field);color:var(--ink);font-size:.7rem;font-weight:600;}
+.post-comment-avatar img{width:100%;height:100%;object-fit:cover;}
+.post-comment-content{min-width:0;flex:1;padding:.55rem .7rem;border-radius:12px;background:var(--field);}
+.post-comment-meta{display:flex;align-items:center;gap:.45rem;min-width:0;margin-bottom:.2rem;}
+.post-comment-author{overflow:hidden;color:var(--ink);font-size:.72rem;font-weight:600;text-overflow:ellipsis;white-space:nowrap;}
+.post-comment-time{flex:0 0 auto;color:var(--muted);font-size:.63rem;}
+.post-comment-body{color:var(--ink);font-size:.78rem;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap;}
+.post-comment-delete{flex:0 0 auto;padding:.2rem;border:0;background:transparent;color:var(--muted);font:500 .68rem 'Instrument Sans',sans-serif;cursor:pointer;}
+.post-comment-delete:hover{color:var(--red);}
+.post-comments-empty,.post-comments-error{padding:.45rem 0;color:var(--muted);font-size:.74rem;}
+.post-comment-form{display:flex;align-items:center;gap:.5rem;margin-top:.75rem;}
+.post-comment-input{min-width:0;min-height:40px;flex:1;padding:9px 12px;border:1px solid var(--field-border);border-radius:12px;background:var(--field);color:var(--ink);font:400 .78rem 'Instrument Sans',sans-serif;outline:none;}
+.post-comment-input:focus{border-color:color-mix(in srgb,var(--accent) 58%,var(--field-border));box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent);}
+.post-comment-submit{min-height:40px;padding:8px 13px;border:0;border-radius:12px;background:var(--ink);color:var(--ink-contrast);font:500 .74rem 'Instrument Sans',sans-serif;cursor:pointer;transition:opacity .18s,transform .18s;}
+.post-comment-submit:hover{opacity:.88;}
+.post-comment-submit:active{transform:scale(.97);}
+.post-comment-submit:disabled{opacity:.5;cursor:default;}
+@media(max-width:440px){.post-comment-form{align-items:stretch;}.post-comment-input{font-size:16px;}.post-comment-submit{padding-inline:10px;}}
 
 .feed-loadmore{display:flex;justify-content:center;margin-top:.3rem;}
 
@@ -1511,7 +1521,6 @@ body:hover::-webkit-scrollbar-thumb{
 .plan-pay-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;}
 .plan-pay-chip{font-size:.66rem;font-weight:700;padding:4px 10px;border-radius:100px;background:var(--field);border:1px solid var(--field-border);color:var(--muted);transition:transform .22s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s, color .2s;cursor:pointer;}
 .plan-pay-chip.active{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.18);color:var(--ink);}
-.plan-ribbon{position:absolute;top:14px;right:-32px;transform:rotate(40deg);background:linear-gradient(120deg,#8a6be0,#5f7ce8);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;padding:3px 34px;z-index:2;box-shadow:0 3px 8px rgba(90,60,180,.25);transition:transform .3s cubic-bezier(.34,1.56,.64,1);}
 
 @media (hover:hover) and (pointer:fine) and (min-width:901px){
   .panel:not(.hero-panel),.stat-box,.overview-account-item,.overview-subscription,.subscription-action-card,.subscription-bg-item,.game-card,.item-card,.post-card,.udg-gift-card,.udg-transaction,.ticket-row,.key-card,.key-list-card,.key-value-box,.chat-row,.search-row,.social-profile-gift,.plan-card,.api-log-row{
@@ -1546,7 +1555,6 @@ body:hover::-webkit-scrollbar-thumb{
   .plan-card.plan-pro:hover{border-color:#c9aef2;box-shadow:0 26px 44px -22px rgba(95,60,180,.28);}
   .plan-card:hover::before{transform:scale(1.25) translate(6px,6px);opacity:.2;}
   .plan-card:hover .plan-badge{transform:translateY(-2px);}
-  .plan-card:hover .plan-ribbon{transform:rotate(40deg) scale(1.06);}
   .plan-feature:hover{background:var(--field);transform:translateX(3px);}
   .plan-feature:hover .pf-ico{transform:scale(1.12) rotate(-6deg);}
   .plan-card.plan-pro .plan-feature:hover .pf-ico{background:#e4d4fb;}
@@ -1639,9 +1647,6 @@ body:hover::-webkit-scrollbar-thumb{
   /* на телефоне инпуты минимум 16px — иначе iOS Safari зумит страницу при фокусе */
   input,textarea,select{font-size:16px !important;}
 
-  /* декоративные пятна фона на мобилке выглядят как обрезанные куски — убираем */
-  .blob{display:none;}
-
   /* фон страницы = цвет карточек, чтобы блоки заполняли весь экран одним цветом */
   body{background:var(--page-bg);}
   #dash-page,.dash-shell,.content,.dash-section{overflow:visible;}
@@ -1680,15 +1685,156 @@ body:hover::-webkit-scrollbar-thumb{
 
 /* ===== запрет масштабирования сайта (пинч-зум / двойной тап) ===== */
 html,body{touch-action:manipulation;}
+:is(h1,h2,h3,h4,h5,h6,.brand,.auth-title,.panel-title,.hero-name,.overview-subscription-title,.overview-account-value,.subscription-status-title,.plan-title,.plan-price-main,.udg-balance-value,.udg-exchange-price,.stat-value,.game-name,.game-detail-title,.game-detail-stat-value,.chat-empty-title,.profile-head-name .nm,.game-stats-title,.api-tester-heading strong){font-family:'Instrument Sans',sans-serif;font-weight:600;letter-spacing:normal;}
+button,input,textarea,select{font-family:'Instrument Sans',sans-serif;}
+body{background:var(--page-bg);color:var(--ink);}
+#auth-page{padding:24px;}
+.auth-wrap{max-width:400px;}
+.auth-card{padding:32px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.06);animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both;}
+.auth-title{margin-bottom:8px;font-size:30px;line-height:1.2;}
+.auth-subtitle{margin-bottom:24px;color:var(--muted);font-size:15px;line-height:22px;}
+.field{margin-bottom:16px;}
+.field-label{margin-bottom:8px;color:var(--muted);font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;}
+.field-input{min-height:44px;padding:10px 12px;border-color:var(--field-border);border-radius:10px;background:var(--field);font-size:15px;}
+.field-input::placeholder{color:var(--muted);opacity:.8;}
+.field-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent);}
+.eye-btn{color:var(--muted);}
+.forgot-row{margin-top:-4px;margin-bottom:20px;}
+.forgot-link,.switch-row{font-size:14px;}
+.submit-btn{min-height:48px;padding:12px 20px;border-radius:10px;background:var(--ink);font-size:15px;font-weight:500;transition:background-color .16s,color .16s,opacity .16s,transform .16s;}
+.submit-btn:hover{opacity:.9;}
+.switch-row{margin-top:20px;}
+.switch-link{color:var(--accent);font-weight:600;}
+.form-section{animation:fadeUp .2s cubic-bezier(.22,1,.36,1) both;}
+#dash-page{max-width:100%;padding:24px;}
+.dash-shell{max-width:1440px;gap:24px;}
+.sidebar{gap:16px;top:24px;}
+.brand{font-size:18px;}
+.brand-dot{width:6px;height:6px;border-radius:2px;background:var(--accent);}
+.nav-group{gap:4px;}
+.nav-group-label{margin:12px 0 4px;padding:0 8px;font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;}
+.nav-block{min-height:36px;padding:8px 12px;gap:8px;border-color:var(--line);border-radius:10px;background:var(--card);font-size:14px;font-weight:500;transition:background-color .16s,color .16s,border-color .16s;}
+.nav-block:hover{border-color:var(--field-border);background:var(--field);}
+.nav-block.active{background:var(--ink);color:var(--ink-contrast);border-color:var(--ink);}
+.nav-block.sub{padding:8px 12px 8px 20px;font-size:13px;}
+.nav-block .nav-badge{border-radius:6px;background:var(--field);color:var(--muted);font-weight:500;}
+.profile-card,.panel,.key-card,.key-list-card,.chat-row,.ticket-row,.item-card,.game-card,.post-card,.subscription-action-card,.plan-card,.udg-transaction,.udg-gift-card,.social-profile-gift,.udg-chart-panel,.udg-recent-trades{border-color:var(--line);border-radius:16px;background:var(--card);box-shadow:none;}
+.profile-card{padding:12px;}
+.panel{padding:24px;}
+.panel-head{margin-bottom:16px;}
+.hero-panel{background:var(--card);}
+.hero-panel::before,.hero-accent::before,.hero-accent::after,.overview-subscription::after,.api-outage-card::before,.api-outage-card::after,.subscription-status-card::before,.subscription-status-card::after,.udg-balance-card::after,.udg-recent-trades::before,.plan-card::before{display:none;}
+.hero-avatar,.profile-avatar,.post-avatar,.social-profile-avatar,.profile-big-avatar,.author-modal-avatar{background-color:var(--accent);background-image:none;}
+.api-outage-icon{border-color:var(--line);background:var(--field);color:var(--muted);box-shadow:none;animation:none;}
+.api-outage-icon::after,.subscription-status-orb::before,.subscription-status-orb::after{display:none;}
+.subscription-status-orb{border-color:var(--line);background:var(--field);color:var(--accent);box-shadow:none;}
+.subscription-status-orb-symbol{color:var(--accent);text-shadow:none;}
+.game-ico{border-color:var(--line);background:var(--field);color:var(--muted);box-shadow:none;}
+.hero-panel .hero-greet{font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;}
+.hero-panel .hero-name{font-size:22px;}
+.overview-subscription{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--field);background-image:none;animation:none;}
+.overview-subscription[data-tier]{border-color:var(--line);background:var(--field);background-image:none;}
+.overview-subscription-kicker,.subscription-status-eyebrow,.udg-state-kicker,.game-stats-kicker,.game-detail-eyebrow,.api-outage-label{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;}
+.overview-subscription-title{font-size:22px;letter-spacing:0;}
+.overview-account-grid{gap:8px;padding:8px;border-color:var(--line);border-radius:12px;background:var(--field);}
+.overview-account-item{padding:12px;border-color:var(--line);border-radius:8px;background:var(--card);}
+.overview-account-label{font-size:13px;font-weight:500;}
+.overview-account-value{font-size:16px;font-weight:600;}
+.pill,.nav-badge,.subscription-status-badge,.udg-exchange-pill,.udg-gift-market-badge,.ticket-chip,.plan-badge,.plan-pay-chip,.plan-duration-pill,.api-log-row-status,.api-log-result{border-radius:8px;letter-spacing:0;text-transform:none;font-weight:500;}
+.btn,.submit-btn,.link-cta,.plus-action,.plan-cta,.game-stats-open-games,.subscription-bg-add{min-height:40px;padding:10px 16px;border-radius:10px;font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:500;transition:background-color .16s,color .16s,border-color .16s,opacity .16s,transform .16s;}
+.btn-dark{background:var(--ink);color:var(--ink-contrast);}
+.btn-outline{border-color:var(--field-border);background:transparent;color:var(--ink);}
+.link-cta,.plus-action,.plan-cta{background:var(--accent);color:var(--accent-contrast);}
+.plan-cta.pro{background:var(--ink);color:var(--ink-contrast);}
+.plan-cta.is-disabled{background:var(--field);color:var(--muted);}
+.tabs,.udg-my-tabs,.social-profile-sections,.subscription-bg-tabs{padding:4px;border-color:var(--line);border-radius:12px;background:var(--field);}
+.tab-btn,.udg-my-tab,.subscription-bg-tab,.social-profile-section-tab{font-weight:500;letter-spacing:0;}
+.tabs-slider,.subscription-bg-slider{border-radius:8px;background:var(--ink);}
+.tab-btn.active,.subscription-bg-tab.active{color:var(--ink-contrast);}
+.overview-subscription,.subscription-status-card,.udg-balance-card,.udg-recent-trades,.game-stats-empty,.game-card,.game-detail-hero,.plan-card,.api-outage-card{background-color:var(--card);background-image:none;box-shadow:none;}
+.subscription-status-card.plus,.subscription-status-card.pro,.subscription-status-card.none{background:var(--card);}
+.subscription-status-card{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:16px;animation:none;}
+.subscription-status-title,.game-stats-title,.game-detail-title,.game-detail-stat-value{font-weight:600;letter-spacing:0;}
+.udg-balance-card{min-height:144px;border-color:var(--line);border-radius:16px;}
+.udg-coin-mark{background:var(--accent);box-shadow:none;}
+.udg-exchange-price,.udg-balance-value,.stat-value{font-variant-numeric:tabular-nums;}
+.udg-trades-live{border-color:var(--line);background:var(--field);color:var(--muted);letter-spacing:0;}
+.udg-recent-trades{border:1px solid var(--line);}
+.udg-chart-panel{background:var(--card);}
+.chat-fab{background:var(--accent);box-shadow:none;}
+.mobile-tabbar{border-color:var(--line);border-radius:16px;background:var(--card);box-shadow:0 8px 24px rgba(0,0,0,.08);backdrop-filter:none;-webkit-backdrop-filter:none;}
+.mtab{color:var(--muted);font-weight:500;}
+.mtab.active{color:var(--ink);}
+.mtab-slider{border-radius:10px;background:var(--field);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;}
+.footer-legal{font-size:13px;}
+.footer-legal-inner{border-color:var(--line);}
+.footer-legal a:hover{color:var(--accent);}
+.api-outage-card,.overview-subscription,.subscription-status-card,.subscription-status-orb,.subscription-status-dot,.udg-recent-trades::before,.udg-trades-live i,.game-stats-empty::before,.game-stats-empty-icon::after,.game-card,.game-detail-shell::before,.plan-card,.plan-card::before,.plan-cta,.profile-card,.nav-block,.chat-fab{animation:none;}
+.api-outage-card{border-color:var(--line);border-radius:16px;}
+.api-outage-title,.api-outage-description,.subscription-status-desc{color:var(--ink);}
+.plan-card.plan-pro{border-color:var(--line);}
+.plan-card.plan-pro .plan-feature .pf-ico{background:var(--field);color:var(--muted);}
+.plan-feature:hover,.plan-term:hover{background:transparent;color:var(--ink);transform:none;}
+.plan-feature:hover .pf-ico,.plan-card:hover .plan-badge{transform:none;}
+.plan-cta:not(.is-disabled):hover,.btn:hover,.link-cta:hover,.plus-action:hover{transform:none;box-shadow:none;}
+.nav-group-label,.field-label,.api-outage-label,.overview-subscription-kicker,.subscription-status-eyebrow,.udg-state-kicker,.game-stats-kicker{color:var(--muted);}
+.panel-title,.plan-title,.stat-label,.game-name,.profile-name,.post-author-name{font-weight:600;}
+.modal-box{border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.1);}
+html[data-theme="noir"] .overview-subscription-kicker,
+html[data-theme="noir"] .overview-account-label,
+html[data-theme="noir"] .plan-badge:not(.pro),
+html[data-theme="noir"] .pill:not(.pill-green):not(.pill-red):not(.pill-amber),
+html[data-theme="noir"] .api-outage-label{color:var(--muted);}
+html[data-theme="noir"] .overview-subscription-title,
+html[data-theme="noir"] .overview-account-value,
+html[data-theme="noir"] .api-outage-title,
+html[data-theme="noir"] .api-outage-description,
+html[data-theme="noir"] .subscription-status-title{color:var(--ink);}
+html[data-theme="noir"] .overview-subscription-desc,
+html[data-theme="noir"] .subscription-status-desc{color:var(--muted);}
+html[data-theme="noir"] .field-input::placeholder{color:var(--muted);}
+body{position:relative;isolation:isolate;}
+body::before{position:fixed;inset:-18%;z-index:0;content:'';background:radial-gradient(ellipse at 18% 22%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 34%),radial-gradient(ellipse at 78% 24%,color-mix(in srgb,var(--blob-sage) 13%,transparent),transparent 32%),radial-gradient(ellipse at 72% 78%,color-mix(in srgb,#d7b982 13%,transparent),transparent 38%);transform:translate3d(-1.5%,0,0) scale(1.02);animation:ambientFlow 26s cubic-bezier(.45,0,.55,1) infinite alternate;pointer-events:none;}
+.page,.footer-legal{position:relative;z-index:1;}
+.auth-card,.panel,.profile-card,.key-card,.key-list-card,.chat-row,.ticket-row,.item-card,.game-card,.post-card,.subscription-action-card,.plan-card,.udg-transaction,.udg-gift-card,.social-profile-gift,.udg-chart-panel,.udg-recent-trades,.api-outage-card,.overview-subscription,.subscription-status-card,.modal-box{border-radius:20px;transition:transform .28s cubic-bezier(.22,1,.36,1),border-color .24s cubic-bezier(.22,1,.36,1),background-color .24s cubic-bezier(.22,1,.36,1),box-shadow .28s cubic-bezier(.22,1,.36,1);}
+.field-input,.btn,.submit-btn,.link-cta,.plus-action,.plan-cta,.game-stats-open-games,.subscription-bg-add,.nav-block,.tab-btn,.udg-my-tab,.subscription-bg-tab,.social-profile-section-tab,.mobile-content-back,.chat-fab{transition:transform .22s cubic-bezier(.22,1,.36,1),background-color .22s cubic-bezier(.22,1,.36,1),border-color .22s cubic-bezier(.22,1,.36,1),color .22s cubic-bezier(.22,1,.36,1),box-shadow .22s cubic-bezier(.22,1,.36,1),opacity .22s cubic-bezier(.22,1,.36,1);}
+.field-input{border-radius:12px;}
+.auth-card{border-radius:22px;}
+.panel,.profile-card,.key-card,.key-list-card,.chat-row,.ticket-row,.item-card,.game-card,.post-card,.subscription-action-card,.plan-card,.udg-transaction,.udg-gift-card,.social-profile-gift,.udg-chart-panel,.udg-recent-trades,.api-outage-card,.subscription-status-card,.modal-box{border-radius:20px;}
+.overview-subscription,.overview-account-grid,.udg-balance-card,.udg-recent-trades,.subscription-bg-tabs,.social-profile-sections,.tabs,.udg-my-tabs{border-radius:16px;}
+.overview-account-item,.field-input,.btn,.submit-btn,.link-cta,.plus-action,.plan-cta,.game-stats-open-games,.subscription-bg-add,.nav-block,.mobile-content-back{border-radius:12px;}
+.dash-section.active{animation:sectionReveal .36s cubic-bezier(.22,1,.36,1) both;}
+.modal-box{animation:fadeUp .3s cubic-bezier(.22,1,.36,1) both;}
+.form-section{animation:fadeUp .28s cubic-bezier(.22,1,.36,1) both;}
+.profile-card:hover,.plan-card:hover,.subscription-action-card:hover,.key-list-card:hover,.udg-gift-card:hover,.social-profile-gift:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--ink) 14%,var(--line));box-shadow:0 10px 24px rgba(36,35,32,.06);}
+.overview-subscription:hover,.subscription-status-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 24%,var(--line));box-shadow:0 10px 24px rgba(36,35,32,.06);}
+.game-card:hover,.chat-row:hover,.ticket-row:hover,.udg-transaction:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(36,35,32,.06);}
+.btn:active,.submit-btn:active,.link-cta:active,.plus-action:active,.plan-cta:active{transform:scale(.98);}
+.nav-block:hover,.tab-btn:hover,.udg-my-tab:hover,.subscription-bg-tab:hover,.social-profile-section-tab:hover{transition-duration:.18s;}
+@keyframes ambientFlow{0%{transform:translate3d(-1.5%,-.5%,0) scale(1.02);}50%{transform:translate3d(1.2%,1.4%,0) scale(1.05);}100%{transform:translate3d(-.5%,1.8%,0) scale(1.03);}}
+@keyframes sectionReveal{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:900px){
+  #dash-page{padding:max(12px,var(--app-safe-top)) var(--app-safe-right) 0 var(--app-safe-left);}
+  .panel{border-radius:16px;}
+  .hero-panel{margin-inline:12px;border-radius:20px;}
+  .mobile-content-back{margin:12px 16px 4px;padding:8px 12px;border-radius:10px;font-weight:500;}
+}
+@media(max-width:560px){
+  #auth-page{padding:16px;}
+  .auth-card{padding:24px;}
+  .auth-title{font-size:26px;}
+  .panel{padding:16px;}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
+  body::before{animation:none;}
+}
 </style>
 <!-- Yandex Autoplacement 20117678 -->
 <script src="https://yandex.ru/ads/system/context.js" async></script>
 <script data-page-id="20117678" src="https://yandex.ru/ads/system/ap-loader.js" async></script>
 </head>
 <body>
-
-<div class="blob blob-pink"></div>
-<div class="blob blob-sage"></div>
 
 <!-- ============ AUTH ============ -->
 <div id="auth-page" class="page active">
@@ -1698,14 +1844,14 @@ html,body{touch-action:manipulation;}
       <div class="form-section" id="section-autologin">
         <div class="autologin-box">
           <div class="spinner"></div>
-          <h1 class="auth-title" style="font-size:1.55rem;">С возвращением, <span id="autoUsername">—</span></h1>
-          <p class="auth-subtitle" style="margin-bottom:0;">Уже входим в аккаунт, подождите пожалуйста…</p>
+          <h1 class="auth-title" style="font-size:1.55rem;">Вход в FernieID</h1>
+          <p class="auth-subtitle" style="margin-bottom:0;">Проверяем данные входа…</p>
         </div>
       </div>
 
       <div class="form-section active" id="section-login">
-        <h1 class="auth-title">С возвращением</h1>
-        <p class="auth-subtitle">Рады снова вас видеть. Войдите, чтобы продолжить.</p>
+        <h1 class="auth-title">Вход в FernieID</h1>
+        <p class="auth-subtitle">Войдите, чтобы управлять аккаунтом FernieX.</p>
 
         <div class="field">
           <label class="field-label" for="loginUsername">Логин</label>
@@ -1808,7 +1954,7 @@ html,body{touch-action:manipulation;}
         <div class="nav-group-label">Меню</div>
         <div class="nav-block active" data-section="overview"><span class="nav-ico"><i class="cico cico-home"></i></span>Главная</div>
         <div class="nav-block" data-section="subscription"><span class="nav-ico"><i class="cico cico-spark"></i></span>Подписка<span class="nav-badge" id="subBadge">Fernie+</span></div>
-        <div class="nav-block" data-section="gamestats"><span class="nav-ico"><i class="cico cico-bars"></i></span>Игровая Статистика</div>
+        <div class="nav-block" data-section="gamestats"><span class="nav-ico"><i class="cico cico-bars"></i></span>Игровая статистика</div>
         <div class="nav-block" data-section="social"><span class="nav-ico"><i class="cico cico-globe"></i></span>Социализация</div>
         <div class="nav-block" data-section="udg"><span class="nav-ico"><i class="cico cico-cards"></i></span>UDG</div>
         <div class="nav-block" data-section="security"><span class="nav-ico"><i class="cico cico-shield"></i></span>Безопасность</div>
@@ -1841,14 +1987,14 @@ html,body{touch-action:manipulation;}
           <div class="hero-top">
             <div class="hero-avatar" id="ovAvatar">—</div>
             <div>
-              <div class="hero-greet">С возвращением</div>
+              <div class="hero-greet">Аккаунт FernieID</div>
               <div class="hero-name" id="ovUsername">—</div>
             </div>
             <div class="pill" id="ovRolePill" style="margin-left:auto;">Пользователь</div>
           </div>
           <div class="overview-subscription" id="overviewSubscriptionCard" role="button" tabindex="0" aria-label="Открыть управление подпиской">
             <div class="overview-subscription-copy">
-              <div class="overview-subscription-kicker"><i class="cico cico-spark"></i> Fernie+ · СТАТУС</div>
+              <div class="overview-subscription-kicker"><i class="cico cico-spark"></i> Fernie+ · статус подписки</div>
               <div class="overview-subscription-title" id="overviewSubscriptionTitle">Проверяем подписку…</div>
               <div class="overview-subscription-desc" id="overviewSubscriptionDesc">Получаем актуальный статус аккаунта</div>
             </div>
@@ -1890,7 +2036,7 @@ html,body{touch-action:manipulation;}
       <!-- ИГРОВАЯ СТАТИСТИКА (Основная статистика / Сторонние игры) -->
       <div class="dash-section" id="section-gamestats">
         <div class="panel">
-          <div class="panel-head"><div class="panel-title"><i class="cico cico-bars ic"></i>Игровая Статистика</div></div>
+          <div class="panel-head"><div class="panel-title"><i class="cico cico-bars ic"></i>Игровая статистика</div></div>
           <div class="tabs">
             <div class="tabs-slider"></div>
             <button class="tab-btn active" data-gstab="main">Основная статистика</button>
@@ -2012,7 +2158,7 @@ html,body{touch-action:manipulation;}
                 <div class="udg-exchange-brand">
                   <div class="udg-state-mark">◆</div>
                   <div>
-                    <span class="udg-state-kicker">UDG · БИРЖА</span>
+                    <span class="udg-state-kicker">UDG · биржа</span>
                     <div class="udg-exchange-name">FernieCoins · FC</div>
                   </div>
                 </div>
@@ -2042,10 +2188,10 @@ html,body{touch-action:manipulation;}
               <section class="udg-recent-trades" aria-labelledby="udgRecentTradesTitle">
                 <div class="udg-recent-trades-head">
                   <div>
-                    <span class="udg-state-kicker">АКТИВНОСТЬ РЫНКА</span>
+                    <span class="udg-state-kicker">Активность рынка</span>
                     <h3 id="udgRecentTradesTitle">Последние сделки</h3>
                   </div>
-                  <span class="udg-trades-live"><i></i> LIVE</span>
+                  <span class="udg-trades-live"><i></i> Онлайн</span>
                 </div>
                 <div class="udg-recent-trades-list" id="udgRecentTradesList" aria-live="polite" aria-relevant="additions text">
                   <div class="udg-trades-state">Загружаем сделки…</div>
@@ -2057,7 +2203,7 @@ html,body{touch-action:manipulation;}
           <div class="udgtab-panel" data-udgtab-panel="market" role="tabpanel" hidden>
             <div class="udg-gift-toolbar">
               <div>
-                <span class="udg-state-kicker">UDG · РЫНОК ПОДАРКОВ</span>
+                    <span class="udg-state-kicker">UDG · рынок подарков</span>
                 <div class="panel-sub">Подарки пользователей · цены пересчитываются каждые 12 часов</div>
               </div>
               <button type="button" class="btn btn-outline btn-sm" id="udgMarketRefresh">↻ Обновить</button>
@@ -2089,7 +2235,7 @@ html,body{touch-action:manipulation;}
           <div class="udgtab-panel" data-udgtab-panel="my" role="tabpanel" hidden>
             <div class="udg-balance-card">
               <div class="udg-balance-copy">
-                <span class="udg-state-kicker">ТВОЙ БАЛАНС</span>
+                <span class="udg-state-kicker">Твой баланс</span>
                 <div class="udg-balance-label">FernieCoins</div>
                 <div class="udg-balance-value" id="udgBalanceValue" aria-live="polite">Загрузка…</div>
               </div>
@@ -2307,7 +2453,7 @@ html,body{touch-action:manipulation;}
 
 <footer class="footer-legal">
   <div class="footer-legal-inner">
-    <div><strong>FernieX</strong> - Сервис авторизации и управлением профиля</div>
+    <div><strong>FernieX</strong> — Сервис авторизации и управления профилем</div>
     <div>ИНН: 381807976680 Кирилл Иннокентьевич К.</div>
     <div class="links">
       <a href="https://fernie-x.vercel.app/offer.html" target="_blank" rel="noopener noreferrer">Публичная оферта</a>
@@ -2358,14 +2504,15 @@ let exchangeChartScrollRatio = 1;
 /* ---------- цветовые темы интерфейса ---------- */
 const THEME_STORE_KEY = 'fid_theme';
 const THEME_PRESETS = {
-  cream: { label:'Кремовая', swatch:'#fbf1e8', bg:'#fbf1e8', pageBg:'#fbf1e8', card:'#F3EEE8', cardGlow:'#e9c5b8', ink:'#181410', inkContrast:'#ffffff', muted:'#948b83', field:'#f4ece2', fieldBorder:'#efe3d4', line:'#efe6da', blobPink:'#e9a49e', blobSage:'#cddac2' },
-  noir:  { label:'Чёрная',   swatch:'#181410', bg:'#141210', pageBg:'#141210', card:'#1e1b17', cardGlow:'#8a6be0', ink:'#f3ede3', inkContrast:'#181410', muted:'#aaa198', field:'#26221c', fieldBorder:'#332d24', line:'#2b271f', blobPink:'#4a3530', blobSage:'#334027' },
-  stone: { label:'Серая',    swatch:'#c7cbcb', bg:'#eef0f0', pageBg:'#eef0f0', card:'#F3EEE8', cardGlow:'#a9bdc6', ink:'#1c1f1f', inkContrast:'#ffffff', muted:'#84898c', field:'#e4e7e7', fieldBorder:'#dadfdf', line:'#dfe3e3', blobPink:'#c8b6c9', blobSage:'#b9c9c2' },
-  sage:  { label:'Зелёная',  swatch:'#b9c79b', bg:'#eef2e8', pageBg:'#eef2e8', card:'#F3EEE8', cardGlow:'#b9c79b', ink:'#1c2417', inkContrast:'#ffffff', muted:'#82917a', field:'#e3ebda', fieldBorder:'#d5e0c8', line:'#dde6d2', blobPink:'#d9c9a0', blobSage:'#a9c79b' }
+  cream: { label:'Кремовая', swatch:'#b64f3f', accent:'#b64f3f', bg:'#f6f5f1', pageBg:'#f6f5f1', card:'#fffefa', cardGlow:'#e7e4dc', ink:'#242320', inkContrast:'#ffffff', muted:'#65635e', field:'#f2f1ec', fieldBorder:'#e4e2db', line:'#e8e6e0', blobPink:'#b64f3f', blobSage:'#7a8a74' },
+  noir:  { label:'Чёрная',   swatch:'#141516', accent:'#a34739', bg:'#141516', pageBg:'#141516', card:'#1c1d1e', cardGlow:'#242526', ink:'#f1f0eb', inkContrast:'#171819', muted:'#aaa9a2', field:'#242526', fieldBorder:'#353637', line:'#303132', blobPink:'#a34739', blobSage:'#8b9b84' },
+  stone: { label:'Серая',    swatch:'#566b75', accent:'#566b75', bg:'#f1f3f3', pageBg:'#f1f3f3', card:'#ffffff', cardGlow:'#e1e5e5', ink:'#202526', inkContrast:'#ffffff', muted:'#626a6b', field:'#e9eded', fieldBorder:'#d9dfdf', line:'#e0e5e5', blobPink:'#566b75', blobSage:'#778b7f' },
+  sage:  { label:'Зелёная',  swatch:'#58734f', accent:'#58734f', bg:'#f2f4ef', pageBg:'#f2f4ef', card:'#fffefa', cardGlow:'#e2e8dc', ink:'#222720', inkContrast:'#ffffff', muted:'#626b5d', field:'#e9ede5', fieldBorder:'#dce3d6', line:'#e2e7dd', blobPink:'#58734f', blobSage:'#849678' }
 };
 function applyTheme(key){
   const t = THEME_PRESETS[key] || THEME_PRESETS.cream;
   const r = document.documentElement.style;
+  document.documentElement.dataset.theme = THEME_PRESETS[key] ? key : 'cream';
   r.setProperty('--bg', t.bg);
   r.setProperty('--page-bg', t.pageBg);
   r.setProperty('--card-bg', t.card);
@@ -2373,6 +2520,8 @@ function applyTheme(key){
   r.setProperty('--card-glow-color', t.cardGlow);
   r.setProperty('--ink', t.ink);
   r.setProperty('--ink-contrast', t.inkContrast || '#ffffff');
+  r.setProperty('--accent', t.accent);
+  r.setProperty('--accent-contrast', '#ffffff');
   r.setProperty('--muted', t.muted);
   r.setProperty('--field', t.field);
   r.setProperty('--field-border', t.fieldBorder);
@@ -3072,7 +3221,7 @@ async function loadSocialMessages(showLoading){
       const mine = String(message.sender_id) === String(currentUser.id);
       const status = mine ? `<span class="chat-message-status${message.read_at ? ' read' : ''}" aria-label="${message.read_at ? 'Прочитано' : message.delivered_at ? 'Доставлено' : 'Отправлено'}">${message.read_at ? '✓✓' : message.delivered_at ? '✓' : '◷'}</span>` : '';
       const reply = messagesById.get(String(message.reply_to_message_id));
-      const replyHtml = message.reply_to_message_id ? `<div class="chat-reply-quote" data-scroll-to-message="${escapeHtml(message.reply_to_message_id)}"><strong>${reply ? String(reply.sender_id) === String(currentUser.id) ? 'Вы' : escapeHtml(activeSocialChat.partner.username) : 'Ответ на сообщение'}</strong>${escapeHtml(reply?.deleted_at ? 'Сообщение удалено' : reply?.body || (reply?.image_url ? '📷 Фото' : 'Сообщение'))}</div>` : '';
+      const replyHtml = message.reply_to_message_id ? `<div class="chat-reply-quote" data-scroll-to-message="${escapeHtml(message.reply_to_message_id)}"><strong>${reply ? String(reply.sender_id) === String(currentUser.id) ? 'Вы' : escapeHtml(activeSocialChat.partner.username) : 'Ответ на сообщение'}</strong>${escapeHtml(reply?.deleted_at ? 'Сообщение удалено' : reply?.body || (reply?.image_url ? 'Фото' : 'Сообщение'))}</div>` : '';
       const photo = message.image_url && !message.deleted_at ? `<img class="chat-message-image" src="${escapeHtml(message.image_url)}" alt="Фото из сообщения" loading="lazy" data-open-chat-image>` : '';
       const isGift = message.message_type === 'udg_gift' && message.gift_payload && !message.deleted_at;
       const body = message.deleted_at ? '<span class="chat-deleted">Сообщение удалено</span>'
@@ -3180,7 +3329,7 @@ function setSocialChatReply(message){
   if(message.deleted_at) return;
   socialChatReplyTo = message;
   const preview = $('socialChatReplyPreview');
-  const excerpt = message.body || (message.image_url ? '📷 Фото' : 'Сообщение');
+  const excerpt = message.body || (message.image_url ? 'Фото' : 'Сообщение');
   preview.innerHTML = `<div class="chat-reply-copy"><strong>Ответ ${String(message.sender_id) === String(currentUser.id) ? 'на своё сообщение' : `пользователю ${escapeHtml(activeSocialChat.partner.username)}`}</strong><span>${escapeHtml(excerpt)}</span></div><button type="button" class="chat-reply-cancel" id="socialChatReplyCancel" aria-label="Отменить ответ">×</button>`;
   preview.hidden = false;
   $('socialChatReplyCancel').addEventListener('click', clearSocialChatReply);
@@ -4864,7 +5013,7 @@ const PLAN_DEFS = {
       ['crown', 'Эксклюзивные бонусы']
     ],
     methods: [
-      { id: 'seeds', label: 'Семена', symbol: '🌱' },
+      { id: 'seeds', label: 'Семена', symbol: 'Семена' },
       { id: 'dc', label: 'DC', symbol: 'DC' },
       { id: 'yookassa', label: 'ЮKassa', symbol: '₽' }
     ],
@@ -4874,7 +5023,7 @@ const PLAN_DEFS = {
       ['Продление', 'вручную, автосписания нет'],
       ['Возврат', 'не производится после активации']
     ],
-    ctaClass: '', ctaLabel: 'Выбрать Fernie+', payChips: ['seeds', 'dc', 'yookassa'], popular: false
+    ctaClass: '', ctaLabel: 'Выбрать Fernie+', payChips: ['seeds', 'dc', 'yookassa']
   },
   pro: {
     key: 'pro', badgeClass: 'pro', badgeLabel: 'Pro', title: 'Fernie+ Pro',
@@ -4886,7 +5035,7 @@ const PLAN_DEFS = {
       ['crown', 'VIP поддержка']
     ],
     methods: [
-      { id: 'stars', label: 'Telegram Stars', symbol: '⭐' },
+      { id: 'stars', label: 'Telegram Stars', symbol: 'Stars' },
       { id: 'yookassa', label: 'ЮKassa', symbol: '₽' }
     ],
     terms: [
@@ -4895,7 +5044,7 @@ const PLAN_DEFS = {
       ['Продление', 'вручную, автосписания нет'],
       ['Возврат', 'не производится после активации']
     ],
-    ctaClass: 'pro', ctaLabel: 'Выбрать Fernie+ Pro', payChips: ['stars', 'yookassa'], popular: true
+    ctaClass: 'pro', ctaLabel: 'Выбрать Fernie+ Pro', payChips: ['stars', 'yookassa']
   }
 };
 
@@ -4930,9 +5079,9 @@ function getSelectedDuration(planKey){
 }
 
 function getPlanDisplayPrice(amount, methodId){
-  if(methodId === 'seeds') return `${amount} 🌱`;
+  if(methodId === 'seeds') return `${amount} семян`;
   if(methodId === 'dc') return `${amount} DC`;
-  if(methodId === 'stars') return `${amount} ⭐`;
+  if(methodId === 'stars') return `${amount} звёзд`;
   return `${amount} ₽`;
 }
 
@@ -4969,7 +5118,6 @@ function renderPlanCard(def, state){
 
   return `
     <div class="plan-card ${def.key==='pro' ? 'plan-pro' : ''}" data-plan="${def.key}">
-      ${def.popular ? `<div class="plan-ribbon">Популярно</div>` : ''}
       <div class="plan-top-row">
         <span class="plan-badge ${def.badgeClass}">${def.badgeLabel}</span>
         ${state.active ? `<span class="plan-badge" style="background:#e9f6ec;border-color:#cfe9d5;color:var(--green);">Активна</span>` : ''}
@@ -5045,8 +5193,8 @@ function formatPlanAmount(amount, planKey, methodId = 'yookassa') {
   const key = planKey || 'fp';
   const method = methodId || 'yookassa';
 
-  if (key === 'pro' && method === 'stars') return `${amount} ⭐`;
-  if (key === 'fp' && method === 'seeds') return `${amount} 🌱`;
+  if (key === 'pro' && method === 'stars') return `${amount} звёзд`;
+  if (key === 'fp' && method === 'seeds') return `${amount} семян`;
   if (key === 'fp' && method === 'dc') return `${amount} DC`;
   return `${amount} ₽`;
 }
@@ -5616,9 +5764,9 @@ function renderSubscriptionCards(fpActive, proActive){
     : `${tier === 'plus' ? '<article class="subscription-action-card"><h3>Больше возможностей</h3><p>Перейди на Pro, чтобы открыть все функции Fernie+ Pro.</p><button type="button" class="btn btn-dark" data-subscription-checkout="pro">Улучшить до Pro</button></article>' : ''}
       <article class="subscription-action-card subscription-management-card"><h3>Оформление профиля</h3><p>Выбери фон, который будет отображаться в твоём профиле Telegram-бота.</p><button type="button" class="btn btn-outline subscription-interactive-button subscription-profile-button" id="profileBackgroundsOpen"><span class="subscription-button-icon" aria-hidden="true">✦</span><span>Фон профиля в боте</span><span class="subscription-button-arrow" aria-hidden="true">↗</span></button></article>
       <article class="subscription-action-card subscription-management-card"><h3>Управление подпиской</h3><p>Отключение сразу завершит доступ к Fernie+ и Pro.</p><button type="button" class="btn btn-danger subscription-interactive-button subscription-cancel-button" id="cancelSubscriptionButton"><span class="subscription-button-icon" aria-hidden="true">×</span><span>Отменить подписку</span><span class="subscription-button-arrow" aria-hidden="true">→</span></button></article>`;
-  const statusEyebrow = tier === 'pro' ? 'FERNIE+ PRO' : tier === 'plus' ? 'FERNIE+' : 'СТАТУС ПОДПИСКИ';
-  const statusBadge = tier === 'none' ? 'НЕ АКТИВНА' : tier === 'pro' ? 'PRO АКТИВНА' : 'АКТИВНА';
-  const statusSymbol = tier === 'none' ? '·' : tier === 'pro' ? '✦' : '✧';
+  const statusEyebrow = tier === 'pro' ? 'Fernie+ Pro' : tier === 'plus' ? 'Fernie+' : 'Статус подписки';
+  const statusBadge = tier === 'none' ? 'Не активна' : tier === 'pro' ? 'Pro активна' : 'Активна';
+  const statusSymbol = tier === 'none' ? '−' : '✓';
   body.innerHTML = `<section class="subscription-status-card ${tier} ${tier === 'none' ? '' : 'active'}" data-tier="${tier}" aria-live="polite">
     <div class="subscription-status-orb" aria-hidden="true"><span class="subscription-status-orb-symbol">${statusSymbol}</span></div>
     <div class="subscription-status-copy">
@@ -5626,7 +5774,7 @@ function renderSubscriptionCards(fpActive, proActive){
       <div class="subscription-status-title">${title}</div>
       <div class="subscription-status-desc">${description}</div>
     </div>
-    <div class="subscription-status-badge"><span class="subscription-status-badge-icon">${tier === 'none' ? '↗' : '✓'}</span>${statusBadge}</div>
+    <div class="subscription-status-badge"><span class="subscription-status-badge-icon">${tier === 'none' ? '−' : '✓'}</span>${statusBadge}</div>
   </section><div class="subscription-actions-grid">${actions}</div>`;
   const statusCard = body.querySelector('.subscription-status-card');
   statusCard?.addEventListener('pointermove', event => {
@@ -5827,8 +5975,99 @@ function renderPostCard(p){
           <div class="post-action ${p.likedByMe ? 'liked' : ''}" data-like-btn><i class="cico cico-heart"></i><span>${p.likes}</span></div>
           <div class="post-action static"><i class="cico cico-eye"></i><span>${p.views}</span></div>
         </div>
+        ${postCommentsHtml(p.commentCount)}
       </div>
     </div>`;
+}
+
+function postCommentsHtml(count = null){
+  const total = Number.isInteger(count) ? count : '';
+  return `<button type="button" class="post-comment-toggle" data-comment-toggle aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-9.5A7.5 7.5 0 0 1 10.5 4h2A7.5 7.5 0 0 1 20 11.5Z"/><path d="M8 11h8M8 14h5"/></svg><span>Комментарии</span><span class="post-comment-count" data-comment-count>${total}</span></button>
+    <section class="post-comments" data-comment-panel hidden><div class="post-comments-head">Комментарии <span class="post-comment-count" data-comments-total>${total}</span></div><div class="post-comments-list" data-comments-list><div class="post-comments-empty">Загружаем комментарии…</div></div><form class="post-comment-form" data-comment-form><input class="post-comment-input" type="text" maxlength="1000" autocomplete="off" placeholder="Написать комментарий…" aria-label="Текст комментария"><button class="post-comment-submit" type="submit">Отправить</button></form></section>`;
+}
+
+function renderPostComment(comment){
+  const author = comment.author || {};
+  const avatar = author.avatarUrl
+    ? `<img src="${escapeHtml(author.avatarUrl)}" alt="">`
+    : escapeHtml((author.username || '?')[0].toUpperCase());
+  const deleteButton = String(author.id) === String(currentUser.id)
+    ? `<button type="button" class="post-comment-delete" data-delete-comment="${escapeHtml(comment.id)}" aria-label="Удалить комментарий">Удалить</button>`
+    : '';
+  return `<article class="post-comment" data-comment-id="${escapeHtml(comment.id)}"><div class="post-comment-avatar">${avatar}</div><div class="post-comment-content"><div class="post-comment-meta"><span class="post-comment-author">${escapeHtml(author.username || 'Пользователь')}</span><span class="post-comment-time">${timeAgo(comment.createdAt)}</span>${deleteButton}</div><div class="post-comment-body">${escapeHtml(comment.body)}</div></div></article>`;
+}
+
+async function loadPostComments(postId, panel){
+  const list = panel.querySelector('[data-comments-list]');
+  list.innerHTML = '<div class="post-comments-empty">Загружаем комментарии…</div>';
+  try{
+    const data = await socialChatRequest(`/api/social/posts/${encodeURIComponent(postId)}/comments`);
+    const comments = data.comments || [];
+    list.innerHTML = comments.length ? comments.map(renderPostComment).join('') : '<div class="post-comments-empty">Пока нет комментариев</div>';
+    panel.dataset.loaded = 'true';
+    const total = Number.isInteger(data.count) ? data.count : comments.length;
+    panel.closest('.post-card').querySelector('[data-comment-count]').textContent = String(total);
+    panel.querySelector('[data-comments-total]').textContent = String(total);
+  } catch(error){
+    list.innerHTML = `<div class="post-comments-error">${escapeHtml(error.message || 'Не удалось загрузить комментарии')}</div>`;
+  }
+}
+
+function attachPostCommentHandlers(card){
+  const toggle = card.querySelector('[data-comment-toggle]');
+  const panel = card.querySelector('[data-comment-panel]');
+  if(!toggle || !panel) return;
+  const postId = card.dataset.postId;
+  if(!toggle.dataset.bound){
+    toggle.dataset.bound = 'true';
+    toggle.addEventListener('click', async () => {
+      const opening = panel.hidden;
+      panel.hidden = !opening;
+      toggle.setAttribute('aria-expanded', String(opening));
+      if(opening && panel.dataset.loaded !== 'true') await loadPostComments(postId, panel);
+      if(opening) panel.querySelector('.post-comment-input').focus();
+    });
+  }
+  const form = panel.querySelector('[data-comment-form]');
+  if(!form.dataset.bound){
+    form.dataset.bound = 'true';
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const input = form.querySelector('.post-comment-input');
+      const button = form.querySelector('.post-comment-submit');
+      const body = input.value.trim();
+      if(!body) return;
+      button.disabled = true;
+      try{
+        await socialChatRequest(`/api/social/posts/${encodeURIComponent(postId)}/comments`, {
+          method:'POST', body:JSON.stringify({ body })
+        });
+        input.value = '';
+        await loadPostComments(postId, panel);
+      } catch(error){
+        showToastSafe(error.message || 'Не удалось отправить комментарий');
+      } finally{
+        button.disabled = false;
+      }
+    });
+  }
+  const list = panel.querySelector('[data-comments-list]');
+  if(!list.dataset.bound){
+    list.dataset.bound = 'true';
+    list.addEventListener('click', async event => {
+      const button = event.target.closest('[data-delete-comment]');
+      if(!button) return;
+      if(!await confirmModal('Удалить этот комментарий?', { title:'Удалить комментарий', okLabel:'Удалить', danger:true })) return;
+      button.disabled = true;
+      try{
+        await socialChatRequest(`/api/social/posts/${encodeURIComponent(postId)}/comments/${encodeURIComponent(button.dataset.deleteComment)}`, { method:'DELETE' });
+        await loadPostComments(postId, panel);
+      } catch(error){
+        button.disabled = false;
+        showToastSafe(error.message || 'Не удалось удалить комментарий');
+      }
+    });
+  }
 }
 
 async function loadSocialFeed(reset){
@@ -5881,6 +6120,7 @@ function attachFeedCardHandlers(){
     if(head && !head.dataset.bound){ head.dataset.bound = '1'; head.addEventListener('click', () => openAuthorModal(head.dataset.openAuthor)); }
     const likeBtn = card.querySelector('[data-like-btn]');
     if(likeBtn && !likeBtn.dataset.bound){ likeBtn.dataset.bound = '1'; likeBtn.addEventListener('click', () => toggleLike(postId, likeBtn)); }
+    attachPostCommentHandlers(card);
   });
 }
 
@@ -6000,6 +6240,7 @@ function renderProfilePostCard(p){
           <div class="post-action ${p.likedByMe ? 'liked' : ''}" data-like-btn><i class="cico cico-heart"></i><span>${p.likes}</span></div>
           <div class="post-action static"><i class="cico cico-eye"></i><span>${p.views}</span></div>
         </div>
+        ${postCommentsHtml(p.commentCount)}
       </div>
     </div>`;
 }
@@ -6009,6 +6250,7 @@ function attachProfileFeedHandlers(){
     if(!card.dataset.observed){ card.dataset.observed = '1'; socialViewObserver.observe(card); }
     const likeBtn = card.querySelector('[data-like-btn]');
     if(likeBtn && !likeBtn.dataset.bound){ likeBtn.dataset.bound = '1'; likeBtn.addEventListener('click', () => toggleLike(postId, likeBtn)); }
+    attachPostCommentHandlers(card);
   });
 }
 
@@ -6207,6 +6449,7 @@ function renderMyPostCard(p){
           <div class="post-action ${p.likedByMe ? 'liked' : ''}" data-like-btn><i class="cico cico-heart"></i><span>${p.likes}</span></div>
           <div class="post-action static"><i class="cico cico-eye"></i><span>${p.views}</span></div>
         </div>
+        ${postCommentsHtml(p.commentCount)}
       </div>
     </div>`;
 }
@@ -6265,6 +6508,7 @@ function attachMyProfileFeedHandlers(){
     if(!card.dataset.observed){ card.dataset.observed = '1'; socialViewObserver.observe(card); }
     const likeBtn = card.querySelector('[data-like-btn]');
     if(likeBtn && !likeBtn.dataset.bound){ likeBtn.dataset.bound = '1'; likeBtn.addEventListener('click', () => toggleLike(postId, likeBtn)); }
+    attachPostCommentHandlers(card);
     const menuBtn = card.querySelector('[data-menu-btn]');
     if(menuBtn && !menuBtn.dataset.bound){
       menuBtn.dataset.bound = '1';
