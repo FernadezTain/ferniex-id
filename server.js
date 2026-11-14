@@ -6792,7 +6792,7 @@ app.patch('/api/qwant/settings', async (req, res) => {
     for (const key of ['notifications_enabled', 'telegram_notifications_enabled', 'show_online_status', 'read_receipts', 'allow_new_chats']) {
       if (key in updates && typeof updates[key] !== 'boolean') return res.status(400).json({ success: false, error: 'Некорректное значение переключателя' });
     }
-    if ('theme' in updates && !['light', 'dark'].includes(updates.theme)) return res.status(400).json({ success: false, error: 'Некорректная тема' });
+    if ('theme' in updates && !['light', 'dark', 'midnight', 'rose', 'forest', 'sand'].includes(updates.theme)) return res.status(400).json({ success: false, error: 'Некорректная тема' });
     if ('accent_color' in updates && !['#b64f3f', '#597a68', '#6c73a8', '#b57a45'].includes(updates.accent_color)) return res.status(400).json({ success: false, error: 'Некорректный акцентный цвет' });
     if ('font_scale' in updates && ![90, 95, 100, 105, 110, 115].includes(Number(updates.font_scale))) return res.status(400).json({ success: false, error: 'Некорректный размер текста' });
     if (updates.telegram_notifications_enabled) {
