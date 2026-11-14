@@ -6587,8 +6587,15 @@ app.get('/api/social/users/search', async (req, res) => {
     const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,avatar_url&limit=25`, { headers: sbHeaders });
     let users = await r.json();
     if (!Array.isArray(users)) users = [];
+    const userIds = users.map(user => String(user.id));
+    const botsResponse = userIds.length
+      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=user_id,display_name,is_active`, { headers:sbHeaders })
+      : null;
+    if(botsResponse && !botsResponse.ok) throw new Error('Не удалось проверить профили');
+    const bots = botsResponse?.ok ? await botsResponse.json() : [];
+    const botByUserId = new Map(bots.map(bot => [String(bot.user_id), bot]));
     const qLower = query.toLowerCase();
-    users = users.filter(u => String(u.id) !== String(userId));
+    users = users.filter(u => String(u.id) !== String(userId) && botByUserId.get(String(u.id))?.is_active !== false);
     users.sort((a, b) => {
       const an = (a.username || '').toLowerCase(), bn = (b.username || '').toLowerCase();
       const rank = n => n === qLower ? 0 : n.startsWith(qLower) ? 1 : 2;
@@ -6596,7 +6603,11 @@ app.get('/api/social/users/search', async (req, res) => {
       if (ar !== br) return ar - br;
       return an.length - bn.length;
     });
-    res.json({ success: true, users: users.slice(0, 15) });
+    res.json({ success: true, users: users.slice(0, 15).map(user => ({
+      ...user,
+      display_name:botByUserId.get(String(user.id))?.display_name || null,
+      is_bot:botByUserId.has(String(user.id))
+    })) });
   } catch (e) {
     res.json({ success: false, users: [] });
   }
@@ -6610,13 +6621,19 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
     const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,avatar_url,banner_url`, { headers: sbHeaders });
     const users = await uRes.json();
     if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
+    const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(targetId)}&select=display_name,is_active&limit=1`, { headers:sbHeaders });
+    if(!botResponse.ok) throw new Error('Не удалось проверить профиль');
+    const bot = (await botResponse.json())[0];
+    const profile = bot?.is_active === false
+      ? { ...users[0], username:null, avatar_url:null, display_name:'Удаленный аккаунт', is_deleted:true }
+      : { ...users[0], ...(bot ? { display_name:bot.display_name, is_bot:true } : {}) };
     let isFriend = false;
     if (viewerId && String(viewerId) !== String(targetId)) {
       const fRes = await fetch(`${SB_URL}/rest/v1/friends?user_id=eq.${viewerId}&friend_id=eq.${targetId}&select=id`, { headers: sbHeaders });
       const f = await fRes.json();
       isFriend = Array.isArray(f) && f.length > 0;
     }
-    res.json({ success: true, user: users[0], isFriend });
+    res.json({ success: true, user: profile, isFriend });
   } catch (e) {
     res.json({ success: false, error: e.message });
   }
@@ -6837,12 +6854,44 @@ app.get('/api/qwant/bots', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
     if(!user) return res.status(401).json({ success:false, error:'Сессия завершена' });
-    const response = await fetch(`${SB_URL}/rest/v1/qwant_bots?owner_user_id=eq.${encodeURIComponent(user.id)}&select=id,user_id,username,display_name,token_prefix,is_active,created_at&order=created_at.desc`, { headers:sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_bots?owner_user_id=eq.${encodeURIComponent(user.id)}&is_active=eq.true&select=id,user_id,username,display_name,token_prefix,is_active,created_at&order=created_at.desc`, { headers:sbHeaders });
     const bots = await response.json();
     if(!response.ok || !Array.isArray(bots)) throw new Error('Не удалось загрузить ботов');
     res.json({ success:true, bots });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить ботов' });
+  }
+});
+
+app.delete('/api/qwant/bots/:botId', async (req, res) => {
+  try{
+    const owner = await authenticateSocialChat(req);
+    if(!owner) return res.status(401).json({ success:false, error:'Сессия завершена' });
+    const bot = await getQwantBot(req.params.botId, owner.id);
+    if(!bot) return res.status(404).json({ success:false, error:'Бот не найден' });
+    const internalUsername = `deleted_bot_${String(bot.id).replace(/-/g, '')}`;
+    const userResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(bot.user_id)}&select=username`, { headers:sbHeaders });
+    const botUsers = await userResponse.json();
+    if(!userResponse.ok || !botUsers[0]) throw new Error('Не удалось удалить username бота');
+    const previousUsername = botUsers[0].username;
+    const userUpdate = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(bot.user_id)}`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' }, body:JSON.stringify({ username:internalUsername })
+    });
+    if(!userUpdate.ok) throw new Error('Не удалось освободить username бота');
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_bots?id=eq.${encodeURIComponent(bot.id)}&owner_user_id=eq.${encodeURIComponent(owner.id)}&is_active=eq.true`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=representation' },
+      body:JSON.stringify({ username:null, display_name:'Удаленный аккаунт', is_active:false })
+    });
+    const rows = await response.json();
+    if(!response.ok || !rows.length){
+      await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(bot.user_id)}`, {
+        method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' }, body:JSON.stringify({ username:previousUsername })
+      });
+      throw new Error('Не удалось удалить бота');
+    }
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось удалить бота' });
   }
 });
 
@@ -6855,7 +6904,7 @@ app.post('/api/qwant/bots', async (req, res) => {
     if(!/^[A-Za-z][A-Za-z\d_]{4,31}$/.test(username) || !displayName || displayName.length > 60)
       return res.status(400).json({ success:false, error:'Укажите username (5–32 латинских символа, цифр или _) и имя до 60 символов' });
 
-    const ownedBotsResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?owner_user_id=eq.${encodeURIComponent(owner.id)}&select=id&limit=10`, { headers:sbHeaders });
+    const ownedBotsResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?owner_user_id=eq.${encodeURIComponent(owner.id)}&is_active=eq.true&select=id&limit=10`, { headers:sbHeaders });
     const ownedBots = await ownedBotsResponse.json();
     if(!ownedBotsResponse.ok) throw new Error('Не удалось проверить лимит ботов');
     if(ownedBots.length >= 10) return res.status(409).json({ success:false, error:'Можно создать не более 10 ботов' });
@@ -6977,12 +7026,13 @@ app.get('/api/social/chat-users', async (req, res) => {
     if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось найти пользователей');
     const botIds = users.map(candidate => String(candidate.id));
     const botsResponse = botIds.length
-      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${botIds.map(encodeURIComponent).join(',')})&is_active=eq.true&select=user_id,display_name`, { headers:sbHeaders })
+      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${botIds.map(encodeURIComponent).join(',')})&select=user_id,display_name,is_active`, { headers:sbHeaders })
       : null;
+    if(botsResponse && !botsResponse.ok) throw new Error('Не удалось проверить профили ботов');
     const bots = botsResponse?.ok ? await botsResponse.json() : [];
     const botByUserId = new Map(bots.map(bot => [String(bot.user_id), bot]));
     const normalizedQuery = query.toLocaleLowerCase('ru');
-    const results = users.filter(candidate => String(candidate.id) !== String(user.id));
+    const results = users.filter(candidate => String(candidate.id) !== String(user.id) && botByUserId.get(String(candidate.id))?.is_active !== false);
     results.sort((left, right) => {
       const leftName = String(left.username || '').toLocaleLowerCase('ru');
       const rightName = String(right.username || '').toLocaleLowerCase('ru');
@@ -7026,8 +7076,9 @@ app.get('/api/social/chats', async (req, res) => {
     const [partners, unreadMessages] = await Promise.all([usersResponse.json(), unreadResponse.json()]);
     if(!usersResponse.ok || !unreadResponse.ok || !Array.isArray(partners) || !Array.isArray(unreadMessages)) throw new Error('Не удалось загрузить список чатов');
     const botResponse = partnerIds.length
-      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${partnerIds.map(encodeURIComponent).join(',')})&is_active=eq.true&select=user_id,display_name`, { headers:sbHeaders })
+      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=user_id,display_name,is_active`, { headers:sbHeaders })
       : null;
+    if(botResponse && !botResponse.ok) throw new Error('Не удалось загрузить профили ботов');
     const bots = botResponse?.ok ? await botResponse.json() : [];
     const partnerById = new Map(partners.map(partner => [String(partner.id), partner]));
     const botByUserId = new Map(bots.map(bot => [String(bot.user_id), bot]));
@@ -7035,12 +7086,16 @@ app.get('/api/social/chats', async (req, res) => {
     unreadMessages.forEach(message => unreadByConversation.set(message.conversation_id, (unreadByConversation.get(message.conversation_id) || 0) + 1));
     const chats = conversations.map(conversation => {
       const partnerId = String(conversation.participant_one) === String(user.id) ? conversation.participant_two : conversation.participant_one;
+      const bot = botByUserId.get(String(partnerId));
+      const deleted = bot?.is_active === false;
       return {
         id:conversation.id,
         partner:{
           ...(partnerById.get(String(partnerId)) || { id:partnerId, username:'Пользователь', avatar_url:null }),
-          display_name:botByUserId.get(String(partnerId))?.display_name || null,
-          is_bot:botByUserId.has(String(partnerId))
+          ...(deleted ? { username:null, avatar_url:null } : {}),
+          display_name:deleted ? 'Удаленный аккаунт' : bot?.display_name || null,
+          is_bot:!!bot,
+          is_deleted:deleted
         },
         lastMessage:conversation.last_message_text,
         lastMessageSenderId:conversation.last_message_sender_id,
@@ -7064,8 +7119,9 @@ app.post('/api/social/chats', async (req, res) => {
     const recipients = await recipientResponse.json();
     if(!recipientResponse.ok) throw new Error('Не удалось проверить пользователя');
     if(!recipients.length) return res.status(404).json({ success:false, error:'Пользователь не найден' });
-    const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(recipientId)}&is_active=eq.true&select=display_name&limit=1`, { headers:sbHeaders });
+    const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(recipientId)}&select=display_name,is_active&limit=1`, { headers:sbHeaders });
     const botRows = botResponse.ok ? await botResponse.json() : [];
+    if(botRows[0]?.is_active === false) return res.status(410).json({ success:false, error:'Этот аккаунт удален' });
 
     const ids = [String(user.id), recipientId].sort((left, right) => BigInt(left) < BigInt(right) ? -1 : 1);
     const existingResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id&limit=1`, { headers:sbHeaders });
@@ -7084,7 +7140,7 @@ app.post('/api/social/chats', async (req, res) => {
     const conversationResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id,participant_one,participant_two,last_message_at,last_message_text,last_message_sender_id&limit=1`, { headers:sbHeaders });
     const conversations = await conversationResponse.json();
     if(!conversationResponse.ok || !conversations[0]) throw new Error('Не удалось открыть чат');
-    res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || null, is_bot:botRows.length > 0 } });
+    res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || null, is_bot:botRows.length > 0, is_deleted:false } });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось открыть чат' });
   }
@@ -7127,6 +7183,11 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
     if(body.length > 4000 || (!body && !imageBase64)) return res.status(400).json({ success:false, error:'Добавьте текст или изображение (текст до 4000 символов)' });
     const conversation = await getSocialConversation(conversationId, user.id);
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const recipientId = String(conversation.participant_one) === String(user.id) ? conversation.participant_two : conversation.participant_one;
+    const deletedBotResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(recipientId)}&is_active=eq.false&select=id&limit=1`, { headers:sbHeaders });
+    if(!deletedBotResponse.ok) throw new Error('Не удалось проверить статус собеседника');
+    const deletedBots = await deletedBotResponse.json();
+    if(deletedBots.length) return res.status(410).json({ success:false, error:'Нельзя отправить сообщение удаленному аккаунту' });
 
     let imageUrl = null;
     if(imageBase64){
