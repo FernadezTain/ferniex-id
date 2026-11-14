@@ -7185,11 +7185,17 @@ app.get('/api/social/chats', async (req, res) => {
     const conversations = await response.json();
     if(!response.ok || !Array.isArray(conversations)) throw new Error('Не удалось загрузить список чатов');
     if(!conversations.length) return res.json({ success:true, chats:[] });
+    const hiddenResponse = await fetch(`${SB_URL}/rest/v1/social_hidden_conversations?user_id=eq.${encodeURIComponent(user.id)}&select=conversation_id`, { headers:sbHeaders });
+    const hiddenRows = await hiddenResponse.json();
+    if(!hiddenResponse.ok || !Array.isArray(hiddenRows)) throw new Error('Не удалось загрузить список чатов');
+    const hiddenIds = new Set(hiddenRows.map(row => String(row.conversation_id)));
+    const visibleConversations = conversations.filter(conversation => !hiddenIds.has(String(conversation.id)));
+    if(!visibleConversations.length) return res.json({ success:true, chats:[] });
 
-    const partnerIds = [...new Set(conversations.map(conversation =>
+    const partnerIds = [...new Set(visibleConversations.map(conversation =>
       String(conversation.participant_one) === String(user.id) ? String(conversation.participant_two) : String(conversation.participant_one)
     ))];
-    const conversationIds = conversations.map(conversation => conversation.id);
+    const conversationIds = visibleConversations.map(conversation => conversation.id);
     const [usersResponse, unreadResponse] = await Promise.all([
       fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.join(',')})&select=id,username,avatar_url`, { headers:sbHeaders }),
       fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=in.(${conversationIds.join(',')})&recipient_id=eq.${user.id}&read_at=is.null&select=conversation_id`, { headers:sbHeaders })
@@ -7205,7 +7211,7 @@ app.get('/api/social/chats', async (req, res) => {
     const botByUserId = new Map(bots.map(bot => [String(bot.user_id), bot]));
     const unreadByConversation = new Map();
     unreadMessages.forEach(message => unreadByConversation.set(message.conversation_id, (unreadByConversation.get(message.conversation_id) || 0) + 1));
-    const chats = conversations.map(conversation => {
+    const chats = visibleConversations.map(conversation => {
       const partnerId = String(conversation.participant_one) === String(user.id) ? conversation.participant_two : conversation.participant_one;
       const bot = botByUserId.get(String(partnerId));
       const deleted = bot?.is_active === false;
@@ -7288,6 +7294,47 @@ app.get('/api/social/chats/:conversationId/messages', async (req, res) => {
     res.json({ success:true, messages:messages.reverse() });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить сообщения' });
+  }
+});
+
+app.post('/api/social/chats/:conversationId/hide', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_hidden_conversations?on_conflict=user_id,conversation_id`, {
+      method:'POST', headers:{ ...sbHeaders, Prefer:'resolution=merge-duplicates,return=minimal' },
+      body:JSON.stringify({ user_id:user.id, conversation_id:conversationId })
+    });
+    if(!response.ok) throw new Error('Не удалось удалить чат из списка. Проверьте миграцию social_chats.sql.');
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось удалить чат' });
+  }
+});
+
+app.post('/api/social/chats/:conversationId/unread', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const latestResponse = await fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&recipient_id=eq.${encodeURIComponent(user.id)}&select=id&order=created_at.desc,id.desc&limit=1`, { headers:sbHeaders });
+    const latest = await latestResponse.json();
+    if(!latestResponse.ok || !Array.isArray(latest)) throw new Error('Не удалось обновить статус чата');
+    if(!latest.length) return res.json({ success:true, unread:false });
+    const updateResponse = await fetch(`${SB_URL}/rest/v1/social_messages?id=eq.${encodeURIComponent(latest[0].id)}&recipient_id=eq.${encodeURIComponent(user.id)}`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' }, body:JSON.stringify({ read_at:null })
+    });
+    if(!updateResponse.ok) throw new Error('Не удалось отметить чат непрочитанным');
+    res.json({ success:true, unread:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось обновить статус чата' });
   }
 });
 
