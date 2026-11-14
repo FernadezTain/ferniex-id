@@ -245,7 +245,7 @@ async function getQwantBotInbox(botUserId){
     order:'last_message_at.desc',
     limit:'100'
   });
-  const response = await fetch(`${SB_URL}/rest/v1/social_conversations?${query}`, { headers:sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/social_conversations?${query}`, { headers: sbHeaders });
   const conversations = await response.json();
   if(!response.ok || !Array.isArray(conversations)) throw new Error('Не удалось загрузить входящие сообщения');
   if(!conversations.length) return [];
@@ -255,7 +255,7 @@ async function getQwantBotInbox(botUserId){
   ))];
   const conversationIds = conversations.map(conversation => conversation.id);
   const [usersResponse, unreadResponse] = await Promise.all([
-    fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=id,username,avatar_url`, { headers:sbHeaders }),
+    fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders }),
     fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=in.(${conversationIds.map(encodeURIComponent).join(',')})&recipient_id=eq.${encodeURIComponent(botUserId)}&read_at=is.null&select=conversation_id`, { headers:sbHeaders })
   ]);
   const [users, unreadMessages] = await Promise.all([usersResponse.json(), unreadResponse.json()]);
@@ -284,7 +284,7 @@ async function getQwantBotMessages(conversationId, botUserId){
     order:'created_at.asc,id.asc',
     limit:'100'
   });
-  const response = await fetch(`${SB_URL}/rest/v1/social_messages?${query}`, { headers:sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/social_messages?${query}`, { headers: sbHeaders });
   const messages = await response.json();
   if(!response.ok || !Array.isArray(messages)) throw new Error('Не удалось загрузить сообщения');
   await fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&recipient_id=eq.${encodeURIComponent(botUserId)}&read_at=is.null`, {
@@ -363,7 +363,7 @@ async function verifyLoginChallenge(challengeId, code, apiKeyId = null){
     return {error:'Не удалось завершить вход',status:503};
   }
   if(!(await consumed.json()).length) return {error:'Код уже использован. Начни вход заново',status:401};
-  const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.user_id)}&select=id,username,role,telegram_id`, {headers:sbHeaders});
+  const userRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(challenge.user_id)}&select=id,username,display_name,role,telegram_id`, {headers:sbHeaders});
   if(!userRes.ok) return {error:'Не удалось проверить аккаунт',status:503};
   const user = (await userRes.json())[0];
   if(!user?.telegram_id) return {error:'Telegram больше не привязан к аккаунту',status:401};
@@ -462,7 +462,7 @@ app.post("/api/register", async (req, res) => {
     const create = await fetch(`${SB_URL}/rest/v1/users`, {
       method: "POST",
       headers: sbHeaders,
-      body: JSON.stringify({ username, password_hash: hash, balance: 1000, role: "user" })
+      body: JSON.stringify({ username, display_name: username, password_hash: hash, balance: 1000, role: "user" })
     });
     if (create.ok) res.json({ success: true, message: "Регистрация успешна" });
     else res.json({ success: false, error: "Ошибка при создании" });
@@ -5220,8 +5220,78 @@ app.get('/api/config', (req, res) => {
 // ══════════════════════════════════════════
 //  ВНЕШНЯЯ АВТОРИЗАЦИЯ ЧЕРЕЗ API КЛЮЧ
 // ══════════════════════════════════════════
+function isValidFernieUsername(username){
+  return typeof username === 'string' && /^[A-Za-zА-Яа-яЁё0-9_]{3,20}$/.test(username);
+}
+
+async function authenticateFernieAuthApiKey(apiKey){
+  if(typeof apiKey !== 'string' || !apiKey) return null;
+  const apiKeyRow = await findApiKeyBySecret(apiKey);
+  return apiKeyRow && isApiKeyActive(apiKeyRow) ? apiKeyRow : null;
+}
+
+app.post('/api/auth/check-username', async (req, res) => {
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+  if(!isValidFernieUsername(username)) return res.status(400).json({ success:false, error:'NickName должен содержать 3–20 букв, цифр или подчёркиваний' });
+  try{
+    const apiKeyRow = await authenticateFernieAuthApiKey(req.body?.apiKey);
+    if(!apiKeyRow) return res.status(401).json({ success:false, error:'Неверный или неактивный API-ключ' });
+    const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.${encodeURIComponent(username)}&select=username&limit=1`, { headers:sbHeaders });
+    const users = await response.json();
+    if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось проверить NickName');
+    res.json({ success:true, exists:users.length > 0, username:users[0]?.username || username });
+  } catch(error){
+    console.error('auth username check failed:', error.message);
+    res.status(503).json({ success:false, error:'Не удалось проверить аккаунт. Попробуйте позже.' });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+  const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  if(!isValidFernieUsername(username)) return res.status(400).json({ success:false, error:'NickName должен содержать 3–20 букв, цифр или подчёркиваний' });
+  if(password.length < 8 || password.length > 256) return res.status(400).json({ success:false, error:'Пароль должен содержать не менее 8 символов' });
+  if(!displayName || displayName.length > 40) return res.status(400).json({ success:false, error:'Отображаемое имя должно содержать от 1 до 40 символов' });
+  try{
+    const apiKeyRow = await authenticateFernieAuthApiKey(req.body?.apiKey);
+    if(!apiKeyRow) return res.status(401).json({ success:false, error:'Неверный или неактивный API-ключ' });
+    const duplicateResponse = await fetch(`${SB_URL}/rest/v1/users?username=ilike.${encodeURIComponent(username)}&select=id&limit=1`, { headers:sbHeaders });
+    const duplicates = await duplicateResponse.json();
+    if(!duplicateResponse.ok || !Array.isArray(duplicates)) throw new Error('Не удалось проверить NickName');
+    if(duplicates.length) return res.status(409).json({ success:false, error:'Этот NickName уже занят. Войдите в аккаунт.' });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const insertResponse = await fetch(`${SB_URL}/rest/v1/users`, {
+      method:'POST', headers:{ ...sbHeaders, Prefer:'return=representation' },
+      body:JSON.stringify({ username, display_name:displayName, password_hash:passwordHash, balance:1000, role:'user' })
+    });
+    const users = await insertResponse.json();
+    if(!insertResponse.ok || !users[0]){
+      if(insertResponse.status === 409) return res.status(409).json({ success:false, error:'Этот NickName уже занят. Войдите в аккаунт.' });
+      console.error('auth registration failed:', JSON.stringify(users).slice(0, 300));
+      return res.status(503).json({ success:false, error:'Не удалось создать аккаунт. Проверьте миграцию display_name.' });
+    }
+    const createdUser = users[0];
+    return res.status(201).json({
+      success:true,
+      userId:createdUser.id,
+      username:createdUser.username,
+      displayName:createdUser.display_name,
+      role:createdUser.role,
+      sessionToken:createSessionToken(createdUser.id),
+      telegramLinked:false
+    });
+  } catch(error){
+    console.error('auth registration failed:', error.message);
+    res.status(503).json({ success:false, error:'Не удалось создать аккаунт. Попробуйте позже.' });
+  }
+});
+
 app.post('/api/auth/login', async (req, res) => {
-  const { apiKey, username, password } = req.body;
+  const apiKey = req.body?.apiKey;
+  const username = typeof req.body?.username === 'string' ? req.body.username.trim() : '';
+  const password = req.body?.password;
   if (!apiKey || !username || !password)
     return res.json({ success: false, error: 'Нет обязательных полей' });
 
@@ -5233,7 +5303,7 @@ app.post('/api/auth/login', async (req, res) => {
     const appKeyId = apiKeyRow.id;
 
     // 2. Ищем пользователя
-    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,password_hash,telegram_id,role`, { headers: sbHeaders });
+    const userRes = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(username)}&select=id,username,display_name,password_hash,telegram_id,role&limit=1`, { headers: sbHeaders });
     const users = await userRes.json();
     if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
     const user = users[0];
@@ -5289,7 +5359,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     // 6. Нет Telegram — сразу пускаем
-    res.json({ success: true, require2fa: false, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
+    res.json({ success: true, require2fa: false, userId: user.id, username: user.username, displayName:user.display_name || user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
     req.apiError = e;
@@ -5333,7 +5403,7 @@ app.post('/api/auth/verify-2fa', async (req, res) => {
       );
     }
 
-    res.json({ success: true, userId: user.id, username: user.username, role: user.role, sessionToken:createSessionToken(user.id) });
+    res.json({ success: true, userId: user.id, username: user.username, displayName:user.display_name || user.username, role: user.role, sessionToken:createSessionToken(user.id) });
 
   } catch (e) {
     req.apiError = e;
@@ -6615,7 +6685,7 @@ app.get('/api/social/users/search', async (req, res) => {
   if (!q || !q.trim()) return res.json({ success: true, users: [] });
   try {
     const query = q.trim();
-    const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,avatar_url&limit=25`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url&limit=25`, { headers: sbHeaders });
     let users = await r.json();
     if (!Array.isArray(users)) users = [];
     const userIds = users.map(user => String(user.id));
@@ -6636,7 +6706,7 @@ app.get('/api/social/users/search', async (req, res) => {
     });
     res.json({ success: true, users: users.slice(0, 15).map(user => ({
       ...user,
-      display_name:botByUserId.get(String(user.id))?.display_name || null,
+      display_name:botByUserId.get(String(user.id))?.display_name || user.display_name || null,
       is_bot:botByUserId.has(String(user.id))
     })) });
   } catch (e) {
@@ -6649,7 +6719,7 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
   const { targetId } = req.params;
   const { viewerId } = req.query;
   try {
-    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,avatar_url,banner_url`, { headers: sbHeaders });
+    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,display_name,avatar_url,banner_url`, { headers: sbHeaders });
     const users = await uRes.json();
     if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
     const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(targetId)}&select=display_name,description,is_active&limit=1`, { headers:sbHeaders });
@@ -6878,6 +6948,23 @@ app.get('/api/qwant/account', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message || 'Не удалось загрузить аккаунт' });
+  }
+});
+
+app.patch('/api/qwant/profile/display-name', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Сессия завершена' });
+    const displayName = typeof req.body?.displayName === 'string' ? req.body.displayName.trim() : '';
+    if(!displayName || displayName.length > 40) return res.status(400).json({ success:false, error:'Имя должно содержать от 1 до 40 символов' });
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id,display_name`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=representation' }, body:JSON.stringify({ display_name:displayName })
+    });
+    const users = await response.json();
+    if(!response.ok || !users[0]) throw new Error('Не удалось сохранить отображаемое имя');
+    res.json({ success:true, displayName:users[0].display_name });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось сохранить отображаемое имя' });
   }
 });
 
@@ -7141,7 +7228,7 @@ app.get('/api/social/chat-users', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const query = String(req.query.q || '').trim();
     if(!query || query.length > 32 || !/^[\p{L}\p{N}_]+$/u.test(query)) return res.json({ success:true, users:[] });
-    const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,avatar_url&limit=25`, { headers:sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url&limit=25`, { headers:sbHeaders });
     const users = await response.json();
     if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось найти пользователей');
     const botIds = users.map(candidate => String(candidate.id));
@@ -7161,7 +7248,7 @@ app.get('/api/social/chat-users', async (req, res) => {
     });
     res.json({ success:true, users:results.slice(0, 15).map(candidate => ({
       ...candidate,
-      display_name:botByUserId.get(String(candidate.id))?.display_name || null,
+      display_name:botByUserId.get(String(candidate.id))?.display_name || candidate.display_name || null,
       description:botByUserId.get(String(candidate.id))?.description || '',
       is_bot:botByUserId.has(String(candidate.id))
     })) });
@@ -7197,7 +7284,7 @@ app.get('/api/social/chats', async (req, res) => {
     ))];
     const conversationIds = visibleConversations.map(conversation => conversation.id);
     const [usersResponse, unreadResponse] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.join(',')})&select=id,username,avatar_url`, { headers:sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders }),
       fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=in.(${conversationIds.join(',')})&recipient_id=eq.${user.id}&read_at=is.null&select=conversation_id`, { headers:sbHeaders })
     ]);
     const [partners, unreadMessages] = await Promise.all([usersResponse.json(), unreadResponse.json()]);
@@ -7220,7 +7307,7 @@ app.get('/api/social/chats', async (req, res) => {
         partner:{
           ...(partnerById.get(String(partnerId)) || { id:partnerId, username:'Пользователь', avatar_url:null }),
           ...(deleted ? { username:null, avatar_url:null } : {}),
-          display_name:deleted ? 'Удаленный аккаунт' : bot?.display_name || null,
+          display_name:deleted ? 'Удаленный аккаунт' : bot?.display_name || partnerById.get(String(partnerId))?.display_name || null,
           description:deleted ? '' : bot?.description || '',
           is_bot:!!bot,
           is_deleted:deleted
@@ -7243,7 +7330,7 @@ app.post('/api/social/chats', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const recipientId = String(req.body?.recipientId || '');
     if(!/^\d+$/.test(recipientId) || recipientId === String(user.id)) return res.status(400).json({ success:false, error:'Некорректный собеседник' });
-    const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,avatar_url`, { headers:sbHeaders });
+    const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,display_name,avatar_url`, { headers:sbHeaders });
     const recipients = await recipientResponse.json();
     if(!recipientResponse.ok) throw new Error('Не удалось проверить пользователя');
     if(!recipients.length) return res.status(404).json({ success:false, error:'Пользователь не найден' });
@@ -7268,7 +7355,7 @@ app.post('/api/social/chats', async (req, res) => {
     const conversationResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id,participant_one,participant_two,last_message_at,last_message_text,last_message_sender_id&limit=1`, { headers:sbHeaders });
     const conversations = await conversationResponse.json();
     if(!conversationResponse.ok || !conversations[0]) throw new Error('Не удалось открыть чат');
-    res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || null, description:botRows[0]?.description || '', is_bot:botRows.length > 0, is_deleted:false } });
+    res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || recipients[0].display_name || null, description:botRows[0]?.description || '', is_bot:botRows.length > 0, is_deleted:false } });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось открыть чат' });
   }
