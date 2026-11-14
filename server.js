@@ -6605,23 +6605,68 @@ app.patch('/api/qwant/settings', async (req, res) => {
   }
 });
 
+function qwantDeviceInfo(req) {
+  const agent = String(req.get('x-qwant-client-user-agent') || req.get('user-agent') || '').slice(0, 500);
+  const appClient = /QwantApp|QwantMobile|FernieXApp|FernieXMobile|;\s*wv\)/i.test(agent);
+  const browserName = appClient ? ''
+    : /Edg(?:A|iOS)?\//i.test(agent) ? 'Microsoft Edge'
+    : /SamsungBrowser\//i.test(agent) ? 'Samsung Internet'
+    : /OPR\//i.test(agent) ? 'Opera'
+    : /Firefox\//i.test(agent) ? 'Firefox'
+    : /CriOS\//i.test(agent) ? 'Google Chrome'
+    : /Chrome\//i.test(agent) ? 'Google Chrome'
+    : /Safari\//i.test(agent) && /Version\//i.test(agent) ? 'Safari'
+    : '';
+  const suppliedModel = String(req.get('x-qwant-device-model') || '').trim().slice(0, 80);
+  const androidModel = agent.match(/;\s*([^;()]+?)\s+Build\//i)?.[1]?.replace(/^Android\s+[\d.]+\s*;?\s*/i, '').trim();
+  const deviceName = suppliedModel
+    || (/iPhone/i.test(agent) ? 'iPhone'
+      : /iPad/i.test(agent) ? 'iPad'
+      : /Android/i.test(agent) ? (androidModel || 'Android устройство')
+      : /Windows/i.test(agent) ? 'Windows компьютер'
+      : /Macintosh|Mac OS/i.test(agent) ? 'Mac'
+      : /Linux/i.test(agent) ? 'Linux компьютер'
+      : appClient ? 'Мобильное приложение' : 'Устройство');
+  const city = String(req.get('x-qwant-location-city') || '').trim();
+  const countryCode = String(req.get('x-qwant-location-country') || '').trim().toUpperCase();
+  let decodedCity = city;
+  try { decodedCity = decodeURIComponent(city.replace(/\+/g, '%20')); } catch {}
+  let country = countryCode;
+  if (/^[A-Z]{2}$/.test(countryCode)) {
+    try { country = new Intl.DisplayNames(['ru'], { type: 'region' }).of(countryCode) || countryCode; } catch {}
+  }
+  return {
+    userAgent: agent,
+    deviceName,
+    browserName,
+    city: decodedCity.slice(0, 120),
+    country: country.slice(0, 80)
+  };
+}
+
 app.post('/api/qwant/devices/register', async (req, res) => {
   try {
     const user = await authenticateSocialChat(req);
     const deviceId = String(req.body?.deviceId || '');
     if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
     if (!/^[\da-f-]{36}$/i.test(deviceId)) return res.status(400).json({ success: false, error: 'Некорректное устройство' });
-    const agent = String(req.get('user-agent') || '').slice(0, 500);
-    const browser = /Firefox/i.test(agent) ? 'Firefox' : /Edg/i.test(agent) ? 'Microsoft Edge' : /Chrome/i.test(agent) ? 'Google Chrome' : /Safari/i.test(agent) ? 'Safari' : 'Браузер';
-    const platform = /Windows/i.test(agent) ? 'Windows' : /Mac OS/i.test(agent) ? 'macOS' : /Android/i.test(agent) ? 'Android' : /iPhone|iPad/i.test(agent) ? 'iOS' : /Linux/i.test(agent) ? 'Linux' : '';
-    const deviceName = platform ? `${browser} · ${platform}` : browser;
+    const device = qwantDeviceInfo(req);
     const existingResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?device_id=eq.${encodeURIComponent(deviceId)}&select=user_id&limit=1`, { headers: sbHeaders });
     const existing = await existingResponse.json();
     if (!existingResponse.ok) throw new Error('Не удалось проверить устройство');
     if (existing[0] && String(existing[0].user_id) !== String(user.id)) return res.status(409).json({ success: false, error: 'Устройство уже связано с другим аккаунтом' });
     const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?on_conflict=device_id`, {
       method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ device_id: deviceId, user_id: user.id, device_name: deviceName, user_agent: agent, last_seen_at: new Date().toISOString() })
+      body: JSON.stringify({
+        device_id: deviceId,
+        user_id: user.id,
+        device_name: device.deviceName,
+        browser_name: device.browserName,
+        city: device.city || null,
+        country: device.country || null,
+        user_agent: device.userAgent,
+        last_seen_at: new Date().toISOString()
+      })
     });
     if (!response.ok) throw new Error('Не удалось зарегистрировать устройство. Проверьте миграцию Qwant.');
     res.json({ success: true });
@@ -6653,7 +6698,7 @@ app.get('/api/qwant/devices', async (req, res) => {
   try {
     const user = await authenticateSocialChat(req);
     if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
-    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=device_id,device_name,user_agent,created_at,last_seen_at&order=last_seen_at.desc`, { headers: sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=device_id,device_name,browser_name,city,country,user_agent,created_at,last_seen_at&order=last_seen_at.desc`, { headers: sbHeaders });
     const devices = await response.json();
     if (!response.ok || !Array.isArray(devices)) throw new Error('Не удалось загрузить устройства. Проверьте миграцию Qwant.');
     res.json({ success: true, devices });
