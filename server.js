@@ -281,7 +281,7 @@ async function getQwantBotMessages(conversationId, botUserId){
   const query = new URLSearchParams({
     conversation_id:`eq.${conversationId}`,
     select:'id,conversation_id,sender_id,recipient_id,body,message_type,created_at,delivered_at,read_at,deleted_at',
-    order:'created_at.asc,id.asc',
+    order:'created_at.desc,id.desc',
     limit:'100'
   });
     const response = await fetch(`${SB_URL}/rest/v1/social_messages?${query}`, { headers: sbHeaders });
@@ -290,7 +290,7 @@ async function getQwantBotMessages(conversationId, botUserId){
   await fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=eq.${encodeURIComponent(conversationId)}&recipient_id=eq.${encodeURIComponent(botUserId)}&read_at=is.null`, {
     method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' }, body:JSON.stringify({ read_at:new Date().toISOString() })
   });
-  return messages;
+  return messages.reverse();
 }
 
 async function sendQwantBotMessage(conversationId, botUserId, body){
@@ -7190,7 +7190,7 @@ app.get('/api/qwant/bot/inbox', async (req, res) => {
   try{
     const bot = await authenticateQwantBot(req);
     if(!bot) return res.status(401).json({ success:false, error:'Недействительный токен бота' });
-    res.json({ success:true, chats:await getQwantBotInbox(bot.user_id) });
+    res.json({ success:true, bot:{ id:String(bot.user_id), username:bot.username, displayName:bot.display_name }, chats:await getQwantBotInbox(bot.user_id) });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить входящие' });
   }
