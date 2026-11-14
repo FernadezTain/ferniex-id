@@ -6556,6 +6556,150 @@ app.post('/api/social/friends/toggle', async (req, res) => {
   }
 });
 
+app.get('/api/qwant/settings', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    const [settingsResponse, userResponse] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?on_conflict=user_id`, {
+        method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=representation' },
+        body: JSON.stringify({ user_id: user.id })
+      }),
+      fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=telegram_id`, { headers: sbHeaders })
+    ]);
+    const [settingsRows, users] = await Promise.all([settingsResponse.json(), userResponse.json()]);
+    if (!settingsResponse.ok || !userResponse.ok || !settingsRows[0] || !users[0]) throw new Error('Не удалось загрузить настройки');
+    const { user_id, updated_at, ...settings } = settingsRows[0];
+    res.json({ success: true, settings, telegramId: users[0].telegram_id ? String(users[0].telegram_id) : null });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось загрузить настройки' });
+  }
+});
+
+app.patch('/api/qwant/settings', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    const allowed = ['notifications_enabled', 'telegram_notifications_enabled', 'show_online_status', 'read_receipts', 'allow_new_chats', 'theme', 'accent_color', 'font_scale'];
+    const updates = Object.fromEntries(Object.entries(req.body || {}).filter(([key]) => allowed.includes(key)));
+    if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: 'Нет настроек для сохранения' });
+    for (const key of ['notifications_enabled', 'telegram_notifications_enabled', 'show_online_status', 'read_receipts', 'allow_new_chats']) {
+      if (key in updates && typeof updates[key] !== 'boolean') return res.status(400).json({ success: false, error: 'Некорректное значение переключателя' });
+    }
+    if ('theme' in updates && !['light', 'dark'].includes(updates.theme)) return res.status(400).json({ success: false, error: 'Некорректная тема' });
+    if ('accent_color' in updates && !['#b64f3f', '#597a68', '#6c73a8', '#b57a45'].includes(updates.accent_color)) return res.status(400).json({ success: false, error: 'Некорректный акцентный цвет' });
+    if ('font_scale' in updates && ![90, 95, 100, 105, 110, 115].includes(Number(updates.font_scale))) return res.status(400).json({ success: false, error: 'Некорректный размер текста' });
+    if (updates.telegram_notifications_enabled) {
+      const telegramResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=telegram_id`, { headers: sbHeaders });
+      const users = await telegramResponse.json();
+      if (!telegramResponse.ok || !users[0]?.telegram_id) return res.status(409).json({ success: false, error: 'Сначала привяжите Telegram к FernieID' });
+    }
+    updates.updated_at = new Date().toISOString();
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?user_id=eq.${encodeURIComponent(user.id)}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify(updates)
+    });
+    if (!response.ok) throw new Error('Не удалось сохранить настройки');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось сохранить настройки' });
+  }
+});
+
+app.post('/api/qwant/devices/register', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    const deviceId = String(req.body?.deviceId || '');
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    if (!/^[\da-f-]{36}$/i.test(deviceId)) return res.status(400).json({ success: false, error: 'Некорректное устройство' });
+    const agent = String(req.get('user-agent') || '').slice(0, 500);
+    const browser = /Firefox/i.test(agent) ? 'Firefox' : /Edg/i.test(agent) ? 'Microsoft Edge' : /Chrome/i.test(agent) ? 'Google Chrome' : /Safari/i.test(agent) ? 'Safari' : 'Браузер';
+    const platform = /Windows/i.test(agent) ? 'Windows' : /Mac OS/i.test(agent) ? 'macOS' : /Android/i.test(agent) ? 'Android' : /iPhone|iPad/i.test(agent) ? 'iOS' : /Linux/i.test(agent) ? 'Linux' : '';
+    const deviceName = platform ? `${browser} · ${platform}` : browser;
+    const existingResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?device_id=eq.${encodeURIComponent(deviceId)}&select=user_id&limit=1`, { headers: sbHeaders });
+    const existing = await existingResponse.json();
+    if (!existingResponse.ok) throw new Error('Не удалось проверить устройство');
+    if (existing[0] && String(existing[0].user_id) !== String(user.id)) return res.status(409).json({ success: false, error: 'Устройство уже связано с другим аккаунтом' });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?on_conflict=device_id`, {
+      method: 'POST', headers: { ...sbHeaders, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ device_id: deviceId, user_id: user.id, device_name: deviceName, user_agent: agent, last_seen_at: new Date().toISOString() })
+    });
+    if (!response.ok) throw new Error('Не удалось зарегистрировать устройство. Проверьте миграцию Qwant.');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось зарегистрировать устройство' });
+  }
+});
+
+app.post('/api/qwant/devices/check', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    const deviceId = String(req.body?.deviceId || '');
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    if (!/^[\da-f-]{36}$/i.test(deviceId)) return res.status(400).json({ success: false, error: 'Некорректное устройство' });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?device_id=eq.${encodeURIComponent(deviceId)}&user_id=eq.${encodeURIComponent(user.id)}&select=device_id`, { headers: sbHeaders });
+    const rows = await response.json();
+    if (!response.ok) throw new Error('Не удалось проверить сессию');
+    if (!rows.length) return res.status(401).json({ success: false, revoked: true, error: 'Сессия завершена' });
+    await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?device_id=eq.${encodeURIComponent(deviceId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+      method: 'PATCH', headers: { ...sbHeaders, Prefer: 'return=minimal' }, body: JSON.stringify({ last_seen_at: new Date().toISOString() })
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось проверить сессию' });
+  }
+});
+
+app.get('/api/qwant/devices', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?user_id=eq.${encodeURIComponent(user.id)}&select=device_id,device_name,user_agent,created_at,last_seen_at&order=last_seen_at.desc`, { headers: sbHeaders });
+    const devices = await response.json();
+    if (!response.ok || !Array.isArray(devices)) throw new Error('Не удалось загрузить устройства. Проверьте миграцию Qwant.');
+    res.json({ success: true, devices });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось загрузить устройства' });
+  }
+});
+
+app.delete('/api/qwant/devices/:deviceId', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    const { deviceId } = req.params;
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    if (!/^[\da-f-]{36}$/i.test(deviceId)) return res.status(400).json({ success: false, error: 'Некорректное устройство' });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_messenger_sessions?device_id=eq.${encodeURIComponent(deviceId)}&user_id=eq.${encodeURIComponent(user.id)}`, { method: 'DELETE', headers: sbHeaders });
+    if (!response.ok) throw new Error('Не удалось завершить сеанс');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось завершить сеанс' });
+  }
+});
+
+app.get('/api/qwant/account', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if (!user) return res.status(401).json({ success: false, error: 'Сессия завершена' });
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=telegram_id`, { headers: sbHeaders });
+    const users = await response.json();
+    if (!response.ok || !users[0]) throw new Error('Не удалось загрузить аккаунт');
+    const telegramId = users[0].telegram_id ? String(users[0].telegram_id) : null;
+    if (!telegramId) return res.json({ success: true, telegramId: null, ferniePlus: { active: false }, fernieCoins: null });
+    const [plusResult, coinsResult] = await Promise.all([
+      exchangeBotRequest(`/api/fernieplus/status?telegram_id=${encodeURIComponent(telegramId)}`),
+      exchangeBotRequest(`/api/dc?telegram_id=${encodeURIComponent(telegramId)}`)
+    ]);
+    res.json({
+      success: true,
+      telegramId,
+      ferniePlus: plusResult.data?.success === false ? { active: false } : plusResult.data,
+      fernieCoins: coinsResult.data?.success === false ? null : coinsResult.data?.dc ?? null
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message || 'Не удалось загрузить аккаунт' });
+  }
+});
+
 app.get('/api/social/chat-users', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
@@ -6637,6 +6781,14 @@ app.post('/api/social/chats', async (req, res) => {
     if(!recipients.length) return res.status(404).json({ success:false, error:'Пользователь не найден' });
 
     const ids = [String(user.id), recipientId].sort((left, right) => BigInt(left) < BigInt(right) ? -1 : 1);
+    const existingResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id&limit=1`, { headers:sbHeaders });
+    const existing = await existingResponse.json();
+    if(!existingResponse.ok) throw new Error('Не удалось проверить существующий чат');
+    if(!existing.length){
+      const preferenceResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?user_id=eq.${encodeURIComponent(user.id)}&select=allow_new_chats&limit=1`, { headers:sbHeaders });
+      const preferences = await preferenceResponse.json();
+      if(preferenceResponse.ok && preferences[0]?.allow_new_chats === false) return res.status(403).json({ success:false, error:'В настройках конфиденциальности отключено создание новых чатов' });
+    }
     const insertResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?on_conflict=participant_one,participant_two`, {
       method:'POST', headers:{ ...sbHeaders, Prefer:'resolution=ignore-duplicates,return=minimal' },
       body:JSON.stringify({ participant_one:ids[0], participant_two:ids[1] })
@@ -6723,7 +6875,9 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
       const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(message.recipient_id)}&select=username,telegram_id`, { headers:sbHeaders });
       const recipients = await recipientResponse.json();
       const recipient = recipients[0];
-      if(recipientResponse.ok && recipient?.telegram_id){
+      const notificationResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?user_id=eq.${encodeURIComponent(message.recipient_id)}&select=telegram_notifications_enabled&limit=1`, { headers:sbHeaders });
+      const notificationSettings = notificationResponse.ok ? await notificationResponse.json() : [];
+      if(recipientResponse.ok && recipient?.telegram_id && notificationSettings[0]?.telegram_notifications_enabled === true){
         const escapeTelegramHtml = value => String(value ?? '').replace(/[&<>]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[character]);
         const previewText = String(message.body || (message.image_url ? '📷 Фото' : '')).replace(/\s+/g, ' ').trim();
         const previewCharacters = Array.from(previewText);
@@ -6775,6 +6929,10 @@ app.patch('/api/social/chats/:conversationId/read', async (req, res) => {
     if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
     const conversation = await getSocialConversation(conversationId, user.id);
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const preferencesResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?user_id=eq.${encodeURIComponent(user.id)}&select=read_receipts&limit=1`, { headers:sbHeaders });
+    const preferences = await preferencesResponse.json();
+    if(!preferencesResponse.ok) throw new Error('Не удалось проверить настройки конфиденциальности');
+    if(preferences[0]?.read_receipts === false) return res.json({ success:true, skipped:true });
     const response = await fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=eq.${conversationId}&recipient_id=eq.${user.id}&read_at=is.null`, {
       method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
       body:JSON.stringify({ read_at:new Date().toISOString() })
@@ -6836,6 +6994,10 @@ app.get('/api/social/chats/:conversationId/presence', async (req, res) => {
     const conversation = await getSocialConversation(conversationId, user.id);
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
     const partnerId = String(conversation.participant_one) === String(user.id) ? conversation.participant_two : conversation.participant_one;
+    const preferenceResponse = await fetch(`${SB_URL}/rest/v1/qwant_messenger_settings?user_id=eq.${encodeURIComponent(partnerId)}&select=show_online_status&limit=1`, { headers:sbHeaders });
+    const preferences = await preferenceResponse.json();
+    if(!preferenceResponse.ok) throw new Error('Не удалось проверить настройки конфиденциальности');
+    if(preferences[0]?.show_online_status === false) return res.json({ success:true, inChat:false, typing:false });
     const cutoff = new Date(Date.now() - 30000).toISOString();
     const query = new URLSearchParams({
       user_id:`eq.${partnerId}`,
