@@ -7288,7 +7288,7 @@ app.get('/api/social/chat-users', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
-    const query = String(req.query.q || '').trim();
+    const query = String(req.query.q || '').trim().replace(/^@+/, '');
     if(!query || query.length > 32 || !/^[\p{L}\p{N}_]+$/u.test(query)) return res.json({ success:true, users:[] });
     const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url&limit=25`, { headers:sbHeaders });
     const users = await response.json();
@@ -7861,6 +7861,83 @@ app.get('/api/social/calls/config', async (req, res) => {
   res.json({ success:true, iceServers });
 });
 
+app.get('/api/social/calls/history', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
+    const filters = new URLSearchParams({
+      select:'call_id,conversation_id,caller_id,recipient_id,status,started_at,accepted_at,ended_at,duration_seconds',
+      or:`(caller_id.eq.${user.id},recipient_id.eq.${user.id})`,
+      order:'started_at.desc,call_id.desc',
+      limit:'100'
+    });
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?${filters}`, { headers:sbHeaders });
+    const calls = await response.json();
+    if(!response.ok || !Array.isArray(calls)) throw new Error('Не удалось загрузить историю звонков. Проверьте миграцию qwant_call_signals.sql.');
+    const partnerIds = [...new Set(calls.map(call => String(call.caller_id) === String(user.id) ? String(call.recipient_id) : String(call.caller_id)))];
+    const usersResponse = partnerIds.length
+      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders })
+      : null;
+    const users = usersResponse ? await usersResponse.json() : [];
+    if(usersResponse && (!usersResponse.ok || !Array.isArray(users))) throw new Error('Не удалось загрузить собеседников из истории звонков');
+    const userById = new Map(users.map(person => [String(person.id), person]));
+    res.json({ success:true, calls:calls.map(call => {
+      const outgoing = String(call.caller_id) === String(user.id);
+      const partnerId = outgoing ? call.recipient_id : call.caller_id;
+      return {
+        ...call,
+        direction:outgoing ? 'outgoing' : 'incoming',
+        partner:userById.get(String(partnerId)) || { id:partnerId, display_name:'Пользователь' }
+      };
+    }) });
+  } catch(error) {
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить историю звонков' });
+  }
+});
+
+async function updateQwantCallHistory({ signalType, callId, conversationId, callerId, recipientId, senderId }) {
+  if(signalType === 'invite') {
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?on_conflict=call_id`, {
+      method:'POST', headers:{ ...sbHeaders, Prefer:'resolution=ignore-duplicates,return=minimal' },
+      body:JSON.stringify({ call_id:callId, conversation_id:conversationId, caller_id:callerId, recipient_id:recipientId, status:'ringing' })
+    });
+    if(!response.ok) throw new Error('Не удалось записать исходящий звонок');
+    return;
+  }
+  if(signalType === 'accepted') {
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?call_id=eq.${encodeURIComponent(callId)}&recipient_id=eq.${encodeURIComponent(senderId)}`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
+      body:JSON.stringify({ status:'in_progress', accepted_at:new Date().toISOString() })
+    });
+    if(!response.ok) throw new Error('Не удалось отметить принятый звонок');
+    return;
+  }
+  if(signalType === 'declined') {
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?call_id=eq.${encodeURIComponent(callId)}`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
+      body:JSON.stringify({ status:'declined', ended_at:new Date().toISOString() })
+    });
+    if(!response.ok) throw new Error('Не удалось записать отклонённый звонок');
+    return;
+  }
+  if(signalType !== 'hangup') return;
+  const historyResponse = await fetch(`${SB_URL}/rest/v1/qwant_call_history?call_id=eq.${encodeURIComponent(callId)}&select=accepted_at,caller_id&limit=1`, { headers:sbHeaders });
+  const history = await historyResponse.json();
+  if(!historyResponse.ok || !Array.isArray(history)) throw new Error('Не удалось прочитать состояние звонка');
+  if(!history[0]) return;
+  const endedAt = new Date();
+  const acceptedAt = history[0].accepted_at ? Date.parse(history[0].accepted_at) : 0;
+  const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?call_id=eq.${encodeURIComponent(callId)}`, {
+    method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
+    body:JSON.stringify({
+      status:acceptedAt ? 'completed' : 'missed',
+      ended_at:endedAt.toISOString(),
+      duration_seconds:acceptedAt ? Math.max(0, Math.floor((endedAt.getTime() - acceptedAt) / 1000)) : 0
+    })
+  });
+  if(!response.ok) throw new Error('Не удалось завершить запись звонка');
+}
+
 app.get('/api/social/calls/signals', async (req, res) => {
   const user = await authenticateSocialChat(req);
   if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
@@ -7917,6 +7994,11 @@ app.post('/api/social/chats/:conversationId/call-signals', async (req, res) => {
       })
     });
     if(!response.ok) throw new Error('Не удалось передать событие звонка');
+    try {
+      await updateQwantCallHistory({ signalType, callId, conversationId, callerId:user.id, recipientId, senderId:user.id });
+    } catch(error) {
+      console.error('Qwant call history update failed:', error.message);
+    }
     res.json({ success:true });
   } catch(error) {
     console.error('Qwant call signal send failed:', error.message);
