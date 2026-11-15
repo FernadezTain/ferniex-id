@@ -316,6 +316,25 @@ async function getSocialConversation(conversationId, userId){
   return conversation;
 }
 
+async function unhideSocialConversation(userId, conversationId){
+  const response = await fetch(`${SB_URL}/rest/v1/social_hidden_conversations?user_id=eq.${encodeURIComponent(userId)}&conversation_id=eq.${encodeURIComponent(conversationId)}`, {
+    method:'DELETE', headers:{ ...sbHeaders, Prefer:'return=minimal' }
+  });
+  if(!response.ok) throw new Error('Не удалось вернуть чат в список');
+}
+
+async function clearSocialConversationHistory(conversationId){
+  const deleteResponse = await fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=eq.${encodeURIComponent(conversationId)}`, {
+    method:'DELETE', headers:{ ...sbHeaders, Prefer:'return=minimal' }
+  });
+  if(!deleteResponse.ok) throw new Error('Не удалось очистить переписку');
+  const updateResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?id=eq.${encodeURIComponent(conversationId)}`, {
+    method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=minimal' },
+    body:JSON.stringify({ last_message_at:null, last_message_text:null, last_message_sender_id:null })
+  });
+  if(!updateResponse.ok) throw new Error('Не удалось обновить чат после очистки');
+}
+
 function hashLoginCode(challengeId, code){
   return createHmac('sha256', sessionSecret()).update(`${challengeId}:${code}`).digest('hex');
 }
@@ -7262,10 +7281,9 @@ app.get('/api/social/chats', async (req, res) => {
     const user = await authenticateSocialChat(req);
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const filters = new URLSearchParams({
-      select:'id,participant_one,participant_two,last_message_at,last_message_text,last_message_sender_id',
+      select:'id,participant_one,participant_two,created_at,last_message_at,last_message_text,last_message_sender_id',
       or:`(participant_one.eq.${user.id},participant_two.eq.${user.id})`,
-      last_message_at:'not.is.null',
-      order:'last_message_at.desc',
+      order:'last_message_at.desc.nullslast,created_at.desc',
       limit:'50'
     });
     const response = await fetch(`${SB_URL}/rest/v1/social_conversations?${filters}`, { headers:sbHeaders });
@@ -7355,6 +7373,7 @@ app.post('/api/social/chats', async (req, res) => {
     const conversationResponse = await fetch(`${SB_URL}/rest/v1/social_conversations?participant_one=eq.${ids[0]}&participant_two=eq.${ids[1]}&select=id,participant_one,participant_two,last_message_at,last_message_text,last_message_sender_id&limit=1`, { headers:sbHeaders });
     const conversations = await conversationResponse.json();
     if(!conversationResponse.ok || !conversations[0]) throw new Error('Не удалось открыть чат');
+    await unhideSocialConversation(user.id, conversations[0].id);
     res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || recipients[0].display_name || null, description:botRows[0]?.description || '', is_bot:botRows.length > 0, is_deleted:false } });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось открыть чат' });
@@ -7392,6 +7411,7 @@ app.post('/api/social/chats/:conversationId/hide', async (req, res) => {
     if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
     const conversation = await getSocialConversation(conversationId, user.id);
     if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    await clearSocialConversationHistory(conversationId);
     const response = await fetch(`${SB_URL}/rest/v1/social_hidden_conversations?on_conflict=user_id,conversation_id`, {
       method:'POST', headers:{ ...sbHeaders, Prefer:'resolution=merge-duplicates,return=minimal' },
       body:JSON.stringify({ user_id:user.id, conversation_id:conversationId })
@@ -7400,6 +7420,37 @@ app.post('/api/social/chats/:conversationId/hide', async (req, res) => {
     res.json({ success:true });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось удалить чат' });
+  }
+});
+
+app.post('/api/social/chats/:conversationId/unhide', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    await unhideSocialConversation(user.id, conversationId);
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось вернуть чат в список' });
+  }
+});
+
+app.post('/api/social/chats/:conversationId/clear', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { conversationId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(conversationId)) return res.status(400).json({ success:false, error:'Некорректный чат' });
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    await clearSocialConversationHistory(conversationId);
+    await unhideSocialConversation(user.id, conversationId);
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось очистить переписку' });
   }
 });
 
@@ -7499,6 +7550,10 @@ app.post('/api/social/chats/:conversationId/messages', async (req, res) => {
     const result = await response.json();
     if(!response.ok || !Array.isArray(result) || !result[0]) throw new Error('Не удалось отправить сообщение');
     const message = result[0];
+    await Promise.all([
+      unhideSocialConversation(conversation.participant_one, conversationId),
+      unhideSocialConversation(conversation.participant_two, conversationId)
+    ]).catch(error => console.error('[social chat] failed to unhide sent conversation:', error.message));
     try{
       const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(message.recipient_id)}&select=username,telegram_id`, { headers:sbHeaders });
       const recipients = await recipientResponse.json();
