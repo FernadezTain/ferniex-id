@@ -6738,7 +6738,7 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
   const { targetId } = req.params;
   const { viewerId } = req.query;
   try {
-    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,display_name,avatar_url,banner_url`, { headers: sbHeaders });
+    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,display_name,avatar_url,banner_url,role`, { headers: sbHeaders });
     const users = await uRes.json();
     if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
     const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(targetId)}&select=display_name,description,is_active&limit=1`, { headers:sbHeaders });
@@ -6746,7 +6746,8 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
     const bot = (await botResponse.json())[0];
     const profile = bot?.is_active === false
       ? { ...users[0], username:null, avatar_url:null, display_name:'Удаленный аккаунт', description:'', is_deleted:true }
-      : { ...users[0], ...(bot ? { display_name:bot.display_name, description:bot.description || '', is_bot:true } : {}) };
+      : { ...users[0], is_official_admin:!bot && users[0].role === 'admin', ...(bot ? { display_name:bot.display_name, description:bot.description || '', is_bot:true } : {}) };
+    delete profile.role;
     let isFriend = false;
     if (viewerId && String(viewerId) !== String(targetId)) {
       const fRes = await fetch(`${SB_URL}/rest/v1/friends?user_id=eq.${viewerId}&friend_id=eq.${targetId}&select=id`, { headers: sbHeaders });
