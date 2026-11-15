@@ -6970,6 +6970,23 @@ app.get('/api/qwant/account', async (req, res) => {
   }
 });
 
+app.get('/api/qwant/transactions', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Сессия завершена' });
+    const telegramId = await resolveTelegramId(user.id);
+    if(!telegramId) return res.json({ success:true, transactions:[], telegramLinked:false });
+    const result = await exchangeBotRequest(`/api/exchange/transactions?telegram_id=${encodeURIComponent(telegramId)}`);
+    if(result.status >= 400 || result.data?.success === false){
+      return res.status(result.status || 502).json({ success:false, error:result.data?.error || 'Не удалось загрузить историю FernieCoins' });
+    }
+    return res.json({ success:true, telegramLinked:true, transactions:Array.isArray(result.data?.transactions) ? result.data.transactions : [] });
+  } catch(error){
+    console.error('qwant transactions error:', error);
+    return res.status(502).json({ success:false, error:'Не удалось загрузить историю FernieCoins' });
+  }
+});
+
 app.patch('/api/qwant/profile/display-name', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
