@@ -6954,15 +6954,17 @@ app.get('/api/qwant/account', async (req, res) => {
     const users = await response.json();
     if (!response.ok || !users[0]) throw new Error('Не удалось загрузить аккаунт');
     const telegramId = users[0].telegram_id ? String(users[0].telegram_id) : null;
-    if (!telegramId) return res.json({ success: true, telegramId: null, ferniePlus: { active: false }, fernieCoins: null });
-    const [plusResult, coinsResult] = await Promise.all([
+    if (!telegramId) return res.json({ success: true, telegramId: null, ferniePlus: { active: false }, ferniePlusPro: { active: false }, fernieCoins: null });
+    const [plusResult, proResult, coinsResult] = await Promise.all([
       exchangeBotRequest(`/api/fernieplus/status?telegram_id=${encodeURIComponent(telegramId)}`),
+      exchangeBotRequest(`/api/fernieplus/pro/status?telegram_id=${encodeURIComponent(telegramId)}`),
       exchangeBotRequest(`/api/dc?telegram_id=${encodeURIComponent(telegramId)}`)
     ]);
     res.json({
       success: true,
       telegramId,
       ferniePlus: plusResult.data?.success === false ? { active: false } : plusResult.data,
+      ferniePlusPro: proResult.data?.success === false ? { active: false } : proResult.data,
       fernieCoins: coinsResult.data?.success === false ? null : coinsResult.data?.dc ?? null
     });
   } catch (error) {
