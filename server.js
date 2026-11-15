@@ -191,10 +191,29 @@ async function authenticateSocialChat(req){
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
   const claims = verifySessionToken(token);
   if(!claims || !/^\d+$/.test(claims.sub)) return null;
-  const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(claims.sub)}&select=id,username,avatar_url`, { headers:sbHeaders });
+  const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(claims.sub)}&select=id,username,avatar_url,role,messenger_verification`, { headers:sbHeaders });
   if(!response.ok) return null;
   const users = await response.json();
   return users[0] || null;
+}
+
+function socialVerificationLevel(user){
+  if(user?.role === 'admin') return 'full';
+  return ['basic', 'full'].includes(user?.messenger_verification) ? user.messenger_verification : 'none';
+}
+
+function publicSocialUser(user){
+  const level = user?.is_bot || user?.is_deleted ? 'none' : socialVerificationLevel(user);
+  const { role, messenger_verification, ...publicUser } = user || {};
+  return { ...publicUser, verification_level:level, is_verified:level !== 'none', is_official_admin:level === 'full' };
+}
+
+async function getMessengerAdminAccess(req){
+  const user = await authenticateSocialChat(req);
+  if(!user) return null;
+  const isAdmin = user.role === 'admin';
+  const level = socialVerificationLevel(user);
+  return { user, canAccess:isAdmin || level === 'full', canGrantFull:isAdmin };
 }
 
 function hashQwantBotToken(token){
@@ -6704,7 +6723,7 @@ app.get('/api/social/users/search', async (req, res) => {
   if (!q || !q.trim()) return res.json({ success: true, users: [] });
   try {
     const query = q.trim();
-    const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url&limit=25`, { headers: sbHeaders });
+    const r = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url,role,messenger_verification&limit=25`, { headers: sbHeaders });
     let users = await r.json();
     if (!Array.isArray(users)) users = [];
     const userIds = users.map(user => String(user.id));
@@ -6724,7 +6743,7 @@ app.get('/api/social/users/search', async (req, res) => {
       return an.length - bn.length;
     });
     res.json({ success: true, users: users.slice(0, 15).map(user => ({
-      ...user,
+      ...publicSocialUser({ ...user, is_bot:botByUserId.has(String(user.id)) }),
       display_name:botByUserId.get(String(user.id))?.display_name || user.display_name || null,
       is_bot:botByUserId.has(String(user.id))
     })) });
@@ -6738,15 +6757,15 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
   const { targetId } = req.params;
   const { viewerId } = req.query;
   try {
-    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${targetId}&select=id,username,display_name,avatar_url,banner_url,role`, { headers: sbHeaders });
+    const uRes = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(targetId)}&select=id,username,display_name,avatar_url,banner_url,role,messenger_verification`, { headers: sbHeaders });
     const users = await uRes.json();
     if (!users.length) return res.json({ success: false, error: 'Пользователь не найден' });
     const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(targetId)}&select=display_name,description,is_active&limit=1`, { headers:sbHeaders });
     if(!botResponse.ok) throw new Error('Не удалось проверить профиль');
     const bot = (await botResponse.json())[0];
     const profile = bot?.is_active === false
-      ? { ...users[0], username:null, avatar_url:null, display_name:'Удаленный аккаунт', description:'', is_deleted:true }
-      : { ...users[0], is_official_admin:!bot && users[0].role === 'admin', ...(bot ? { display_name:bot.display_name, description:bot.description || '', is_bot:true } : {}) };
+      ? publicSocialUser({ ...users[0], username:null, avatar_url:null, display_name:'Удаленный аккаунт', description:'', is_deleted:true })
+      : publicSocialUser({ ...users[0], ...(bot ? { display_name:bot.display_name, description:bot.description || '', is_bot:true } : {}) });
     delete profile.role;
     let isFriend = false;
     if (viewerId && String(viewerId) !== String(targetId)) {
@@ -6757,6 +6776,109 @@ app.get('/api/social/profile/:targetId', async (req, res) => {
     res.json({ success: true, user: profile, isFriend });
   } catch (e) {
     res.json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/qwant/admin/verification/access', async (req, res) => {
+  const access = await getMessengerAdminAccess(req);
+  if(!access) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+  res.json({ success:true, canAccess:access.canAccess, canGrantFull:access.canGrantFull });
+});
+
+app.get('/api/qwant/admin/verification/users', async (req, res) => {
+  const access = await getMessengerAdminAccess(req);
+  if(!access) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+  if(!access.canAccess) return res.status(403).json({ success:false, error:'Нет доступа к панели администратора' });
+  const level = String(req.query.level || '');
+  if(!['basic', 'full'].includes(level)) return res.status(400).json({ success:false, error:'Выберите категорию верификации' });
+  try{
+    const query = new URLSearchParams({
+      select:'id,username,display_name,avatar_url,role,messenger_verification',
+      order:'username.asc',
+      limit:'500'
+    });
+    const response = await fetch(`${SB_URL}/rest/v1/users?${query}`, { headers:sbHeaders });
+    const users = await response.json();
+    if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось загрузить список пользователей');
+    const userIds = users.map(user => String(user.id));
+    const botsResponse = userIds.length
+      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=user_id`, { headers:sbHeaders })
+      : null;
+    const bots = botsResponse?.ok ? await botsResponse.json() : [];
+    if(botsResponse && !botsResponse.ok) throw new Error('Не удалось проверить профили ботов');
+    const botIds = new Set(bots.map(bot => String(bot.user_id)));
+    const verifiedUsers = users
+      .filter(user => !botIds.has(String(user.id)) && socialVerificationLevel(user) === level)
+      .map(user => ({ ...publicSocialUser(user), verification_locked:user.role === 'admin' || (!access.canGrantFull && socialVerificationLevel(user) === 'full') }));
+    res.json({ success:true, users:verifiedUsers });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить пользователей' });
+  }
+});
+
+app.get('/api/qwant/admin/verification/search', async (req, res) => {
+  const access = await getMessengerAdminAccess(req);
+  if(!access) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+  if(!access.canAccess) return res.status(403).json({ success:false, error:'Нет доступа к панели администратора' });
+  const term = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if(term.length < 2 || term.length > 40 || !/^[\p{L}\p{N}_. -]+$/u.test(term)) return res.json({ success:true, users:[] });
+  try{
+    const query = new URLSearchParams({
+      select:'id,username,display_name,avatar_url,role,messenger_verification',
+      or:`(username.ilike.*${term}*,display_name.ilike.*${term}*)`,
+      order:'username.asc',
+      limit:'30'
+    });
+    const response = await fetch(`${SB_URL}/rest/v1/users?${query}`, { headers:sbHeaders });
+    const users = await response.json();
+    if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось выполнить поиск пользователей');
+    const userIds = users.map(user => String(user.id));
+    const botsResponse = userIds.length
+      ? await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=in.(${userIds.map(encodeURIComponent).join(',')})&select=user_id`, { headers:sbHeaders })
+      : null;
+    const bots = botsResponse?.ok ? await botsResponse.json() : [];
+    if(botsResponse && !botsResponse.ok) throw new Error('Не удалось проверить профили ботов');
+    const botIds = new Set(bots.map(bot => String(bot.user_id)));
+    res.json({ success:true, users:users.filter(user => !botIds.has(String(user.id))).map(user => ({
+      ...publicSocialUser(user),
+      verification_locked:user.role === 'admin' || (!access.canGrantFull && socialVerificationLevel(user) === 'full')
+    })) });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось выполнить поиск' });
+  }
+});
+
+app.patch('/api/qwant/admin/verification/users/:userId', async (req, res) => {
+  const access = await getMessengerAdminAccess(req);
+  if(!access) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+  if(!access.canAccess) return res.status(403).json({ success:false, error:'Нет доступа к панели администратора' });
+  const userId = String(req.params.userId || '');
+  const level = req.body?.level;
+  if(!/^\d+$/.test(userId) || !['none', 'basic', 'full'].includes(level))
+    return res.status(400).json({ success:false, error:'Некорректный пользователь или тип верификации' });
+  if(level === 'full' && !access.canGrantFull)
+    return res.status(403).json({ success:false, error:'Полную верификацию может выдавать только системный администратор' });
+  try{
+    const userResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=id,username,display_name,avatar_url,role,messenger_verification&limit=1`, { headers:sbHeaders });
+    const users = await userResponse.json();
+    if(!userResponse.ok || !Array.isArray(users)) throw new Error('Не удалось проверить пользователя');
+    const target = users[0];
+    if(!target) return res.status(404).json({ success:false, error:'Пользователь не найден' });
+    if(target.role === 'admin') return res.status(409).json({ success:false, error:'Глобальный администратор уже имеет полную верификацию' });
+    if(!access.canGrantFull && socialVerificationLevel(target) === 'full')
+      return res.status(403).json({ success:false, error:'Полные аккаунты может изменять только системный администратор' });
+    const botResponse = await fetch(`${SB_URL}/rest/v1/qwant_bots?user_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`, { headers:sbHeaders });
+    const bots = await botResponse.json();
+    if(!botResponse.ok || !Array.isArray(bots)) throw new Error('Не удалось проверить профиль пользователя');
+    if(bots.length) return res.status(400).json({ success:false, error:'Верификация доступна только аккаунтам пользователей' });
+    const updateResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(userId)}&select=id,username,display_name,avatar_url,role,messenger_verification`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=representation' }, body:JSON.stringify({ messenger_verification:level })
+    });
+    const updated = await updateResponse.json();
+    if(!updateResponse.ok || !updated[0]) throw new Error('Не удалось сохранить верификацию. Проверьте миграцию qwant_messenger_verification.sql.');
+    res.json({ success:true, user:publicSocialUser(updated[0]) });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось изменить верификацию' });
   }
 });
 
@@ -7291,7 +7413,7 @@ app.get('/api/social/chat-users', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const query = String(req.query.q || '').trim().replace(/^@+/, '');
     if(!query || query.length > 32 || !/^[\p{L}\p{N}_]+$/u.test(query)) return res.json({ success:true, users:[] });
-    const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url&limit=25`, { headers:sbHeaders });
+    const response = await fetch(`${SB_URL}/rest/v1/users?username=ilike.*${encodeURIComponent(query)}*&select=id,username,display_name,avatar_url,role,messenger_verification&limit=25`, { headers:sbHeaders });
     const users = await response.json();
     if(!response.ok || !Array.isArray(users)) throw new Error('Не удалось найти пользователей');
     const botIds = users.map(candidate => String(candidate.id));
@@ -7310,7 +7432,7 @@ app.get('/api/social/chat-users', async (req, res) => {
       return rank(leftName) - rank(rightName) || leftName.length - rightName.length;
     });
     res.json({ success:true, users:results.slice(0, 15).map(candidate => ({
-      ...candidate,
+      ...publicSocialUser({ ...candidate, is_bot:botByUserId.has(String(candidate.id)) }),
       display_name:botByUserId.get(String(candidate.id))?.display_name || candidate.display_name || null,
       description:botByUserId.get(String(candidate.id))?.description || '',
       is_bot:botByUserId.has(String(candidate.id))
@@ -7503,11 +7625,11 @@ app.get('/api/social/group-chats/:groupId/messages', async (req, res) => {
     if(!response.ok || !Array.isArray(rows) || !membersResponse.ok || !Array.isArray(members)) throw new Error('Не удалось загрузить сообщения группы');
     const userIds = [...new Set(rows.flatMap(row => [row.sender_id, row.event_actor_id, row.event_target_id].filter(Boolean).map(String)))];
     const usersResponse = userIds.length
-      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders })
+      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url,role,messenger_verification`, { headers:sbHeaders })
       : null;
     const users = usersResponse ? await usersResponse.json() : [];
     if(usersResponse && (!usersResponse.ok || !Array.isArray(users))) throw new Error('Не удалось загрузить участников группы');
-    const userById = new Map(users.map(item => [String(item.id), item]));
+    const userById = new Map(users.map(item => [String(item.id), publicSocialUser(item)]));
     res.json({ success:true, messages:rows.reverse().map(row => ({
       ...row,
       conversation_id:row.group_id,
@@ -7603,10 +7725,10 @@ app.get('/api/social/group-chats/:groupId/members', async (req, res) => {
     const members = await response.json();
     if(!response.ok || !Array.isArray(members) || !members.some(member => String(member.user_id) === String(user.id))) return res.status(404).json({ success:false, error:'Группа не найдена' });
     const userIds = members.map(member => String(member.user_id));
-    const usersResponse = await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders });
+    const usersResponse = await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url,role,messenger_verification`, { headers:sbHeaders });
     const users = await usersResponse.json();
     if(!usersResponse.ok || !Array.isArray(users)) throw new Error('Не удалось загрузить участников');
-    const usersById = new Map(users.map(member => [String(member.id), member]));
+    const usersById = new Map(users.map(member => [String(member.id), publicSocialUser(member)]));
     res.json({ success:true, members:members.map(member => ({ ...usersById.get(String(member.user_id)), role:member.role })) });
   } catch(error) {
     res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить участников' });
@@ -7712,7 +7834,7 @@ app.get('/api/social/chats', async (req, res) => {
     ))];
     const conversationIds = visibleConversations.map(conversation => conversation.id);
     const [usersResponse, unreadResponse] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.join(',')})&select=id,username,display_name,avatar_url,role,messenger_verification`, { headers:sbHeaders }),
       fetch(`${SB_URL}/rest/v1/social_messages?conversation_id=in.(${conversationIds.join(',')})&recipient_id=eq.${user.id}&read_at=is.null&select=conversation_id`, { headers:sbHeaders })
     ]);
     const [partners, unreadMessages] = await Promise.all([usersResponse.json(), unreadResponse.json()]);
@@ -7722,7 +7844,7 @@ app.get('/api/social/chats', async (req, res) => {
       : null;
     if(botResponse && !botResponse.ok) throw new Error('Не удалось загрузить профили ботов');
     const bots = botResponse?.ok ? await botResponse.json() : [];
-    const partnerById = new Map(partners.map(partner => [String(partner.id), partner]));
+    const partnerById = new Map(partners.map(partner => [String(partner.id), publicSocialUser(partner)]));
     const botByUserId = new Map(bots.map(bot => [String(bot.user_id), bot]));
     const unreadByConversation = new Map();
     unreadMessages.forEach(message => unreadByConversation.set(message.conversation_id, (unreadByConversation.get(message.conversation_id) || 0) + 1));
@@ -7738,7 +7860,8 @@ app.get('/api/social/chats', async (req, res) => {
           display_name:deleted ? 'Удаленный аккаунт' : bot?.display_name || partnerById.get(String(partnerId))?.display_name || null,
           description:deleted ? '' : bot?.description || '',
           is_bot:!!bot,
-          is_deleted:deleted
+          is_deleted:deleted,
+          ...(bot || deleted ? { verification_level:'none', is_verified:false, is_official_admin:false } : {})
         },
         lastMessage:conversation.last_message_text,
         lastMessageSenderId:conversation.last_message_sender_id,
@@ -7828,7 +7951,7 @@ app.post('/api/social/chats', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const recipientId = String(req.body?.recipientId || '');
     if(!/^\d+$/.test(recipientId) || recipientId === String(user.id)) return res.status(400).json({ success:false, error:'Некорректный собеседник' });
-    const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,display_name,avatar_url`, { headers:sbHeaders });
+    const recipientResponse = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(recipientId)}&select=id,username,display_name,avatar_url,role,messenger_verification`, { headers:sbHeaders });
     const recipients = await recipientResponse.json();
     if(!recipientResponse.ok) throw new Error('Не удалось проверить пользователя');
     if(!recipients.length) return res.status(404).json({ success:false, error:'Пользователь не найден' });
@@ -7854,7 +7977,8 @@ app.post('/api/social/chats', async (req, res) => {
     const conversations = await conversationResponse.json();
     if(!conversationResponse.ok || !conversations[0]) throw new Error('Не удалось открыть чат');
     await unhideSocialConversation(user.id, conversations[0].id);
-    res.json({ success:true, conversation:conversations[0], partner:{ ...recipients[0], display_name:botRows[0]?.display_name || recipients[0].display_name || null, description:botRows[0]?.description || '', is_bot:botRows.length > 0, is_deleted:false } });
+    const recipient = publicSocialUser({ ...recipients[0], is_bot:botRows.length > 0 });
+    res.json({ success:true, conversation:conversations[0], partner:{ ...recipient, display_name:botRows[0]?.display_name || recipient.display_name || null, description:botRows[0]?.description || '', is_bot:botRows.length > 0, is_deleted:false } });
   } catch(error){
     res.status(500).json({ success:false, error:error.message || 'Не удалось открыть чат' });
   }
@@ -7921,11 +8045,11 @@ app.get('/api/social/calls/history', async (req, res) => {
     if(!response.ok || !Array.isArray(calls)) throw new Error('Не удалось загрузить историю звонков. Проверьте миграцию qwant_call_signals.sql.');
     const partnerIds = [...new Set(calls.map(call => String(call.caller_id) === String(user.id) ? String(call.recipient_id) : String(call.caller_id)))];
     const usersResponse = partnerIds.length
-      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders })
+      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${partnerIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url,role,messenger_verification`, { headers:sbHeaders })
       : null;
     const users = usersResponse ? await usersResponse.json() : [];
     if(usersResponse && (!usersResponse.ok || !Array.isArray(users))) throw new Error('Не удалось загрузить собеседников из истории звонков');
-    const userById = new Map(users.map(person => [String(person.id), person]));
+    const userById = new Map(users.map(person => [String(person.id), publicSocialUser(person)]));
     res.json({ success:true, calls:calls.map(call => {
       const outgoing = String(call.caller_id) === String(user.id);
       const partnerId = outgoing ? call.recipient_id : call.caller_id;
