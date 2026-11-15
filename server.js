@@ -7295,6 +7295,284 @@ app.get('/api/social/chat-users', async (req, res) => {
   }
 });
 
+app.get('/api/social/group-chats', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const membershipResponse = await fetch(`${SB_URL}/rest/v1/social_group_members?user_id=eq.${encodeURIComponent(user.id)}&select=group_id,role,last_read_at`, { headers:sbHeaders });
+    const memberships = await membershipResponse.json();
+    if(!membershipResponse.ok || !Array.isArray(memberships)) throw new Error('Не удалось загрузить группы. Проверьте миграцию qwant_social_groups.sql.');
+    if(!memberships.length) return res.json({ success:true, chats:[] });
+    const groupIds = memberships.map(row => row.group_id);
+    const [groupsResponse, membersResponse] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/social_group_conversations?id=in.(${groupIds.map(encodeURIComponent).join(',')})&select=id,title,description,avatar_url,invite_code,created_by,created_at,last_message_at,last_message_text,last_message_sender_id&order=last_message_at.desc.nullslast,created_at.desc`, { headers:sbHeaders }),
+      fetch(`${SB_URL}/rest/v1/social_group_members?group_id=in.(${groupIds.map(encodeURIComponent).join(',')})&select=group_id,user_id`, { headers:sbHeaders })
+    ]);
+    const [groups, members] = await Promise.all([groupsResponse.json(), membersResponse.json()]);
+    if(!groupsResponse.ok || !membersResponse.ok || !Array.isArray(groups) || !Array.isArray(members)) throw new Error('Не удалось загрузить группы');
+    const countByGroup = new Map();
+    members.forEach(member => countByGroup.set(member.group_id, (countByGroup.get(member.group_id) || 0) + 1));
+    res.json({ success:true, chats:groups.map(group => ({
+      id:group.id,
+      title:group.title,
+      description:group.description,
+      avatar_url:group.avatar_url,
+      inviteCode:group.invite_code,
+      is_group:true,
+      isAdmin:memberships.find(member => String(member.group_id) === String(group.id))?.role === 'admin',
+      memberCount:countByGroup.get(group.id) || 0,
+      lastMessage:group.last_message_text,
+      lastMessageAt:group.last_message_at,
+      lastMessageSenderId:group.last_message_sender_id,
+      unreadCount:0
+    })) });
+  } catch(error) {
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить группы' });
+  }
+});
+
+async function updateSocialGroupProfile(groupId, { title, description, avatarBase64, removeAvatar = false }) {
+  const updates = {};
+  if(title !== undefined) {
+    const value = typeof title === 'string' ? title.trim() : '';
+    if(!value || value.length > 60) throw new Error('Название должно содержать от 1 до 60 символов');
+    updates.title = value;
+  }
+  if(description !== undefined) {
+    if(typeof description !== 'string' || description.length > 500) throw new Error('Описание не должно превышать 500 символов');
+    updates.description = description.trim();
+  }
+  if(avatarBase64) {
+    const image = parseDataUrl(avatarBase64);
+    if(!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.mimeType)) throw new Error('Поддерживаются JPG, PNG и WEBP');
+    if(image.buffer.length > 5 * 1024 * 1024) throw new Error('Аватар не должен превышать 5 МБ');
+    const fileName = `group_${groupId}_${randomBytes(8).toString('hex')}.${image.ext}`;
+    const upload = await fetch(`${SB_URL}/storage/v1/object/social-group-media/${fileName}`, {
+      method:'POST',
+      headers:{ apikey:SB_SERVICE_KEY, Authorization:`Bearer ${SB_SERVICE_KEY}`, 'Content-Type':image.mimeType, 'x-upsert':'false' },
+      body:image.buffer
+    });
+    if(!upload.ok) throw new Error('Не удалось загрузить аватар группы');
+    updates.avatar_url = `${SB_URL}/storage/v1/object/public/social-group-media/${fileName}`;
+  } else if(removeAvatar) {
+    updates.avatar_url = null;
+  }
+  if(!Object.keys(updates).length) return null;
+  const response = await fetch(`${SB_URL}/rest/v1/social_group_conversations?id=eq.${encodeURIComponent(groupId)}&select=id,title,description,avatar_url,invite_code`, {
+    method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=representation' }, body:JSON.stringify(updates)
+  });
+  const rows = await response.json();
+  if(!response.ok || !rows[0]) throw new Error('Не удалось сохранить данные группы');
+  return rows[0];
+}
+
+app.get('/api/social/group-invites/:inviteCode', async (req, res) => {
+  const { inviteCode } = req.params;
+  if(!/^[a-f\d-]{36}$/i.test(inviteCode)) return res.status(404).json({ success:false, error:'Приглашение не найдено' });
+  try {
+    const response = await fetch(`${SB_URL}/rest/v1/social_group_conversations?invite_code=eq.${encodeURIComponent(inviteCode)}&select=id,title,description,avatar_url,invite_code&limit=1`, { headers:sbHeaders });
+    const groups = await response.json();
+    if(!response.ok) throw new Error('Не удалось загрузить приглашение');
+    if(!groups[0]) return res.status(404).json({ success:false, error:'Приглашение не найдено' });
+    const group = groups[0];
+    const [membersResponse, user] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/social_group_members?group_id=eq.${encodeURIComponent(group.id)}&select=user_id`, { headers:sbHeaders }),
+      authenticateSocialChat(req)
+    ]);
+    const members = await membersResponse.json();
+    if(!membersResponse.ok || !Array.isArray(members)) throw new Error('Не удалось загрузить группу');
+    const isMember = user ? members.some(member => String(member.user_id) === String(user.id)) : false;
+    res.json({ success:true, group:{
+      id:group.id,
+      title:group.title,
+      description:group.description || '',
+      avatar_url:group.avatar_url || null,
+      memberCount:members.length,
+      isMember
+    } });
+  } catch(error) {
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить приглашение' });
+  }
+});
+
+app.post('/api/social/group-invites/:inviteCode/join', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID, чтобы вступить в группу' });
+  const { inviteCode } = req.params;
+  if(!/^[a-f\d-]{36}$/i.test(inviteCode)) return res.status(404).json({ success:false, error:'Приглашение не найдено' });
+  try {
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/join_social_group`, {
+      method:'POST', headers:sbHeaders,
+      body:JSON.stringify({ p_invite_code:inviteCode, p_user_id:user.id })
+    });
+    const groups = await response.json();
+    if(!response.ok || !Array.isArray(groups) || !groups[0]) throw new Error(groups?.message || 'Не удалось вступить в группу');
+    res.json({ success:true, group:groups[0] });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось вступить в группу' });
+  }
+});
+
+app.post('/api/social/group-chats', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
+    const memberIds = Array.isArray(req.body?.memberIds) ? [...new Set(req.body.memberIds.map(String))] : [];
+    if(!title || title.length > 60 || memberIds.length < 1 || memberIds.length > 49 || memberIds.some(id => !/^\d+$/.test(id) || id === String(user.id))) {
+      return res.status(400).json({ success:false, error:'Укажите название и от 1 до 49 других участников' });
+    }
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/create_social_group`, {
+      method:'POST', headers:sbHeaders,
+      body:JSON.stringify({ p_creator_id:user.id, p_title:title, p_member_ids:memberIds })
+    });
+    const groups = await response.json();
+    if(!response.ok || !Array.isArray(groups) || !groups[0]) throw new Error('Не удалось создать группу. Проверьте миграцию qwant_social_groups.sql.');
+    const group = groups[0];
+    const savedProfile = await updateSocialGroupProfile(group.id, {
+      description:typeof req.body?.description === 'string' ? req.body.description : '',
+      ...(typeof req.body?.avatarBase64 === 'string' ? { avatarBase64:req.body.avatarBase64 } : {})
+    });
+    res.json({ success:true, group:{ ...group, ...(savedProfile || {}) } });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось создать группу' });
+  }
+});
+
+app.patch('/api/social/group-chats/:groupId/settings', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(groupId)) return res.status(400).json({ success:false, error:'Некорректная группа' });
+    const membershipResponse = await fetch(`${SB_URL}/rest/v1/social_group_members?group_id=eq.${encodeURIComponent(groupId)}&user_id=eq.${encodeURIComponent(user.id)}&select=role&limit=1`, { headers:sbHeaders });
+    const memberships = await membershipResponse.json();
+    if(!membershipResponse.ok || !memberships[0]) return res.status(404).json({ success:false, error:'Группа не найдена' });
+    if(memberships[0].role !== 'admin') return res.status(403).json({ success:false, error:'Настраивать группу может только администратор' });
+    const group = await updateSocialGroupProfile(groupId, {
+      ...(Object.hasOwn(req.body || {}, 'title') ? { title:req.body.title } : {}),
+      ...(Object.hasOwn(req.body || {}, 'description') ? { description:req.body.description } : {}),
+      ...(typeof req.body?.avatarBase64 === 'string' ? { avatarBase64:req.body.avatarBase64 } : {}),
+      ...(req.body?.removeAvatar === true ? { removeAvatar:true } : {})
+    });
+    if(!group) return res.status(400).json({ success:false, error:'Нет изменений для сохранения' });
+    res.json({ success:true, group });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось сохранить группу' });
+  }
+});
+
+app.get('/api/social/group-chats/:groupId/messages', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(groupId)) return res.status(400).json({ success:false, error:'Некорректная группа' });
+    const membership = await fetch(`${SB_URL}/rest/v1/social_group_members?group_id=eq.${encodeURIComponent(groupId)}&user_id=eq.${encodeURIComponent(user.id)}&select=group_id&limit=1`, { headers:sbHeaders });
+    if(!membership.ok || !(await membership.json()).length) return res.status(404).json({ success:false, error:'Группа не найдена' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_group_messages?group_id=eq.${encodeURIComponent(groupId)}&select=id,group_id,sender_id,body,reply_to_message_id,created_at,deleted_at&order=created_at.desc,id.desc&limit=100`, { headers:sbHeaders });
+    const rows = await response.json();
+    if(!response.ok || !Array.isArray(rows)) throw new Error('Не удалось загрузить сообщения группы');
+    const userIds = [...new Set(rows.map(row => String(row.sender_id)))];
+    const usersResponse = userIds.length
+      ? await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders })
+      : null;
+    const users = usersResponse ? await usersResponse.json() : [];
+    if(usersResponse && (!usersResponse.ok || !Array.isArray(users))) throw new Error('Не удалось загрузить участников группы');
+    const userById = new Map(users.map(item => [String(item.id), item]));
+    res.json({ success:true, messages:rows.reverse().map(row => ({
+      ...row,
+      conversation_id:row.group_id,
+      recipient_id:null,
+      message_type:'text',
+      image_url:null,
+      gift_payload:null,
+      read_at:null,
+      sender:userById.get(String(row.sender_id)) || { id:row.sender_id, display_name:'Участник' }
+    })) });
+  } catch(error) {
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить сообщения группы' });
+  }
+});
+
+app.post('/api/social/group-chats/:groupId/messages', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+    const replyToMessageId = typeof req.body?.replyToMessageId === 'string' && /^[0-9a-f-]{36}$/i.test(req.body.replyToMessageId) ? req.body.replyToMessageId : null;
+    if(!/^[0-9a-f-]{36}$/i.test(groupId)) return res.status(400).json({ success:false, error:'Некорректная группа' });
+    if(!body || body.length > 4000) return res.status(400).json({ success:false, error:'Сообщение должно содержать от 1 до 4000 символов' });
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/send_social_group_message`, {
+      method:'POST', headers:sbHeaders,
+      body:JSON.stringify({ p_group_id:groupId, p_sender_id:user.id, p_body:body, p_reply_to_message_id:replyToMessageId })
+    });
+    const rows = await response.json();
+    if(!response.ok || !Array.isArray(rows) || !rows[0]) throw new Error('Не удалось отправить сообщение в группу');
+    res.json({ success:true, message:{ ...rows[0], conversation_id:groupId, message_type:'text', sender:user } });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось отправить сообщение' });
+  }
+});
+
+app.get('/api/social/group-chats/:groupId/members', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(groupId)) return res.status(400).json({ success:false, error:'Некорректная группа' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_group_members?group_id=eq.${encodeURIComponent(groupId)}&select=user_id,role,joined_at&order=joined_at.asc`, { headers:sbHeaders });
+    const members = await response.json();
+    if(!response.ok || !Array.isArray(members) || !members.some(member => String(member.user_id) === String(user.id))) return res.status(404).json({ success:false, error:'Группа не найдена' });
+    const userIds = members.map(member => String(member.user_id));
+    const usersResponse = await fetch(`${SB_URL}/rest/v1/users?id=in.(${userIds.map(encodeURIComponent).join(',')})&select=id,username,display_name,avatar_url`, { headers:sbHeaders });
+    const users = await usersResponse.json();
+    if(!usersResponse.ok || !Array.isArray(users)) throw new Error('Не удалось загрузить участников');
+    const usersById = new Map(users.map(member => [String(member.id), member]));
+    res.json({ success:true, members:members.map(member => ({ ...usersById.get(String(member.user_id)), role:member.role })) });
+  } catch(error) {
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить участников' });
+  }
+});
+
+app.post('/api/social/group-chats/:groupId/members', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    const memberIds = Array.isArray(req.body?.memberIds) ? [...new Set(req.body.memberIds.map(String))] : [];
+    if(!/^[0-9a-f-]{36}$/i.test(groupId) || !memberIds.length || memberIds.length > 49 || memberIds.some(id => !/^\d+$/.test(id))) {
+      return res.status(400).json({ success:false, error:'Выберите от 1 до 49 пользователей' });
+    }
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/add_social_group_members`, {
+      method:'POST', headers:sbHeaders,
+      body:JSON.stringify({ p_group_id:groupId, p_actor_id:user.id, p_member_ids:memberIds })
+    });
+    const result = await response.json();
+    if(!response.ok) throw new Error(typeof result?.message === 'string' ? result.message : 'Не удалось добавить участников. Нужны права администратора.');
+    res.json({ success:true, added:Number(result) || 0 });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось добавить участников' });
+  }
+});
+
+app.post('/api/social/group-chats/:groupId/read', async (req, res) => {
+  try {
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { groupId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(groupId)) return res.status(400).json({ success:false, error:'Некорректная группа' });
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/mark_social_group_read`, {
+      method:'POST', headers:sbHeaders, body:JSON.stringify({ p_group_id:groupId, p_user_id:user.id })
+    });
+    if(!response.ok) throw new Error('Не удалось отметить группу прочитанной');
+    res.json({ success:true });
+  } catch(error) {
+    res.status(400).json({ success:false, error:error.message || 'Не удалось обновить группу' });
+  }
+});
+
 app.get('/api/social/chats', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
