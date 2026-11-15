@@ -7006,6 +7006,30 @@ app.patch('/api/qwant/profile/display-name', async (req, res) => {
   }
 });
 
+app.post('/api/qwant/profile/:asset', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Сессия завершена' });
+    const asset = req.params.asset === 'avatar' ? { bucket:'IDavatars', column:'avatar_url', maxBytes:5 * 1024 * 1024 }
+      : req.params.asset === 'banner' ? { bucket:'IDbanners', column:'banner_url', maxBytes:8 * 1024 * 1024 }
+        : null;
+    const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : '';
+    if(!asset || !imageBase64) return res.status(400).json({ success:false, error:'Выберите изображение' });
+    const image = parseDataUrl(imageBase64);
+    if(!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.mimeType)) return res.status(400).json({ success:false, error:'Поддерживаются JPG, PNG и WEBP' });
+    if(image.buffer.length > asset.maxBytes) return res.status(413).json({ success:false, error:`Размер изображения не должен превышать ${asset.maxBytes / (1024 * 1024)} МБ` });
+    const imageUrl = await uploadUserImage({ bucket:asset.bucket, userId:user.id, imageBase64, maxBytes:asset.maxBytes });
+    const response = await fetch(`${SB_URL}/rest/v1/users?id=eq.${encodeURIComponent(user.id)}&select=id`, {
+      method:'PATCH', headers:{ ...sbHeaders, Prefer:'return=representation' }, body:JSON.stringify({ [asset.column]:imageUrl })
+    });
+    const users = await response.json();
+    if(!response.ok || !users[0]) throw new Error('Не удалось сохранить изображение профиля');
+    res.json({ success:true, [`${req.params.asset}Url`]:imageUrl });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось сохранить изображение профиля' });
+  }
+});
+
 app.get('/api/qwant/bots', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
