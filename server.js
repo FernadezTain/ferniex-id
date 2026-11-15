@@ -7454,6 +7454,86 @@ app.post('/api/social/chats', async (req, res) => {
   }
 });
 
+app.get('/api/social/calls/config', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
+  const turnUrls = (process.env.WEBRTC_TURN_URLS || '').split(',').map(value => value.trim()).filter(Boolean);
+  const iceServers = [{ urls:'stun:stun.l.google.com:19302' }];
+  if(turnUrls.length && process.env.WEBRTC_TURN_SHARED_SECRET) {
+    const expires = Math.floor(Date.now() / 1000) + 600;
+    const username = `${expires}:${user.id}`;
+    iceServers.push({
+      urls:turnUrls,
+      username,
+      credential:createHmac('sha1', process.env.WEBRTC_TURN_SHARED_SECRET).update(username).digest('base64')
+    });
+  }
+  res.json({ success:true, iceServers });
+});
+
+app.get('/api/social/calls/signals', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
+  try {
+    const response = await fetch(`${SB_URL}/rest/v1/rpc/consume_qwant_call_signals`, {
+      method:'POST', headers:sbHeaders, body:JSON.stringify({ p_user_id:user.id })
+    });
+    const signals = await response.json();
+    if(!response.ok || !Array.isArray(signals)) throw new Error('Не удалось получить события звонка');
+    res.json({ success:true, signals:signals.map(signal => ({
+      id:signal.id,
+      conversationId:signal.conversation_id,
+      callId:signal.call_id,
+      senderId:String(signal.sender_id),
+      type:signal.signal_type,
+      payload:signal.payload || {},
+      createdAt:signal.created_at
+    })) });
+  } catch(error) {
+    console.error('Qwant call signal polling failed:', error.message);
+    res.status(503).json({ success:false, error:'Сигнализация звонков временно недоступна' });
+  }
+});
+
+app.post('/api/social/chats/:conversationId/call-signals', async (req, res) => {
+  const user = await authenticateSocialChat(req);
+  if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
+  const { conversationId } = req.params;
+  const callId = typeof req.body?.callId === 'string' ? req.body.callId : '';
+  const signalType = typeof req.body?.type === 'string' ? req.body.type : '';
+  const payload = req.body?.payload ?? {};
+  if(!/^[a-f\d-]{36}$/i.test(conversationId) || !/^[a-f\d-]{36}$/i.test(callId)
+    || !['invite', 'accepted', 'declined', 'offer', 'answer', 'ice', 'hangup'].includes(signalType)
+    || !payload || typeof payload !== 'object' || Array.isArray(payload) || Buffer.byteLength(JSON.stringify(payload)) > 24000) {
+    return res.status(400).json({ success:false, error:'Некорректное событие звонка' });
+  }
+  try {
+    const conversation = await getSocialConversation(conversationId, user.id);
+    if(!conversation) return res.status(404).json({ success:false, error:'Чат не найден' });
+    const recipientId = String(conversation.participant_one) === String(user.id)
+      ? conversation.participant_two
+      : conversation.participant_one;
+    const response = await fetch(`${SB_URL}/rest/v1/qwant_call_signals`, {
+      method:'POST',
+      headers:{ ...sbHeaders, Prefer:'return=minimal' },
+      body:JSON.stringify({
+        conversation_id:conversationId,
+        call_id:callId,
+        sender_id:user.id,
+        recipient_id:recipientId,
+        signal_type:signalType,
+        payload,
+        expires_at:new Date(Date.now() + (signalType === 'invite' ? 45000 : 10 * 60 * 1000)).toISOString()
+      })
+    });
+    if(!response.ok) throw new Error('Не удалось передать событие звонка');
+    res.json({ success:true });
+  } catch(error) {
+    console.error('Qwant call signal send failed:', error.message);
+    res.status(503).json({ success:false, error:'Не удалось передать событие звонка' });
+  }
+});
+
 app.get('/api/social/chats/:conversationId/messages', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
