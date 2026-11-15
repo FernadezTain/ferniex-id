@@ -7419,8 +7419,8 @@ app.post('/api/social/group-chats', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const title = typeof req.body?.title === 'string' ? req.body.title.trim() : '';
     const memberIds = Array.isArray(req.body?.memberIds) ? [...new Set(req.body.memberIds.map(String))] : [];
-    if(!title || title.length > 60 || memberIds.length < 1 || memberIds.length > 49 || memberIds.some(id => !/^\d+$/.test(id) || id === String(user.id))) {
-      return res.status(400).json({ success:false, error:'Укажите название и от 1 до 49 других участников' });
+    if(!title || title.length > 60 || memberIds.length > 49 || memberIds.some(id => !/^\d+$/.test(id) || id === String(user.id))) {
+      return res.status(400).json({ success:false, error:'Укажите название и не более 49 других участников' });
     }
     const response = await fetch(`${SB_URL}/rest/v1/rpc/create_social_group`, {
       method:'POST', headers:sbHeaders,
