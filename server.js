@@ -7342,6 +7342,61 @@ app.get('/api/social/chats', async (req, res) => {
   }
 });
 
+app.get('/api/social/favorites/messages', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const query = new URLSearchParams({
+      user_id:`eq.${user.id}`,
+      select:'id,body,created_at',
+      order:'created_at.desc,id.desc',
+      limit:'500'
+    });
+    const response = await fetch(`${SB_URL}/rest/v1/social_favorite_messages?${query}`, { headers:sbHeaders });
+    const rows = await response.json();
+    if(!response.ok || !Array.isArray(rows)) throw new Error('Не удалось загрузить Избранное. Проверьте миграцию social_chats.sql.');
+    res.json({ success:true, messages:rows.reverse() });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось загрузить Избранное' });
+  }
+});
+
+app.post('/api/social/favorites/messages', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
+    if(!body || body.length > 4000) return res.status(400).json({ success:false, error:'Заметка должна содержать от 1 до 4000 символов' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_favorite_messages`, {
+      method:'POST', headers:{ ...sbHeaders, Prefer:'return=representation' },
+      body:JSON.stringify({ user_id:user.id, body })
+    });
+    const rows = await response.json();
+    if(!response.ok || !rows[0]) throw new Error('Не удалось сохранить заметку. Проверьте миграцию social_chats.sql.');
+    res.json({ success:true, message:rows[0] });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось сохранить заметку' });
+  }
+});
+
+app.delete('/api/social/favorites/messages/:messageId', async (req, res) => {
+  try{
+    const user = await authenticateSocialChat(req);
+    if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
+    const { messageId } = req.params;
+    if(!/^[0-9a-f-]{36}$/i.test(messageId)) return res.status(400).json({ success:false, error:'Некорректная заметка' });
+    const response = await fetch(`${SB_URL}/rest/v1/social_favorite_messages?id=eq.${encodeURIComponent(messageId)}&user_id=eq.${encodeURIComponent(user.id)}`, {
+      method:'DELETE', headers:{ ...sbHeaders, Prefer:'return=representation' }
+    });
+    const deleted = await response.json();
+    if(!response.ok) throw new Error('Не удалось удалить заметку');
+    if(!deleted.length) return res.status(404).json({ success:false, error:'Заметка не найдена' });
+    res.json({ success:true });
+  } catch(error){
+    res.status(500).json({ success:false, error:error.message || 'Не удалось удалить заметку' });
+  }
+});
+
 app.post('/api/social/chats', async (req, res) => {
   try{
     const user = await authenticateSocialChat(req);
