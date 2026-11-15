@@ -7861,6 +7861,31 @@ app.get('/api/social/calls/config', async (req, res) => {
   res.json({ success:true, iceServers });
 });
 
+app.get('/api/social/media/:bucket/:fileName', async (req, res) => {
+  const allowedBuckets = new Set(['IDavatars', 'IDbanners', 'social-chat-media', 'social-group-media']);
+  const { bucket, fileName } = req.params;
+  if(!allowedBuckets.has(bucket) || !/^[A-Za-z0-9._-]{1,200}$/.test(fileName)) {
+    return res.status(400).json({ success:false, error:'Некорректное изображение' });
+  }
+  try {
+    const url = `${SB_URL.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${encodeURIComponent(fileName)}`;
+    const response = await fetch(url);
+    if(!response.ok) return res.status(response.status).end();
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    if(!contentType.startsWith('image/')) return res.status(415).end();
+    const declaredSize = Number(response.headers.get('content-length')) || 0;
+    if(declaredSize > 15 * 1024 * 1024) return res.status(413).end();
+    const image = Buffer.from(await response.arrayBuffer());
+    if(image.length > 15 * 1024 * 1024) return res.status(413).end();
+    res.set('Content-Type', contentType);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.status(200).send(image);
+  } catch(error) {
+    console.error('Social media proxy failed:', error.message);
+    res.status(502).end();
+  }
+});
+
 app.get('/api/social/calls/history', async (req, res) => {
   try {
     const user = await authenticateSocialChat(req);
