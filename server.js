@@ -7890,12 +7890,16 @@ app.get('/api/social/calls/history', async (req, res) => {
   try {
     const user = await authenticateSocialChat(req);
     if(!user) return res.status(401).json({ success:false, error:'Войдите в FernieID' });
+    const conversationId = String(req.query.conversationId || '');
+    if(conversationId && !/^[a-f\d-]{36}$/i.test(conversationId))
+      return res.status(400).json({ success:false, error:'Некорректный ID переписки' });
     const filters = new URLSearchParams({
       select:'call_id,conversation_id,caller_id,recipient_id,status,started_at,accepted_at,ended_at,duration_seconds',
       or:`(caller_id.eq.${user.id},recipient_id.eq.${user.id})`,
       order:'started_at.desc,call_id.desc',
       limit:'100'
     });
+    if(conversationId) filters.set('conversation_id', `eq.${conversationId}`);
     const response = await fetch(`${SB_URL}/rest/v1/qwant_call_history?${filters}`, { headers:sbHeaders });
     const calls = await response.json();
     if(!response.ok || !Array.isArray(calls)) throw new Error('Не удалось загрузить историю звонков. Проверьте миграцию qwant_call_signals.sql.');
