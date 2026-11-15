@@ -7776,24 +7776,19 @@ app.post('/api/social/favorites/messages', async (req, res) => {
     if(!user) return res.status(401).json({ success:false, error:'Требуется войти в аккаунт' });
     const body = typeof req.body?.body === 'string' ? req.body.body.trim() : '';
     const imageBase64 = typeof req.body?.imageBase64 === 'string' ? req.body.imageBase64 : '';
-    if(body.length > 4000 || (!body && !imageBase64)) return res.status(400).json({ success:false, error:'Добавьте текст или фотографию (текст до 4000 символов)' });
+    if((!body && !imageBase64) || body.length > 4000) return res.status(400).json({ success:false, error:'Добавьте текст или фотографию (текст до 4000 символов)' });
     let imageUrl = null;
-    if(imageBase64) {
+    if(imageBase64){
       const image = parseDataUrl(imageBase64);
-      if(!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.mimeType))
-        return res.status(400).json({ success:false, error:'Поддерживаются изображения JPG, PNG и WEBP' });
-      if(image.buffer.length > 8 * 1024 * 1024)
-        return res.status(413).json({ success:false, error:'Размер фотографии не должен превышать 8 МБ' });
+      if(!image || !['image/jpeg', 'image/png', 'image/webp'].includes(image.mimeType)) return res.status(400).json({ success:false, error:'Поддерживаются изображения JPG, PNG и WEBP' });
+      if(image.buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success:false, error:'Размер фотографии не должен превышать 8 МБ' });
       const fileName = `favorite_${user.id}_${randomBytes(12).toString('hex')}.${image.ext}`;
       const uploadResponse = await fetch(`${SB_URL}/storage/v1/object/social-chat-media/${fileName}`, {
         method:'POST',
         headers:{ apikey:SB_SERVICE_KEY, Authorization:`Bearer ${SB_SERVICE_KEY}`, 'Content-Type':image.mimeType, 'x-upsert':'false' },
         body:image.buffer
       });
-      if(!uploadResponse.ok) {
-        console.error('[social favorites] image upload failed:', (await uploadResponse.text()).slice(0, 500));
-        throw new Error('Не удалось загрузить фотографию');
-      }
+      if(!uploadResponse.ok) throw new Error('Не удалось загрузить фотографию');
       imageUrl = `${SB_URL}/storage/v1/object/public/social-chat-media/${fileName}`;
     }
     const response = await fetch(`${SB_URL}/rest/v1/social_favorite_messages`, {
